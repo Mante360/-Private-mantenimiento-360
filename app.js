@@ -186,7 +186,27 @@ if(s==='professional-quotes'){
 
   return;
 }
-  
+  if(s==='professional-confirmed'){
+  app.innerHTML=layout(`<main class="page">
+    ${back('Trabajos confirmados')}
+
+    <div class="card">
+      <h2>🧰 Trabajos confirmados</h2>
+      <p>Trabajos aceptados por clientes.</p>
+    </div>
+
+    <div class="card">
+      <b>Electricidad</b>
+      <p>📍 San Isidro</p>
+      <p>Revisión de instalación eléctrica</p>
+      <p><b>Estado:</b> ✅ Confirmado</p>
+      <p><b>Profesional:</b> Carlos Rodríguez</p>
+    </div>
+
+  </main>`,'trabajos');
+
+  return;
+}
   if(s==='professional-request-detail'){
   app.innerHTML=layout(`<main class="page">
     <div class="form">
