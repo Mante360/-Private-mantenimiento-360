@@ -229,7 +229,7 @@ if(s==='professional-quotes'){
       💬 Mensajes
     </button>
 
-    <button class="btn btn-primary full" type="button" onclick="alert('Trabajo iniciado correctamente.')">
+    <button class="btn btn-primary full" type="button" onclick="startConfirmedJob()"
       ▶️ Iniciar trabajo
     </button>
 
@@ -496,3 +496,17 @@ localStorage.setItem('professionalQuote', JSON.stringify(quote));
   go('professional-home');
 }
 render();
+function startConfirmedJob(){
+  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  if(!quote){
+    alert('No hay un trabajo confirmado.');
+    return;
+  }
+
+  quote.status = 'En curso';
+  localStorage.setItem('professionalQuote', JSON.stringify(quote));
+
+  alert('Trabajo iniciado correctamente.');
+  go('professional-confirmed-detail');
+}
