@@ -151,7 +151,8 @@ function render(){
           <p>Equipo split no enfría correctamente.</p>
         </div>
 
-        <button class="btn btn-outline">
+        <button type="button" class="btn btn-outline"
+        onclick="go('professional-request-detail')">
           Ver solicitud
         </button>
       </div>
