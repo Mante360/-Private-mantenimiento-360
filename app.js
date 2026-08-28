@@ -99,10 +99,10 @@ function render(){
   <b>Mis presupuestos</b>
 </button>
 
-      <div class="card specialty">
-        <div class="icon">🧰</div>
-        <b>Trabajos confirmados</b>
-      </div>
+      <button class="card specialty" type="button" onclick="go('professional-confirmed')" style="cursor:pointer;width:100%;text-align:left">
+  <div class="icon">🧰</div>
+  <b>Trabajos confirmados</b>
+</button>
 
       <div class="card specialty">
         <div class="icon">💬</div>
