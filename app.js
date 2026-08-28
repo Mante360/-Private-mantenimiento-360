@@ -31,14 +31,14 @@ function layout(content, active='inicio', titleBrand=true){
       <div class="userdot">👤</div>
     </header>
     ${content}
-    <nav class="bottomnav">
-      <button class="${active==='inicio'?'active':''}" onclick="go('home')">⌂<br>Inicio</button>
-      <button class="${active==='trabajos'?'active':''}" onclick="go('jobs')">🧰<br>Trabajos</button>
-      <button class="${active==='mensajes'?'active':''}" onclick="go('chat')">💬<br>Mensajes</button>
-      <button class="${active==='pecon vs
-        rfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
-    </nav>
-  </div>`;
+ 
+ <nav class="bottomnav">
+  <button class="${active==='inicio'?'active':''}" onclick="go('home')">⌂<br>Inicio</button>
+  <button class="${active==='trabajos'?'active':''}" onclick="go('jobs')">🧰<br>Trabajos</button>
+  <button class="${active==='mensajes'?'active':''}" onclick="go('chat')">💬<br>Mensajes</button>
+  <button class="${active==='perfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
+</nav>
+</div>`;
 }
 
 function back(title){
