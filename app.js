@@ -442,9 +442,11 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
   if(s==='jobs'){
     app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
       <div class="list">
+       <h3>🟢 Trabajos activos</h3>
         <div class="card pro"><div><b>${state.job.service}</b><div class="notice" style="margin:4px 0">${state.job.professional} · ${state.job.locality}</div></div><span class="badge ${state.job.status==='Finalizado'?'':'blue'}">${state.job.status}</span></div>
+        <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
         <div class="card pro"><div><b>Mantenimiento preventivo</b><div class="notice" style="margin:4px 0">María Gómez · Vicente López</div></div><span class="badge">Finalizado</span></div>
-      </div>
+     </div>
       <button class="btn btn-primary" style="margin-top:18px" onclick="go('contracted')">Ver trabajo seleccionado</button>
     </main>`,'trabajos');
     return;
