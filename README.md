@@ -1,16 +1,23 @@
-# Mantenimiento 360° — Frontend demo v0.2
+# Backend Mantenimiento 360°
 
-Versión navegable para Render.
+Backend inicial listo para Render + PostgreSQL.
 
-Novedades v0.2:
-- Trabajo contratado después del pago
-- Mis trabajos y estados
-- Chat demo
-- Reclamos privados (demo)
-- Finalización del trabajo
-- Calificación del profesional
+Incluye:
+- `GET /health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/jobs`
+- `GET /api/jobs`
+- `POST /api/claims`
 
-Importante:
-- No hay cobros reales.
-- No hay base de datos real todavía.
-- Los datos se reinician al recargar la página.
+## Render
+Si se sube esta carpeta dentro del repositorio principal como `backend/`:
+- Root Directory: `backend`
+- Build Command: `npm install && npm run build`
+- Start Command: `npm start`
+- Variables: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN`
+
+## Base de datos
+Ejecutar `sql/schema.sql` una sola vez sobre PostgreSQL antes de usar los endpoints.
+
+No usar datos sensibles reales hasta completar autenticación/autorización por roles y revisión de producción.

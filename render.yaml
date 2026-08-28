@@ -1,6 +1,16 @@
 services:
   - type: web
-    name: mantenimiento-360
-    runtime: static
-    buildCommand: echo "No build required"
-    staticPublishPath: .
+    name: mantenimiento-360-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_ORIGIN
+        value: https://mantenimiento-360.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
