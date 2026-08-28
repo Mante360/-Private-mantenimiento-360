@@ -292,9 +292,61 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
         <div class="card specialty"><div class="icon">❄️</div><b>Refrigeración</b></div>
         <div class="card specialty"><div class="icon">🔧</div><b>Plomería</b></div>
       </div>
+    ${(() => {
+  const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'null');
+  if(!q || q.status !== 'Finalizado') return '';
+
+  return `
+    <div class="card" style="margin-top:20px">
+      <h2>🏁 Trabajo finalizado</h2>
+      <p><b>Profesional:</b> Carlos Rodríguez</p>
+      <p><b>Servicio:</b> ${q.specialty || 'Electricidad'}</p>
+      <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
+
+      ${savedRating
+  ? '<button class="btn btn-primary full" type="button" disabled>✅ Profesional calificado</button>'
+  : '<button class="btn btn-primary full" type="button" onclick="go(\'rating\')">⭐ Calificar profesional</button>'
+}
+    </div>
+  `;
+})()}
     </main>`,'inicio');
     return;
   }
+  if(s==='rating'){
+  app.innerHTML=layout(`<main class="page">
+    ${back('Calificar profesional')}
+
+    <div class="card">
+      <h2>⭐ Calificar profesional</h2>
+      <p><b>Profesional:</b> Carlos Rodríguez</p>
+      <p>¿Cómo fue tu experiencia?</p>
+
+      <div style="font-size:32px;margin:20px 0">
+        <button type="button" onclick="selectRating(1)">⭐</button>
+        <button type="button" onclick="selectRating(2)">⭐</button>
+        <button type="button" onclick="selectRating(3)">⭐</button>
+        <button type="button" onclick="selectRating(4)">⭐</button>
+        <button type="button" onclick="selectRating(5)">⭐</button>
+      </div>
+
+      <p id="ratingText">Seleccioná de 1 a 5 estrellas.</p>
+
+      <textarea id="ratingComment"
+        placeholder="Contanos cómo fue el trabajo..."
+        style="width:100%;min-height:120px"></textarea>
+
+      <button class="btn btn-primary full"
+        type="button"
+        onclick="submitRating()">
+        Enviar calificación
+      </button>
+    </div>
+  </main>`,'trabajos');
+
+  return;
+}
   if(s==='request'){
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Solicitar servicio')}
       <div class="field"><label>¿Qué servicio necesitás?</label><select id="service"><option>Electricidad</option><option>Refrigeración</option><option>Plomería</option><option>Pintura</option><option>Carpintería</option></select></div>
@@ -532,4 +584,36 @@ function finishConfirmedJob(){
 
   alert('Trabajo finalizado correctamente.');
   go('professional-confirmed-detail');
+}
+let selectedRating = 0;
+
+function selectRating(value){
+  selectedRating = value;
+
+  const text = document.getElementById('ratingText');
+  if(text){
+    text.textContent = 'Seleccionaste ' + value + ' estrella' + (value > 1 ? 's' : '') + '.';
+  }
+
+}
+
+function submitRating(){
+  if(selectedRating === 0){
+    alert('Seleccioná una calificación de 1 a 5 estrellas.');
+    return;
+  }
+
+  const comment = document.getElementById('ratingComment')?.value.trim() || '';
+
+  const rating = {
+    stars: selectedRating,
+    comment: comment,
+    professional: 'Carlos Rodríguez',
+    createdAt: new Date().toISOString()
+  };
+
+  localStorage.setItem('professionalRating', JSON.stringify(rating));
+
+  alert('Calificación enviada correctamente. ¡Gracias!');
+  go('home');
 }
