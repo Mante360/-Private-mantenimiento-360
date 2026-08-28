@@ -187,7 +187,8 @@ if(s==='professional-quotes'){
   return;
 }
   if(s==='professional-confirmed'){
-  app.innerHTML=layout(`<main class="page">
+  const confirmedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+    app.innerHTML=layout(`<main class="page">
     ${back('Trabajos confirmados')}
 
     <div class="card">
@@ -196,12 +197,13 @@ if(s==='professional-quotes'){
     </div>
 
     <div class="card">
-      <b>Electricidad</b>
-      <p>📍 San Isidro</p>
-      <p>Revisión de instalación eléctrica</p>
-      <p><b>Estado:</b> ✅ Confirmado</p>
-      <p><b>Profesional:</b> Carlos Rodríguez</p>
-    </div>
+  <b>${confirmedQuote ? confirmedQuote.specialty : 'Electricidad'}</b>
+  <p>📍 ${confirmedQuote ? confirmedQuote.location : 'San Isidro'}</p>
+  <p>${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
+  <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
+  <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
+  <p><b>Estado:</b> ✅ Confirmado</p>
+</div>
 
   </main>`,'trabajos');
 
