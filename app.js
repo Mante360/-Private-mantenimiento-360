@@ -1,6 +1,7 @@
 
 const state = {
   screen: 'splash',
+  mode: null,
   selectedProfessional: {name:'Carlos Rodríguez', trade:'Electricista', rating:'4.9', jobs:127},
   job: {
     id:'360-00125',
@@ -55,8 +56,26 @@ function historyBack(){
 function render(){
   const s=state.screen;
   if(s==='splash'){
-    app.innerHTML=`<div class="splash"><div><div class="big">360°</div><h1>MANTENIMIENTO 360°</h1><p>Servicios integrales, profesionales verificados.</p><button class="btn btn-light" onclick="go('home')">Comenzar</button></div></div>`;
+    app.innerHTML=`<div class="splash"><div><div class="big">360°</div><h1>MANTENIMIENTO 360°</h1><p>Servicios integrales, profesionales verificados.</p><button class="btn btn-light" onclick="go('role')">Comenzar</button></div></div>`;
     return;
+  }
+ if(s==='role'){
+  app.innerHTML=`<div class="splash">
+    <div>
+      <div class="big">360°</div>
+      <h1>¿Cómo querés ingresar?</h1>
+      <p>Elegí tu tipo de cuenta</p>
+
+      <button class="btn btn-light" onclick="state.mode='client'; go('home')">
+        👤 Soy cliente
+      </button>
+
+      <button class="btn btn-light" style="margin-left:10px" onclick="state.mode='professional'; go('professional-home')">
+        🧰 Soy profesional
+      </button>
+    </div>
+  </div>`;
+  return;
   }
   if(s==='home'){
     app.innerHTML=layout(`<main class="page">
