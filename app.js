@@ -226,7 +226,7 @@ function selectPro(i){
   const names=['Carlos Rodríguez','María Romero','Diego Fernández','Norte Servicios'];
   state.selectedProfessionalIndex=i;
   state.job.professional=names[i];
-  go('professional-detail')
+  go('professional-detail');
 }
 function confirmPayment(){
   state.job.status='Confirmado';
