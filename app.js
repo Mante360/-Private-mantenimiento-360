@@ -90,11 +90,10 @@ function render(){
 
     <h3 class="section-title">Mi actividad</h3>
 
-    <div class="grid">
-      <div class="card specialty">
-        <div class="icon">📥</div>
-        <b>Solicitudes disponibles</b>
-      </div>
+    <div class="card specialty" onclick="go('professional-requests')" style="cursor:pointer">
+  <div class="icon">📥</div>
+  <b>Solicitudes disponibles</b>
+</div>
 
       <div class="card specialty">
         <div class="icon">💰</div>
@@ -122,6 +121,45 @@ function render(){
       </div>
     </div>
   </main>`,'inicio');
+
+  return;
+}
+ if(s==='professional-requests'){
+  app.innerHTML=layout(`<main class="page">
+    ${back('Solicitudes disponibles')}
+
+    <div class="list">
+
+      <div class="card pro">
+        <div>
+          <b>Electricidad</b>
+          <div class="notice" style="margin:4px 0">
+            San Isidro · Revisión de instalación eléctrica
+          </div>
+          <p>Cliente solicita revisión de tablero y tomacorrientes.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="go('professional-request-detail')">
+          Ver solicitud
+        </button>
+      </div>
+
+      <div class="card pro">
+        <div>
+          <b>Refrigeración</b>
+          <div class="notice" style="margin:4px 0">
+            Vicente López · Aire acondicionado
+          </div>
+          <p>Equipo split no enfría correctamente.</p>
+        </div>
+
+        <button class="btn btn-outline">
+          Ver solicitud
+        </button>
+      </div>
+
+    </div>
+  </main>`,'trabajos');
 
   return;
 }
