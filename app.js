@@ -77,6 +77,54 @@ function render(){
   </div>`;
   return;
   }
+ if(s==='professional-home'){
+  app.innerHTML=layout(`<main class="page">
+    <section class="hero">
+      <div>
+        <small>PANEL PROFESIONAL</small>
+        <h1>Hola, profesional.</h1>
+        <p>Desde acá vas a poder recibir solicitudes, enviar presupuestos y gestionar tus trabajos.</p>
+      </div>
+      <div class="big360">360°</div>
+    </section>
+
+    <h3 class="section-title">Mi actividad</h3>
+
+    <div class="grid">
+      <div class="card specialty">
+        <div class="icon">📥</div>
+        <b>Solicitudes disponibles</b>
+      </div>
+
+      <div class="card specialty">
+        <div class="icon">💰</div>
+        <b>Mis presupuestos</b>
+      </div>
+
+      <div class="card specialty">
+        <div class="icon">🧰</div>
+        <b>Trabajos confirmados</b>
+      </div>
+
+      <div class="card specialty">
+        <div class="icon">💬</div>
+        <b>Mensajes</b>
+      </div>
+
+      <div class="card specialty">
+        <div class="icon">👤</div>
+        <b>Mi perfil</b>
+      </div>
+
+      <div class="card specialty">
+        <div class="icon">✅</div>
+        <b>Profesional verificado</b>
+      </div>
+    </div>
+  </main>`,'inicio');
+
+  return;
+}
   if(s==='home'){
     app.innerHTML=layout(`<main class="page">
       <section class="hero">
