@@ -164,6 +164,7 @@ function render(){
   return;
 }
 if(s==='professional-quotes'){
+  const savedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
   app.innerHTML=layout(`<main class="page">
     ${back('Mis presupuestos')}
 
@@ -173,12 +174,13 @@ if(s==='professional-quotes'){
     </div>
 
     <div class="card">
-      <b>Electricidad</b>
-      <p>📍 San Isidro</p>
-      <p>Revisión de instalación eléctrica</p>
-      <p><b>Importe: $85.000</b></p>
-      <p>Estado: ⏳ Esperando respuesta del cliente</p>
-    </div>
+  <b>${savedQuote ? savedQuote.specialty : 'Electricidad'}</b>
+  <p>📍 ${savedQuote ? savedQuote.location : 'San Isidro'}</p>
+  <p>${savedQuote ? savedQuote.job : 'Revisión de instalación eléctrica'}</p>
+  <p><b>Importe: $${savedQuote ? Number(savedQuote.amount).toLocaleString('es-AR') : '0'}</b></p>
+  <p>Detalle: ${savedQuote ? savedQuote.text : 'Sin detalle'}</p>
+  <p>Estado: ⏳ ${savedQuote ? savedQuote.status : 'Sin presupuesto enviado'}</p>
+</div>
 
   </main>`,'trabajos');
 
@@ -430,7 +432,16 @@ function sendProfessionalQuote(){
     alert('Agregá un detalle del presupuesto.');
     return;
   }
+const quote = {
+  amount: amount,
+  text: text,
+  specialty: 'Electricidad',
+  location: 'San Isidro',
+  job: 'Revisión de instalación eléctrica',
+  status: 'Esperando respuesta del cliente'
+};
 
+localStorage.setItem('professionalQuote', JSON.stringify(quote));
   alert('Presupuesto enviado correctamente.');
   go('professional-home');
 }
