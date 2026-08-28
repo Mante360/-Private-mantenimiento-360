@@ -196,14 +196,42 @@ if(s==='professional-quotes'){
       <p>Trabajos aceptados por clientes.</p>
     </div>
 
-    <div class="card">
+   <button class="card" type="button" onclick="go('professional-confirmed-detail')" style="cursor:pointer;width:100%;text-align:left">
   <b>${confirmedQuote ? confirmedQuote.specialty : 'Electricidad'}</b>
   <p>📍 ${confirmedQuote ? confirmedQuote.location : 'San Isidro'}</p>
   <p>${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
   <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
   <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
   <p><b>Estado:</b> ✅ Confirmado</p>
-</div>
+</button>
+
+  </main>`,'trabajos');
+
+  return;
+}
+ if(s==='professional-confirmed-detail'){
+  const confirmedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  app.innerHTML=layout(`<main class="page">
+    ${back('Detalle del trabajo')}
+
+    <div class="card">
+      <h2>🧰 Trabajo confirmado</h2>
+      <p><b>Servicio:</b> ${confirmedQuote ? confirmedQuote.specialty : 'Electricidad'}</p>
+      <p><b>Localidad:</b> ${confirmedQuote ? confirmedQuote.location : 'San Isidro'}</p>
+      <p><b>Trabajo:</b> ${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
+      <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
+      <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
+      <p><b>Estado:</b> ✅ Confirmado</p>
+    </div>
+
+    <button class="btn btn-primary full" type="button" onclick="go('chat')">
+      💬 Mensajes
+    </button>
+
+    <button class="btn btn-primary full" type="button" onclick="alert('Trabajo iniciado correctamente.')">
+      ▶️ Iniciar trabajo
+    </button>
 
   </main>`,'trabajos');
 
