@@ -102,6 +102,40 @@ function render(){
     </main>`,'inicio');
     return;
   }
+  if(s==='professional-detail'){
+  const pros=[
+    ['Carlos Rodriguez','Electricista','127','4.9'],
+    ['Maria Romero','Refrigeración','94','4.8'],
+    ['Diego Fernández','Plomería','81','4.7'],
+    ['Norte Servicios','Mantenimiento integral','210','5.0']
+  ];
+
+  const p=pros[state.selectedProfessionalIndex || 0];
+
+  app.innerHTML=layout(`<main class="page"><div class="form">
+    ${back('Perfil profesional')}
+
+    <div class="card">
+      <h2>${p[0]}</h2>
+      <p><b>${p[1]}</b></p>
+      <p>⭐ ${p[3]} · ${p[2]} trabajos realizados</p>
+      <p>✓ Profesional verificado</p>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3>Información profesional</h3>
+      <p>Especialidad: ${p[1]}</p>
+      <p>Experiencia comprobada en Mantenimiento 360°.</p>
+      <p>Identidad verificada por la plataforma.</p>
+    </div>
+
+    <button class="btn btn-primary full" style="margin-top:20px"
+      onclick="go('payment')">Elegir profesional</button>
+
+  </div></main>`,'inicio');
+  return;
+}
+  
   if(s==='payment'){
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Confirmar pago')}
       <div class="card"><div>Presupuesto aprobado</div><div class="money">${money(state.job.amount)}</div><small>Servicio + materiales según presupuesto</small></div>
@@ -190,8 +224,9 @@ function saveRequest(){
 }
 function selectPro(i){
   const names=['Carlos Rodríguez','María Romero','Diego Fernández','Norte Servicios'];
+  state.selectedProfessionalIndex=i;
   state.job.professional=names[i];
-  go('payment');
+  go('profesional-datail')
 }
 function confirmPayment(){
   state.job.status='Confirmado';
