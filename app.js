@@ -89,12 +89,10 @@ function render(){
     </section>
 
     <h3 class="section-title">Mi actividad</h3>
-
-    <div class="card specialty" onclick="go('professional-requests')" style="cursor:pointer">
+<button class="card specialty" type="button" onclick="go('professional-requests')" style="cursor:pointer;width:100%;text-align:left">
   <div class="icon">📥</div>
   <b>Solicitudes disponibles</b>
-</div>
-
+</button>
       <div class="card specialty">
         <div class="icon">💰</div>
         <b>Mis presupuestos</b>
