@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: mantenimiento-360
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1220">
+  <title>Mantenimiento 360° | Servicios Integrales</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <section id="splash" class="screen active">
+      <div class="logo-mark"><span>360</span><small>°</small></div>
+      <h1>MANTENIMIENTO <b>360°</b></h1>
+      <p>Servicios integrales, profesionales verificados.</p>
+      <button class="primary" onclick="go('home')">Comenzar</button>
+    </section>
+
+    <section id="home" class="screen">
+      <header class="topbar">
+        <div class="brand"><span class="mini-logo">360°</span><strong>Mantenimiento 360°</strong></div>
+        <button class="icon-btn" onclick="go('profile')" aria-label="Perfil">👤</button>
+      </header>
+      <main class="container">
+        <div class="hero">
+          <div>
+            <span class="tag">SERVICIOS INTEGRALES</span>
+            <h2>Encontrá al profesional que necesitás.</h2>
+            <p>Solicitá presupuestos, compará profesionales y contratá dentro de la plataforma.</p>
+            <button class="primary" onclick="go('request')">Solicitar servicio</button>
+          </div>
+          <div class="hero360">360<span>°</span></div>
+        </div>
+        <h3>Especialidades</h3>
+        <div class="grid">
+          <button class="service" onclick="selectService('Electricidad')">⚡<b>Electricidad</b><small>Instalaciones y reparaciones</small></button>
+          <button class="service" onclick="selectService('Refrigeración')">❄️<b>Refrigeración</b><small>Aire acondicionado y frío</small></button>
+          <button class="service" onclick="selectService('Plomería')">🔧<b>Plomería</b><small>Agua, gas y desagües</small></button>
+          <button class="service" onclick="selectService('Pintura')">🖌️<b>Pintura</b><small>Interior y exterior</small></button>
+          <button class="service" onclick="selectService('Albañilería')">🧱<b>Albañilería</b><small>Obras y reparaciones</small></button>
+          <button class="service" onclick="selectService('Mantenimiento')">🛠️<b>Mantenimiento</b><small>Preventivo y correctivo</small></button>
+        </div>
+      </main>
+      <nav class="bottom-nav">
+        <button class="selected" onclick="go('home')">⌂<span>Inicio</span></button>
+        <button onclick="go('professionals')">👷<span>Profesionales</span></button>
+        <button onclick="go('chat')">💬<span>Mensajes</span></button>
+        <button onclick="go('profile')">👤<span>Perfil</span></button>
+      </nav>
+    </section>
+
+    <section id="request" class="screen">
+      <header class="simple-head"><button onclick="go('home')">←</button><h2>Solicitar servicio</h2></header>
+      <main class="container form">
+        <label>¿Qué servicio necesitás?</label>
+        <select id="serviceType">
+          <option>Electricidad</option><option>Refrigeración</option><option>Plomería</option>
+          <option>Pintura</option><option>Albañilería</option><option>Mantenimiento</option>
+        </select>
+        <label>Describí el trabajo</label>
+        <textarea id="description" rows="5" placeholder="Contanos qué necesitás reparar o instalar..."></textarea>
+        <label>Localidad</label>
+        <input id="location" placeholder="Ej.: San Isidro, Vicente López">
+        <label>Fotos (opcional)</label>
+        <div class="upload">📷 <span>Agregar fotos del trabajo</span><input type="file" accept="image/*" multiple></div>
+        <div class="notice">🔒 Por seguridad, la dirección exacta se comparte después de avanzar con el profesional.</div>
+        <button class="primary full" onclick="createRequest()">Buscar profesionales</button>
+      </main>
+    </section>
+
+    <section id="professionals" class="screen">
+      <header class="simple-head"><button onclick="go('home')">←</button><h2>Profesionales</h2></header>
+      <main class="container">
+        <div class="search">🔎 <input placeholder="Buscar especialidad o profesional"></div>
+        <div id="professionalList"></div>
+      </main>
+    </section>
+
+    <section id="chat" class="screen">
+      <header class="simple-head"><button onclick="go('home')">←</button><h2>Mensajes</h2></header>
+      <main class="container">
+        <div class="chat-card" onclick="openChat('Carlos - Electricista')">
+          <div class="avatar">CR</div><div><b>Carlos - Electricista</b><p>Presupuesto enviado · Hoy</p></div><span>›</span>
+        </div>
+        <div class="chat-card" onclick="openChat('María - Refrigeración')">
+          <div class="avatar">MR</div><div><b>María - Refrigeración</b><p>¿Podemos coordinar mañana?</p></div><span>›</span>
+        </div>
+      </main>
+    </section>
+
+    <section id="profile" class="screen">
+      <header class="simple-head"><button onclick="go('home')">←</button><h2>Mi cuenta</h2></header>
+      <main class="container">
+        <div class="profile-card"><div class="avatar big">JD</div><h2>Juan Díaz</h2><span class="verified">✓ Cuenta verificada</span></div>
+        <div class="menu">
+          <button>📍 Mis direcciones <span>›</span></button>
+          <button>📋 Mis solicitudes <span>›</span></button>
+          <button>⭐ Mis calificaciones <span>›</span></button>
+          <button>💳 Medios de pago <span>›</span></button>
+          <button onclick="go('admin')">⚙️ Panel administrativo <span>›</span></button>
+        </div>
+      </main>
+    </section>
+
+    <section id="payment" class="screen">
+      <header class="simple-head"><button onclick="go('professionals')">←</button><h2>Confirmar pago</h2></header>
+      <main class="container">
+        <div class="quote"><span>Presupuesto aprobado</span><strong id="quoteAmount">$ 85.000</strong><small>Servicio + materiales según presupuesto</small></div>
+        <div class="pay-option selected"><b>💳 Mercado Pago</b><span>●</span></div>
+        <div class="pay-option"><b>🏦 Transferencia bancaria</b><span>○</span></div>
+        <button class="primary full" onclick="alert('Pago de demostración confirmado. En una versión real se conectará Mercado Pago.')">Pagar y contratar</button>
+      </main>
+    </section>
+
+    <section id="admin" class="screen">
+      <header class="simple-head"><button onclick="go('profile')">←</button><h2>Administración</h2></header>
+      <main class="container">
+        <div class="stats"><div><b>128</b><small>Clientes</small></div><div><b>46</b><small>Profesionales</small></div><div><b>7</b><small>Reclamos</small></div></div>
+        <div class="admin-card"><b>Profesionales pendientes de verificación</b><p>3 solicitudes requieren revisión de DNI, selfie y datos.</p><button class="secondary">Revisar</button></div>
+        <div class="admin-card"><b>Reclamos</b><p>Los reclamos son privados: visibles únicamente para administración y el profesional involucrado.</p><button class="secondary">Ver reclamos</button></div>
+      </main>
+    </section>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
