@@ -35,7 +35,8 @@ function layout(content, active='inicio', titleBrand=true){
       <button class="${active==='inicio'?'active':''}" onclick="go('home')">⌂<br>Inicio</button>
       <button class="${active==='trabajos'?'active':''}" onclick="go('jobs')">🧰<br>Trabajos</button>
       <button class="${active==='mensajes'?'active':''}" onclick="go('chat')">💬<br>Mensajes</button>
-      <button class="${active==='perfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
+      <button class="${active==='pecon vs
+        rfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
     </nav>
   </div>`;
 }
@@ -93,10 +94,10 @@ function render(){
   <div class="icon">📥</div>
   <b>Solicitudes disponibles</b>
 </button>
-      <div class="card specialty">
-        <div class="icon">💰</div>
-        <b>Mis presupuestos</b>
-      </div>
+      <button class="card specialty" type="button" onclick="go('professional-quotes')" style="cursor:pointer;width:100%;text-align:left">
+  <div class="icon">💰</div>
+  <b>Mis presupuestos</b>
+</button>
 
       <div class="card specialty">
         <div class="icon">🧰</div>
@@ -162,7 +163,29 @@ function render(){
 
   return;
 }
- if(s==='professional-request-detail'){
+if(s==='professional-quotes'){
+  app.innerHTML=layout(`<main class="page">
+    ${back('Mis presupuestos')}
+
+    <div class="card">
+      <h2>💰 Mis presupuestos</h2>
+      <p>Presupuestos enviados a clientes</p>
+    </div>
+
+    <div class="card">
+      <b>Electricidad</b>
+      <p>📍 San Isidro</p>
+      <p>Revisión de instalación eléctrica</p>
+      <p><b>Importe: $85.000</b></p>
+      <p>Estado: ⏳ Esperando respuesta del cliente</p>
+    </div>
+
+  </main>`,'trabajos');
+
+  return;
+}
+  
+  if(s==='professional-request-detail'){
   app.innerHTML=layout(`<main class="page">
     <div class="form">
       ${back('Detalle de solicitud')}
