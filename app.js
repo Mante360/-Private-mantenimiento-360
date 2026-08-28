@@ -222,17 +222,24 @@ if(s==='professional-quotes'){
       <p><b>Trabajo:</b> ${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
       <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
       <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
-      <p><b>Estado:</b> ${confirmedQuote && confirmedQuote.status === 'En curso' ? '🟡 En curso' : '✅ Confirmado'}</p>
-    </div>
-
+      
+<p><b>Estado:</b> ${
+  confirmedQuote && confirmedQuote.status === 'Finalizado'
+    ? '🏁 Finalizado'
+    : confirmedQuote && confirmedQuote.status === 'En curso'
+      ? '🟡 En curso'
+      : '✅ Confirmado'
+}</p>
     <button class="btn btn-primary full" type="button" onclick="go('chat')">
       💬 Mensajes
     </button>
 
-    <button class="btn btn-primary full" type="button" onclick="startConfirmedJob()"
-      ▶️ Iniciar trabajo
-    </button>
-
+${confirmedQuote && confirmedQuote.status === 'Finalizado'
+  ? '<button class="btn btn-primary full" type="button" disabled>🏁 Trabajo finalizado</button>'
+  : confirmedQuote && confirmedQuote.status === 'En curso'
+    ? '<button class="btn btn-primary full" type="button" onclick="finishConfirmedJob()">✅ Finalizar trabajo</button>'
+    : '<button class="btn btn-primary full" type="button" onclick="startConfirmedJob()">▶️ Iniciar trabajo</button>'
+}
   </main>`,'trabajos');
 
   return;
@@ -508,5 +515,21 @@ function startConfirmedJob(){
   localStorage.setItem('professionalQuote', JSON.stringify(quote));
 
   alert('Trabajo iniciado correctamente.');
+  go('professional-confirmed-detail');
+}
+
+
+function finishConfirmedJob(){
+  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  if(!quote){
+    alert('No hay un trabajo en curso.');
+    return;
+  }
+
+  quote.status = 'Finalizado';
+  localStorage.setItem('professionalQuote', JSON.stringify(quote));
+
+  alert('Trabajo finalizado correctamente.');
   go('professional-confirmed-detail');
 }
