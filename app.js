@@ -161,6 +161,40 @@ function render(){
 
   return;
 }
+ if(s==='professional-request-detail'){
+  app.innerHTML=layout(`<main class="page">
+    <div class="form">
+      ${back('Detalle de solicitud')}
+
+      <div class="card">
+        <h2>Electricidad</h2>
+        <p><b>Localidad:</b> San Isidro</p>
+        <p><b>Trabajo:</b> Revisión de instalación eléctrica</p>
+        <p>Cliente solicita revisión de tablero y tomacorrientes.</p>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h3>Enviar presupuesto</h3>
+
+        <div class="field">
+          <label>Importe</label>
+          <input id="proAmount" type="number" placeholder="Ej.: 85000">
+        </div>
+
+        <div class="field">
+          <label>Detalle del presupuesto</label>
+          <textarea id="proQuoteText" placeholder="Describí mano de obra, materiales, tiempo estimado..."></textarea>
+        </div>
+
+        <button class="btn btn-primary full" onclick="sendProfessionalQuote()">
+          Enviar presupuesto
+        </button>
+      </div>
+    </div>
+  </main>`,'trabajos');
+
+  return;
+}
   if(s==='home'){
     app.innerHTML=layout(`<main class="page">
       <section class="hero">
@@ -358,5 +392,22 @@ function submitClaim(){
   state.claims.push({reason,text,status:'En revisión'});
   alert('Reclamo enviado. Administración podrá revisarlo.');
   go('contracted');
+}
+function sendProfessionalQuote(){
+  const amount=document.getElementById('proAmount').value;
+  const text=document.getElementById('proQuoteText').value.trim();
+
+  if(!amount){
+    alert('Ingresá el importe del presupuesto.');
+    return;
+  }
+
+  if(!text){
+    alert('Agregá un detalle del presupuesto.');
+    return;
+  }
+
+  alert('Presupuesto enviado correctamente.');
+  go('professional-home');
 }
 render();
