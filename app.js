@@ -202,7 +202,7 @@ if(s==='professional-quotes'){
   <p>${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
   <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
   <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
-  <p><b>Estado:</b> ✅ Confirmado</p>
+ <p><b>Estado:</b> ${confirmedQuote && confirmedQuote.status === 'En curso' ? '🟡 En curso' : '✅ Confirmado'}</p>
 </button>
 
   </main>`,'trabajos');
@@ -222,7 +222,7 @@ if(s==='professional-quotes'){
       <p><b>Trabajo:</b> ${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
       <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
       <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
-      <p><b>Estado:</b> ✅ Confirmado</p>
+      <p><b>Estado:</b> ${confirmedQuote && confirmedQuote.status === 'En curso' ? '🟡 En curso' : '✅ Confirmado'}</p>
     </div>
 
     <button class="btn btn-primary full" type="button" onclick="go('chat')">
