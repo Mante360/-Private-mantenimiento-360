@@ -619,3 +619,5 @@ function submitRating(){
   alert('Calificación enviada correctamente. ¡Gracias!');
   go('home');
 }
+
+rende();
