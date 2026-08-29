@@ -15,15 +15,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.get('/', (_req, res) => {
-  res.sendFile(${process.cwd()}/index.html);
-});
+res.sendFile(process.cwd() + '/index.html');
 
 app.get('/styles.css', (_req, res) => {
-  res.sendFile(${process.cwd()}/styles.css);
+  res.sendFile(process.cwd() + '/styles.css');
 });
 
 app.get('/app.js', (_req, res) => {
-  res.sendFile(${process.cwd()}/app.js);
+  
 });
 app.get('/health', async (_req, res) => {
   const db = await pool.query('select now() as now');
