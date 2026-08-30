@@ -465,7 +465,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
       <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
       ${finalizado ? `
-        <div class="card pro">
+      <div class="card pro" onclick="go('finished-job-detail')" style="cursor:pointer"> 
           <div>
             <b>${q.specialty || state.job.service}</b>
             <div class="notice" style="margin:4px 0">
@@ -494,6 +494,59 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
     </button>
 
   </main>`,'trabajos');
+  return;
+}
+
+  if(s==='finished-job-detail'){
+  const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  const rating = JSON.parse(localStorage.getItem('professionalRating') || 'null');
+
+  if(!q){
+    go('jobs');
+    return;
+  }
+
+  app.innerHTML=layout(`<main class="page">
+    ${back('Detalle del trabajo')}
+
+    <div class="card">
+      <span class="badge">Finalizado</span>
+
+      <h2 style="margin-top:14px">
+        ${q.specialty || state.job.service}
+      </h2>
+
+      <p>${q.job || state.job.description}</p>
+
+      <hr>
+
+      <p><b>Profesional:</b> Carlos Rodríguez ✓ Verificado</p>
+      <p><b>Localidad:</b> ${q.location || state.job.locality}</p>
+      <p><b>Importe:</b> $${Number(q.amount || state.job.amount).toLocaleString('es-AR')}</p>
+      <p><b>Estado:</b> 🏁 Finalizado</p>
+
+      ${rating ? `
+        <div class="notice" style="margin-top:18px">
+          <b>Tu calificación:</b> ${'⭐'.repeat(rating.stars)}
+          ${rating.comment ? <p>${rating.comment}</p> : ''}
+        </div>
+      ` : `
+        <button class="btn btn-primary full"
+          type="button"
+          onclick="go('rating')">
+          ⭐ Calificar profesional
+        </button>
+      `}
+
+      <button class="btn btn-outline full"
+        type="button"
+        onclick="go('claim')"
+        style="margin-top:12px">
+        ⚠️ Hacer reclamo
+      </button>
+    </div>
+  </main>`,'trabajos');
+
   return;
 }
   if(s==='chat'){
