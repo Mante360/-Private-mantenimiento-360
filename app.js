@@ -402,7 +402,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
     </div>
 
     <button class="btn btn-primary full" style="margin-top:20px"
-      onclick="go('payment')">Elegir profesional</button>
+  onclick="go('request')">Solicitar presupuesto</button>
 
   </div></main>`,'inicio');
   return;
