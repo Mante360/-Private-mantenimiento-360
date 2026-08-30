@@ -439,18 +439,63 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
     </main>`,'trabajos');
     return;
   }
-  if(s==='jobs'){
-    app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
-      <div class="list">
-       <h3>🟢 Trabajos activos</h3>
-        <div class="card pro"><div><b>${state.job.service}</b><div class="notice" style="margin:4px 0">${state.job.professional} · ${state.job.locality}</div></div><span class="badge ${state.job.status==='Finalizado'?'':'blue'}">${state.job.status}</span></div>
-        <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
-        <div class="card pro"><div><b>Mantenimiento preventivo</b><div class="notice" style="margin:4px 0">María Gómez · Vicente López</div></div><span class="badge">Finalizado</span></div>
-     </div>
-      <button class="btn btn-primary" style="margin-top:18px" onclick="go('contracted')">Ver trabajo seleccionado</button>
-    </main>`,'trabajos');
-    return;
-  }
+ if(s==='jobs'){
+  const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  const finalizado = q && q.status === 'Finalizado';
+
+  app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
+
+    <div class="list">
+      <h3>🟢 Trabajos activos</h3>
+
+      ${!finalizado ? `
+        <div class="card pro">
+          <div>
+            <b>${state.job.service}</b>
+            <div class="notice" style="margin:4px 0">
+              ${state.job.professional} · ${state.job.locality}
+            </div>
+          </div>
+          <span class="badge">${state.job.status}</span>
+        </div>
+      ` : `
+        <div class="notice">No tenés trabajos activos.</div>
+      `}
+
+      <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
+
+      ${finalizado ? `
+        <div class="card pro">
+          <div>
+            <b>${q.specialty || state.job.service}</b>
+            <div class="notice" style="margin:4px 0">
+              Carlos Rodríguez · ${q.location || state.job.locality}
+            </div>
+          </div>
+          <span class="badge">Finalizado</span>
+        </div>
+      ` : ''}
+
+      <div class="card pro">
+        <div>
+          <b>Mantenimiento preventivo</b>
+          <div class="notice" style="margin:4px 0">
+            María Gómez · Vicente López
+          </div>
+        </div>
+        <span class="badge">Finalizado</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary"
+      style="margin-top:18px"
+      onclick="go('contracted')">
+      Ver trabajo seleccionado
+    </button>
+
+  </main>`,'trabajos');
+  return;
+}
   if(s==='chat'){
     app.innerHTML=layout(`<main class="page">${back('Mensajes')}
       <div class="card"><div class="jobhead"><div><h2>${state.job.professional}</h2><div class="notice">Trabajo #${state.job.id}</div></div><span class="badge blue">${state.job.status}</span></div>
