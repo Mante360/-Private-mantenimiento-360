@@ -288,7 +288,7 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
       </section>
       <h3 class="section-title">Especialidades</h3>
       <div class="grid">
-        <div class="card specialty"><div class="icon">⚡</div><b>Electricidad</b></div>
+        <div class="card specialty" onclick="go('professionals')" style="cursor:pointer"><div class="icon">⚡</div><b>Electricidad</b></div>
         <div class="card specialty"><div class="icon">❄️</div><b>Refrigeración</b></div>
         <div class="card specialty"><div class="icon">🔧</div><b>Plomería</b></div>
       </div>
