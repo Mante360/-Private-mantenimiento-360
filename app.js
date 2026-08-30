@@ -528,7 +528,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
       ${rating ? `
         <div class="notice" style="margin-top:18px">
           <b>Tu calificación:</b> ${'⭐'.repeat(rating.stars)}
-          ${rating.comment ? <p>${rating.comment}</p> : ''}
+        ${rating.comment ? `<p>${rating.comment}</p>` : ''}
         </div>
       ` : `
         <button class="btn btn-primary full"
