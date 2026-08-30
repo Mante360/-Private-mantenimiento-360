@@ -425,7 +425,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
     </div>
 
     <button class="btn btn-primary full" style="margin-top:20px"
-  onclick="go('request')">Solicitar presupuesto</button>
+  onclick="alert('Solicitud de presupuesto enviada al profesional.');go('home')">Solicitarpresupuesto</button>
 
   </div></main>`,'inicio');
   return;
