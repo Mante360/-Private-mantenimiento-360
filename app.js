@@ -558,7 +558,23 @@ function sendMsg(){
   render();
 }
 function finishJob(){
-  state.job.status='Finalizado';
+  state.job.status = 'Finalizado';
+
+  const quote = JSON.parse(
+    localStorage.getItem('professionalQuote') || '{}'
+  );
+
+  quote.status = 'Finalizado';
+  quote.specialty = quote.specialty || state.job.service;
+  quote.location = quote.location || state.job.locality;
+  quote.job = quote.job || state.job.description;
+  quote.amount = quote.amount || state.job.amount;
+
+  localStorage.setItem(
+    'professionalQuote',
+    JSON.stringify(quote)
+  );
+
   go('rating');
 }
 function setRating(n){ state.rating=n; render(); }
