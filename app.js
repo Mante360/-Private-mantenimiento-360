@@ -2,7 +2,7 @@
 const state = {
   screen: 'splash',
   mode: null,
-  selectedProfessional: {name:'Carlos Rodríguez', trade:'Electricista', rating:'4.9', jobs:127},
+  selectedProfessional: {name:'Carlos Rodríguez', trade:'Electricista', rating:'4.9',ratingCount:127, jobs:127},
   job: {
     id:'360-00125',
     service:'Electricidad',
@@ -727,7 +727,13 @@ function submitRating(){
     professional: 'Carlos Rodríguez',
     createdAt: new Date().toISOString()
   };
+const oldAverage = Number(state.selectedProfessional.rating);
+const oldCount = state.selectedProfessional.ratingCount;
+const newAverage = ((oldAverage * oldCount) + selectedRating) / (oldCount + 1);
 
+state.selectedProfessional.rating = newAverage.toFixed(1);
+state.selectedProfessional.ratingCount = oldCount + 1;
+  
   localStorage.setItem('professionalRating', JSON.stringify(rating));
 
   alert('Calificación enviada correctamente. ¡Gracias!');
