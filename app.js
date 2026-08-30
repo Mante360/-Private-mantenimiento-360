@@ -621,6 +621,7 @@ function selectPro(i){
 }
 function confirmPayment(){
   state.job.status='Confirmado';
+  state.job.amount=Nomber(JSON.parse(localStrage.getItem('professionalQuote') ||'{}').amount || state.job.amount);
   go('contracted');
 }
 function sendMsg(){
