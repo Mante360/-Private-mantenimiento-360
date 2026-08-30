@@ -267,15 +267,16 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
   return;
 }
   if(s==='professional-request-detail'){
-  app.innerHTML=layout(`<main class="page">
+  
+    app.innerHTML=layout(`<main class="page">
     <div class="form">
       ${back('Detalle de solicitud')}
 
       <div class="card">
-        <h2>Electricidad</h2>
-        <p><b>Localidad:</b> San Isidro</p>
-        <p><b>Trabajo:</b> Revisión de instalación eléctrica</p>
-        <p>Cliente solicita revisión de tablero y tomacorrientes.</p>
+       <h2>${state.job.service}</h2>
+        <p><b>Localidad:</b> ${state.job.locality}</p>
+        <p><b>Trabajo:</b> ${state.job.description}</p>
+        
       </div>
 
       <div class="card" style="margin-top:14px">
@@ -498,22 +499,10 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
         </div>
       ` : ''}
 
-      <div class="card pro">
-        <div>
-          <b>Mantenimiento preventivo</b>
-          <div class="notice" style="margin:4px 0">
-            María Gómez · Vicente López
-          </div>
-        </div>
-        <span class="badge">Finalizado</span>
-      </div>
+      
     </div>
 
-    <button class="btn btn-primary"
-      style="margin-top:18px"
-      onclick="go('contracted')">
-      Ver trabajo seleccionado
-    </button>
+    
 
   </main>`,'trabajos');
   return;
