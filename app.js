@@ -128,7 +128,29 @@ function render(){
     ${back('Solicitudes disponibles')}
 
     <div class="list">
+${(() => {
+  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
 
+  if(!request) return '';
+
+  return `
+    <div class="card pro">
+      <div>
+        <b>${request.service}</b>
+        <div class="notice" style="margin:4px 0">
+          ${request.locality} · Nueva solicitud
+        </div>
+        <p>${request.description}</p>
+      </div>
+
+      <button class="btn btn-primary"
+        type="button"
+        onclick="go('professional-request-detail')">
+        Ver solicitud
+      </button>
+    </div>
+  `;
+})()}
       <div class="card pro">
         <div>
           <b>Electricidad</b>
