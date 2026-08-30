@@ -592,6 +592,14 @@ function saveRequest(){
   state.job.service=document.getElementById('service').value;
   state.job.description=document.getElementById('desc').value || 'Trabajo solicitado desde Mantenimiento 360°';
   state.job.locality=document.getElementById('loc').value || 'San Isidro';
+
+  localStorage.setItem('clientRequest', JSON.stringify({
+    service: state.job.service,
+    description: state.job.description,
+    locality: state.job.locality,
+    status: 'Buscando profesional'
+  }));
+
   go('professionals');
 }
 function selectPro(i){
