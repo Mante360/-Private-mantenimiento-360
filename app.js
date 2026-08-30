@@ -584,8 +584,8 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
   if(s==='rating'){
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Calificar trabajo')}
       <div class="card"><h2>¿Cómo fue tu experiencia?</h2><p>${state.job.professional} · ${state.job.service}</p>
-      <div class="rating-stars">${[1,2,3,4,5].map(n=>`<button class="${n<=state.rating?'on':''}" onclick="setRating(${n})">★</button>`).join('')}</div>
-      <div class="field"><label>Comentario (opcional)</label><textarea id="ratingText" placeholder="Contanos cómo fue el trabajo..."></textarea></div>
+      <div class="rating-stars">${[1,2,3,4,5].map(n=>`<button class="${n<=selectedRating?'on':''}" onclick="selectRating(${n})">★</button>`).join('')}</div>
+      <div class="field"><label>Comentario (opcional)</label><textarea id="ratingComment" placeholder="Contanos cómo fue el trabajo..."></textarea></div>
       <button class="btn btn-primary full" onclick="submitRating()">Enviar calificación</button></div>
     </div></main>`,'trabajos');
     return;
@@ -650,11 +650,29 @@ function finishJob(){
   go('rating');
 }
 function setRating(n){ state.rating=n; render(); }
-function submitRating(){
-  if(!state.rating){ alert('Elegí de 1 a 5 estrellas.'); return; }
-  alert('Calificación guardada en esta demostración.');
-  go('jobs');
-}
+${(() => {
+  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+
+  if(!request) return '';
+
+  return `
+    <div class="card pro">
+      <div>
+        <b>${request.service}</b>
+        <div class="notice" style="margin:4px 0">
+          ${request.locality} · Nueva solicitud
+        </div>
+        <p>${request.description}</p>
+      </div>
+
+      <button class="btn btn-primary"
+        type="button"
+        onclick="go('professional-request-detail')">
+        Ver solicitud
+      </button>
+    </div>
+  `;
+})()}
 function submitClaim(){
   const reason=document.getElementById('claimReason').value;
   const text=document.getElementById('claimText').value.trim();
