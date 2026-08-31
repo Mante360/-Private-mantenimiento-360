@@ -472,8 +472,10 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
       <h3>🟢 Trabajos activos</h3>
 
       ${!finalizado ? `
-        
-         
+      <div class="card pro"
+         onclick="go('contracted')"
+         style="cursor:pointer">
+           <div>
             <b>${state.job.service}</b>
             <div class="notice" style="margin:4px 0">
               ${state.job.professional} · ${state.job.locality}
