@@ -667,7 +667,20 @@ function finishJob(){
     'professionalQuote',
     JSON.stringify(quote)
   );
+const history = JSON.parse(
+  localStorage.getItem('jobHistory') || '[]'
+);
 
+history.push({
+  ...quote,
+  professional: state.job.professional,
+  finishedAt: new Date().toISOString()
+});
+
+localStorage.setItem(
+  'jobHistory',
+  JSON.stringify(history)
+);
   go('rating');
 }
 function setRating(n){ state.rating=n; render(); }
