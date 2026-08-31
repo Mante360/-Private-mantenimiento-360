@@ -390,7 +390,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
     ];
     app.innerHTML=layout(`<main class="page">${back('Profesionales')}
       <div class="field"><input placeholder="🔎 Buscar especialidad o profesional"></div>
-      <div class="list">${pros.map((p,i)=>`<div class="card pro">
+      <div class="list">${pros.map((p,i)=>`<div class="card pro" onclick="selectPro(${i})" style="cursor:pointer">
         <div class="proleft"><div class="avatar">${p[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div><b>${p[0]}</b><div class="notice" style="margin:4px 0">${p[1]} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${p[3]} · <b>✓ Verificado</b></div></div>
         <button class="btn btn-outline" onclick="selectPro(${i})">Ver</button>
       </div>`).join('')}</div>
