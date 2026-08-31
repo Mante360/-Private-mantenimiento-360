@@ -465,7 +465,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
  if(s==='jobs'){
   const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
   const finalizado = q && q.status === 'Finalizado';
-
+const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
 
     <div class="list">
@@ -489,17 +489,21 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
 
       <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
-      ${finalizado ? `
-      <div class="card pro" onclick="go('finished-job-detail')" style="cursor:pointer"> 
-          <div>
-            <b>${q.specialty || state.job.service}</b>
-            <div class="notice" style="margin:4px 0">
-              Carlos Rodríguez · ${q.location || state.job.locality}
-            </div>
-          </div>
-          <span class="badge">Finalizado</span>
-        </div>
-      ` : ''}
+      ${history.length ? history.map((item, index) => `
+  <div class="card pro"
+       onclick="localStorage.setItem('selectedHistoryIndex','${index}'); go('finished-job-detail')"
+       style="cursor:pointer">
+    <div>
+      <b>${item.specialty || 'Servicio'}</b>
+      <div class="notice" style="margin:4px 0">
+        ${item.professional || 'Profesional'} · ${item.location || ''}
+      </div>
+    </div>
+    <span class="badge">Finalizado</span>
+  </div>
+`).join('') : `
+  <div class="notice">Todavía no tenés trabajos finalizados.</div>
+`}
 
       
     </div>
@@ -511,7 +515,9 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
 }
 
   if(s==='finished-job-detail'){
-  const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
+const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professionalQuote') || 'null');
   const rating = JSON.parse(localStorage.getItem('professionalRating') || 'null');
 
   if(!q){
