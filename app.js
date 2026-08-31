@@ -473,7 +473,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
 
       ${!finalizado ? `
         
-          <div>
+         
             <b>${state.job.service}</b>
             <div class="notice" style="margin:4px 0">
               ${state.job.professional} · ${state.job.locality}
