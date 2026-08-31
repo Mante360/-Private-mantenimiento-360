@@ -472,7 +472,24 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
       <h3>🟢 Trabajos activos</h3>
 
       ${!finalizado ? `
-        <div class="card pro">
+        function requestProfessionalQuote(){
+  const request = JSON.parse(localStorage.getItem('clientRequest') || '{}');
+
+  const quoteRequest = {
+    service: request.service || state.job.service,
+    description: request.description || state.job.description,
+    locality: request.locality || state.job.locality,
+    professional: state.job.professional,
+    status: 'Solicitud enviada'
+  };
+
+  localStorage.setItem('professionalRequest', JSON.stringify(quoteRequest));
+  localStorage.removeItem('professionalQuote');
+  localStorage.removeItem('professionalRating');
+
+  alert('Solicitud de presupuesto enviada al profesional.');
+  go('home');
+}
           <div>
             <b>${state.job.service}</b>
             <div class="notice" style="margin:4px 0">
