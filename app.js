@@ -22,7 +22,7 @@ const state = {
 };
 
 const app = document.getElementById('app');
-const money = n => '$ ' + n.toLocaleString('es-AR');
+const money = n => n == null ? 'Presupuesto pendiente' : '$ ' + n.toLocaleString('es-AR');
 
 function layout(content, active='inicio', titleBrand=true){
   return `<div class="shell">
