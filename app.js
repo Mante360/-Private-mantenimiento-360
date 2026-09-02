@@ -482,7 +482,7 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
             </div>
           </div>
           <span class="badge">${state.job.status}</span>
-        </div>
+        <button class="btn btn-primary" onclick="event.stopPropagation(); go('contracted')">Ver trabajo</button></div>
       ` : `
         <div class="notice">No tenés trabajos activos.</div>
       `}
