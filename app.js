@@ -59,7 +59,7 @@ function openCurrentJob(){
   }
 }
 
-function historyBack(){
+
 function historyBack(){
   state.screen = historyStack.pop() || 'home'; render();
 }
