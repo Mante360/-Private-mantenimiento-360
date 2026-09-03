@@ -756,7 +756,17 @@ function finishConfirmedJob(){
 
   quote.status = 'Finalizado';
   localStorage.setItem('professionalQuote', JSON.stringify(quote));
+state.job.status = 'Finalizado';
 
+const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+
+history.push({
+  ...quote,
+  professional: state.job.professional,
+  finishedAt: new Date().toISOString()
+});
+
+localStorage.setItem('jobHistory', JSON.stringify(history));
   alert('Trabajo finalizado correctamente.');
   go('professional-confirmed-detail');
 }
