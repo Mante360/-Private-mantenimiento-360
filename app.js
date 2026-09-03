@@ -738,7 +738,7 @@ function startConfirmedJob(){
     return;
   }
 
-  quote.status = 'En curso';
+  quote.status = 'En curso'; state.job.status = 'En curso';
   localStorage.setItem('professionalQuote', JSON.stringify(quote));
 
   alert('Trabajo iniciado correctamente.');
