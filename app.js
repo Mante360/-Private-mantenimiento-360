@@ -717,7 +717,7 @@ function sendProfessionalQuote(){
     return;
   }
 const quote = {
-  amount: amount,
+ amount: Number(String(amount).replace(/\./g, '').replace(',', '.')),
   text: text,
   specialty: 'Electricidad',
   location: 'San Isidro',
