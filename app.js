@@ -444,7 +444,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
   if(s==='contracted'){
     app.innerHTML=layout(`<main class="page">${back('Trabajo contratado')}
       <div class="card">
-        <div class="jobhead"><div><span class="badge">✓ Contratado</span><h2>${state.job.service}</h2><p>${state.job.description}</p></div><div class="money">${money(state.job.amount)}</div></div>
+        <div class="jobhead"><div><span class="badge">✓ Contratado</span><h2>${state.job.service}</h2><p>${state.job.description}</p></div><div class="money">${money(state.job.amount ?? (JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.amount ? Number(JSON.parse(localStorage.getItem('professionalQuote') || 'null').amount) : null))}</div></div>
         <hr style="border:0;border-top:1px solid var(--line)">
         <p><b>Profesional:</b> ${state.job.professional} · ✓ Verificado</p>
         <p><b>Localidad:</b> ${state.job.locality}</p>
