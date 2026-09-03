@@ -491,7 +491,7 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
               ${state.job.professional} · ${state.job.locality}
             </div>
           </div>
-          <button class="btn btn-primary" onclick="openCurrentJob()">Ver trabajo</button></div>
+          <button class="btn btn-primary" onclick="event.stopPropagation(); openCurrentJob()">Ver trabajo</button></div>
       
       ` : `
         <div class="notice">No tenés trabajos activos.</div>
