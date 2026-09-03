@@ -481,8 +481,8 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
               ${state.job.professional} · ${state.job.locality}
             </div>
           </div>
-          <span class="badge">${state.job.status}</span>
-        <button class="btn btn-primary" onclick="go('contracted')">Ver trabajo</button></div>
+          <button class="btn btn-primary" onclick="go(state.mode==='professional' ? 'professional-confirmed-detail' : 'contracted')">Ver trabajo</button></div>
+      
       ` : `
         <div class="notice">No tenés trabajos activos.</div>
       `}
