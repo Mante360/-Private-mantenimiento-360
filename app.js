@@ -50,6 +50,16 @@ function go(screen){
   if(state.screen!==screen) historyStack.push(state.screen);
   state.screen=screen; render();
 }
+
+function openCurrentJob(){
+  if(state.mode === 'professional'){
+    go('professional-confirmed-detail');
+  } else {
+    go('contracted');
+  }
+}
+
+function historyBack(){
 function historyBack(){
   state.screen = historyStack.pop() || 'home'; render();
 }
@@ -481,7 +491,7 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
               ${state.job.professional} · ${state.job.locality}
             </div>
           </div>
-          <button class="btn btn-primary" onclick="go(state.mode==='professional' ? 'professional-confirmed-detail' : 'contracted')">Ver trabajo</button></div>
+          <button class="btn btn-primary" onclick="openCurrentJob()">Ver trabajo</button></div>
       
       ` : `
         <div class="notice">No tenés trabajos activos.</div>
