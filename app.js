@@ -512,6 +512,10 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
     return;
   }
  if(s==='jobs'){
+   if(state.mode === 'professional'){
+  go('professional-home');
+  return;
+}
   const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
   const finalizado = q && q.status === 'Finalizado';
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
