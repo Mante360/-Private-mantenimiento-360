@@ -710,6 +710,7 @@ function submitClaim(){
   const text=document.getElementById('claimText').value.trim();
   if(!text){ alert('Contanos brevemente qué pasó.'); return; }
   state.claims.push({reason,text,status:'En revisión'});
+  localStorage.setItem('claims', JSON.stringify(state.claims));
   alert('Reclamo enviado. Administración podrá revisarlo.');
   go('contracted');
 }
