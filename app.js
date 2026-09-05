@@ -571,7 +571,7 @@ const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professiona
         type="button"
         onclick="go('claim')"
         style="margin-top:12px">
-        ⚠️ Hacer reclamo
+        ${state.claims.length ? '⚠️ Ver reclamo' : '⚠️ Hacer reclamo'}
       </button>
     </div>
   </main>`,'trabajos');
