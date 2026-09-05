@@ -84,11 +84,42 @@ function render(){
       <button class="btn btn-light" style="margin-left:10px" onclick="state.mode='professional'; go('professional-home')">
         🧰 Soy profesional
       </button>
+      <button class="btn btn-light" style="margin-left:10px"
+  onclick="state.mode='admin'; go('admin-home')">
+  🛡️ Administrador
+</button>
     </div>
   </div>`;
   return;
   }
- if(s==='professional-home'){
+ if(s==='admin-home'){
+  app.innerHTML=layout(`<main class="page">
+    ${back('Administración')}
+
+    <div class="card">
+      <h2>🛡️ Panel de Administración</h2>
+      <p>Gestión de reclamos de Mantenimiento 360°.</p>
+
+      <h3>⚠️ Reclamos recibidos: ${state.claims.length}</h3>
+
+      ${
+        state.claims.length
+        ? state.claims.map((c,i)=>`
+          <div class="card" style="margin-top:12px">
+            <p><b>Reclamo #${i+1}</b></p>
+            <p><b>Motivo:</b> ${c.reason}</p>
+            <p><b>Detalle:</b> ${c.text}</p>
+            <p><b>Estado:</b> ${c.status}</p>
+          </div>
+        `).join('')
+        : '<p>No hay reclamos registrados.</p>'
+      }
+    </div>
+  </main>`,'inicio');
+
+  return;
+}
+  if(s==='professional-home'){
   app.innerHTML=layout(`<main class="page">
     <section class="hero">
       <div>
