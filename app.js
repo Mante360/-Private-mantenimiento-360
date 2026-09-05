@@ -104,7 +104,7 @@ function render(){
       <h2>🛡️ Panel de Administración</h2>
       <p>Gestión de reclamos de Mantenimiento 360°.</p>
 
-      <h3>⚠️ Reclamos recibidos: ${state.claims.length}</h3>
+      <h3>⚠️ Pendientes: ${state.claims.filter(c => c.status !== 'Resuelto').length} | ✅ Resueltos: ${state.claims.filter(c => c.status === 'Resuelto').length}</h3>
 
       ${
         state.claims.length
