@@ -50,7 +50,11 @@ function go(screen){
   if(state.screen!==screen) historyStack.push(state.screen);
   state.screen=screen; render();
 }
-
+function resolveClaim(i){
+  state.claims[i].status = 'Resuelto';
+  localStorage.setItem('claims', JSON.stringify(state.claims));
+  render();
+}
 function openCurrentJob(){
   if(state.mode === 'professional'){
     go('professional-confirmed-detail');
@@ -110,6 +114,7 @@ function render(){
             <p><b>Motivo:</b> ${c.reason}</p>
             <p><b>Detalle:</b> ${c.text}</p>
             <p><b>Estado:</b> ${c.status}</p>
+            <button class="btn btn-primary" type="button" onclick="resolveClaim(${i})">✅ Resolver reclamo</button>
           </div>
         `).join('')
         : '<p>No hay reclamos registrados.</p>'
