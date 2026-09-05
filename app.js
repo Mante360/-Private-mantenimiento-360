@@ -110,11 +110,14 @@ function render(){
         state.claims.length
         ? state.claims.map((c,i)=>`
           <div class="card" style="margin-top:12px">
-            <p><b>Reclamo #${i+1}</b></p>
+            ${c.status === 'Resuelto'
+  ? '<p><b>✅ Reclamo resuelto</b></p>'
+  : <button class="btn btn-primary" type="button" onclick="resolveClaim(${i})">✅ Resolver reclamo</button>
+}
             <p><b>Motivo:</b> ${c.reason}</p>
             <p><b>Detalle:</b> ${c.text}</p>
             <p><b>Estado:</b> ${c.status}</p>
-            <button class="btn btn-primary" type="button" onclick="resolveClaim(${i})">✅ Resolver reclamo</button>
+           
           </div>
         `).join('')
         : '<p>No hay reclamos registrados.</p>'
