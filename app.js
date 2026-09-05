@@ -513,7 +513,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
   }
  if(s==='jobs'){
    if(state.mode === 'professional'){
-  go('professional-home');
+  go('professional-requests');
   return;
 }
   const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
