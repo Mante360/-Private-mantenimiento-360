@@ -108,7 +108,7 @@ function render(){
 
       ${
         state.claims.length
-        ? state.claims.map((c,i)=>`
+        ? state.claims.filter(c => c.status !== 'Resuelto').map((c,i)=>`
           <div class="card" style="margin-top:12px">
            ${c.status === 'Resuelto'
   ? '<p><b>✅ Reclamo resuelto</b></p>'
