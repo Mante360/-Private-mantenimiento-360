@@ -590,6 +590,24 @@ const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professiona
     return;
   }
   if(s==='claim'){
+    const existingClaim = state.claims[state.claims.length - 1];
+    if(existingClaim){
+  app.innerHTML = layout(`
+    <main class="page">
+      ${back('Reclamo enviado')}
+      <div class="card">
+        <h2>⚠️ Reclamo enviado</h2>
+        <p><b>Motivo:</b> ${existingClaim.reason}</p>
+        <p><b>Detalle:</b> ${existingClaim.text}</p>
+        <p><b>Estado:</b> ${existingClaim.status}</p>
+        <div class="notice">
+          🔒 Este reclamo es visible solamente para vos, el profesional involucrado y Administración.
+        </div>
+      </div>
+    </main>
+  `,'trabajos');
+  return;
+}
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Nuevo reclamo')}
       <div class="card claims"><p><b>Trabajo:</b> #${state.job.id} · ${state.job.service}</p>
       <div class="field"><label>Motivo</label><select id="claimReason"><option>El profesional no se presentó</option><option>Problema con el trabajo</option><option>Problema con el presupuesto</option><option>Mala atención</option><option>Otro</option></select></div>
