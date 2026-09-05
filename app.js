@@ -17,7 +17,7 @@ const state = {
     {from:'me', text:'Perfecto. ¿Cuándo podrías venir?'},
     {from:'pro', text:'Mañana a las 10:00 me queda bien.'}
   ],
-  claims:[],
+ claims: JSON.parse(localStorage.getItem('claims') || '[]'),
   rating:0
 };
 
