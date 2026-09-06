@@ -192,11 +192,7 @@ ${(() => {
         <p>${request.description}</p>
       </div>
 
-      <button class="btn btn-primary"
-        type="button"
-        onclick="Object.assign(state.job, JSON.parse(localStorage.getItem('clientRequest') || '{}')); go('professional-request-detail')"
-        Ver solicitud
-      </button>
+     <button class="btn btn-primary" type="button" onclick="Object.assign(state.job, JSON.parse(localStorage.getItem('clientRequest') || '{}')); go('professional-request-detail')">Ver solicitud</button>
     </div>
   `;
 })()}
