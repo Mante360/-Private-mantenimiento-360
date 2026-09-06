@@ -194,7 +194,7 @@ ${(() => {
 
       <button class="btn btn-primary"
         type="button"
-        onclick="go('professional-request-detail')">
+        onclick="Object.assign(state.job, JSON.parse(localStorage.getItem('clientRequest') || '{}')); go('professional-request-detail')"
         Ver solicitud
       </button>
     </div>
