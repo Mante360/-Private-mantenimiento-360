@@ -877,4 +877,4 @@ state.selectedProfessional.ratingCount = oldCount + 1;
   go('home');
 }
 
-rende();
+render();
