@@ -689,7 +689,7 @@ function saveRequest(){
     locality: state.job.locality,
     status: 'Buscando profesional'
   }));
-
+localStorage.setItem('professionalRequest', localStorage.getItem('clientRequest'));
   go('professionals');
 }
 function selectPro(i){
