@@ -476,6 +476,29 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
   return;
 }
   
+  if(s==='quote-received'){
+  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  app.innerHTML = layout(`<main class="page">
+    ${back('Presupuesto recibido')}
+
+    <div class="card">
+      <h2>Presupuesto recibido</h2>
+      <p><b>Servicio:</b> ${quote?.specialty || state.job.service}</p>
+      <p><b>Profesional:</b> ${state.job.professional}</p>
+      <p><b>Localidad:</b> ${quote?.location || state.job.locality}</p>
+      <div class="money">$${money(quote?.amount || 0)}</div>
+      <p>${quote?.detail || 'Presupuesto enviado por el profesional.'}</p>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="acceptQuote()">Aceptar presupuesto</button>
+      <button class="btn btn-outline" onclick="rejectQuote()">Rechazar</button>
+</div>
+</main>`, 'trabajos');
+
+return;
+}
   if(s==='payment'){
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Confirmar pago')}
       <div class="card"><div>Presupuesto aprobado</div><div class="money">${money(state.job.amount)}</div><small>Servicio + materiales según presupuesto</small></div>
