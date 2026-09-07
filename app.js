@@ -9,7 +9,7 @@ const state = {
     description:'Revisión de instalación eléctrica',
     locality:'San Isidro',
     amount: null,
-   status:'Confirmado',
+   status:'Solicitud',
     professional:'Carlos Rodríguez'
   },
   messages:[
