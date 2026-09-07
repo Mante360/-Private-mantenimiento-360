@@ -59,10 +59,16 @@ function openCurrentJob(){
   if(state.mode === 'professional'){
     go('professional-confirmed-detail');
   } else {
-    go('contracted');
+    const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+    if(q && q.status === 'Esperando respuesta del cliente'){
+      go('quote-received');
+    } else {
+      go('contracted');
+    }
   }
 }
-
+ 
 
 function historyBack(){
   state.screen = historyStack.pop() || 'home'; render();
