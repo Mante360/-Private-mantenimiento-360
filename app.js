@@ -741,6 +741,22 @@ function requestProfessionalQuote(){
   alert('Solicitud de presupuesto enviada al profesional.');
   go('home');
 }
+function acceptQuote(){
+  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  if(!quote){
+    alert('No se encontró el presupuesto.');
+    return;
+  }
+
+  quote.status = 'Aceptado por el cliente';
+  localStorage.setItem('professionalQuote', JSON.stringify(quote));
+
+  state.job.amount = Number(quote.amount);
+  state.job.status = 'Presupuesto aceptado';
+
+  go('payment');
+}
 function confirmPayment(){
   state.job.status='Confirmado';
   state.job.amount=Nomber(JSON.parse(localStrage.getItem('professionalQuote') ||'{}').amount || state.job.amount);
