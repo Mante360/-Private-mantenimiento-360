@@ -9,7 +9,7 @@ const state = {
     description:'Revisión de instalación eléctrica',
     locality:'San Isidro',
     amount: null,
-    status:'Confirmado',
+   status: localStorage.getItem('jobStatus') || 'Confirmado'
     professional:'Carlos Rodríguez'
   },
   messages:[
@@ -852,7 +852,7 @@ function startConfirmedJob(){
 
   quote.status = 'En curso'; state.job.status = 'En curso';
   localStorage.setItem('professionalQuote', JSON.stringify(quote));
-
+localStorage.setItem('jobStatus', 'En curso');
   alert('Trabajo iniciado correctamente.');
   go('professional-confirmed-detail');
 }
