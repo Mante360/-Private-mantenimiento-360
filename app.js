@@ -13,7 +13,7 @@ const state = {
     professional:'Carlos Rodríguez'
   },
   messages:[
-   
+   ...JSON.parse(localStorage.getItem('messages') || '[]')
   ],
  claims: JSON.parse(localStorage.getItem('claims') || '[]'),
   rating:0
@@ -764,6 +764,7 @@ function sendMsg(){
   const inp=document.getElementById('msg');
   if(!inp || !inp.value.trim()) return;
   state.messages.push({from:'me',text:inp.value.trim()});
+  localStorage.setItem('messages', JSON.stringify(state.messages));
   render();
 }
 function finishJob(){
