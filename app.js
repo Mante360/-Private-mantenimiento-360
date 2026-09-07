@@ -514,7 +514,7 @@ return;
     return;
   }
   if(s==='contracted'){
-    app.innerHTML=layout(`<main class="page">${back('Trabajo contratado')}
+    app.innerHTML=layout(`<main class="page">${back('Detalle del Trabajo')}
       <div class="card">
         <div class="jobhead"><div><span class="badge">${state.job.status === 'Solicitud' ? '⏳ Solicitud enviada' : '✓ ' + state.job.status}</span><h2>${state.job.service}</h2><p>${state.job.description}</p></div><div class="money">${money(state.job.amount ?? (JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.amount ? Number(JSON.parse(localStorage.getItem('professionalQuote') || 'null').amount) : null))}</div></div>
         <hr style="border:0;border-top:1px solid var(--line)">
