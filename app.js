@@ -757,7 +757,7 @@ function acceptQuote(){
 }
 function confirmPayment(){
   state.job.status='Confirmado';
-  state.job.amount=Number(JSON.parse(localStrage.getItem('professionalQuote') ||'{}').amount || state.job.amount);
+  state.job.amount=Number(JSON.parse(localStorage.getItem('professionalQuote') ||'{}').amount || state.job.amount);
   go('contracted');
 }
 function sendMsg(){
