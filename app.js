@@ -59,7 +59,7 @@ function openCurrentJob(){
   } else {
     const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
 
-    if(q && q.status === 'Esperando respuesta del cliente'){
+    if(q && (q.status === 'Esperando respuesta del cliente' || q.status === 'Aceptado por el cliente')){
       go('quote-received');
     } else {
       go('contracted');
