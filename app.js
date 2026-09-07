@@ -522,7 +522,7 @@ return;
         <p><b>Localidad:</b> ${state.job.locality}</p>
         <p><b>Trabajo:</b> #${state.job.id}</p>
         <div class="timeline">
-          <div class="step done">Solicitud</div><div class="step done">Presupuesto</div><div class="step ${state.job.status === 'Confirmado' ? 'current' : 'done'}">Confirmado</div><div class="step ${state.job.status === 'En curso' ? 'current' : (state.job.status === 'Finalizado' ? 'done' : '')}">En curso</div><div class="step ${state.job.status === 'Finalizado' ? 'current' : ''}">Finalizado</div>
+          <div class="step done">Solicitud</div><div class="step">Presupuesto</div><div class="step ${state.job.status === 'Confirmado' ? 'current' : ''}">Confirmado</div><div class="step ${state.job.status === 'En curso' ? 'current' : (state.job.status === 'Finalizado' ? 'done' : '')}">En curso</div><div class="step ${state.job.status === 'Finalizado' ? 'current' : ''}">Finalizado</div>
         </div>
         <div class="actions">
           <button class="btn btn-primary" onclick="go('chat')">💬 Abrir chat</button>
