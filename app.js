@@ -13,9 +13,7 @@ const state = {
     professional:'Carlos Rodríguez'
   },
   messages:[
-    {from:'pro', text:'Hola, ya recibí la confirmación del trabajo.'},
-    {from:'me', text:'Perfecto. ¿Cuándo podrías venir?'},
-    {from:'pro', text:'Mañana a las 10:00 me queda bien.'}
+   
   ],
  claims: JSON.parse(localStorage.getItem('claims') || '[]'),
   rating:0
