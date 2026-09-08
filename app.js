@@ -9,7 +9,7 @@ const state = {
     description:'Revisión de instalación eléctrica',
     locality:'San Isidro',
     amount: null,
-   status:'Solicitud',
+  status: localStorage.getItem('jobStatus') || 'Solicitud',
     professional:'Carlos Rodríguez'
   },
   messages:[
@@ -756,7 +756,7 @@ function acceptQuote(){
   go('payment');
 }
 function confirmPayment(){
-  state.job.status='Confirmado';const q = JSON.parse(localStorage.getItem('professionalQuote') || '{}');
+  state.job.status='Confirmado';localStorage.setItem('jobStatus', 'Confirmado');const q = JSON.parse(localStorage.getItem('professionalQuote') || '{}');
 q.status = 'Confirmado';
 localStorage.setItem('professionalQuote', JSON.stringify(q));
   state.job.amount=Number(JSON.parse(localStorage.getItem('professionalQuote') ||'{}').amount || state.job.amount);
