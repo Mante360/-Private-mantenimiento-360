@@ -492,7 +492,7 @@ const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'nu
       <p><b>Profesional:</b> ${state.job.professional}</p>
       <p><b>Localidad:</b> ${quote?.location || state.job.locality}</p>
       <div class="money">${money(quote?.amount || 0)}</div>
-      <p>${quote?.detail || 'Presupuesto enviado por el profesional.'}</p>
+     <p>${quote?.text || 'Presupuesto enviado por el profesional.'}</p>
     </div>
 
     <div class="actions">
