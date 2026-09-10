@@ -528,8 +528,7 @@ return;
           <button class="btn btn-primary" onclick="go('chat')">💬 Abrir chat</button>
           <button class="btn btn-outline" onclick="go('jobs')">🧰 Mis trabajos</button>
           <button class="btn btn-outline" onclick="go('claim')">⚠️ Hacer reclamo</button>
-          ${state.job.status === 'En curso' ? '<button class="btn btn-green" onclick="finishJob()">✓ Marcar como finalizado</button>' : ''}
-        </div>
+        
       </div>
     </main>`,'trabajos');
     return;
