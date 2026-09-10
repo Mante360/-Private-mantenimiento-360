@@ -275,6 +275,7 @@ if(s==='professional-quotes'){
   <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
  <p><b>Estado:</b> ${confirmedQuote && confirmedQuote.status === 'En curso' ? '🟡 En curso' : '✅ Confirmado'}</p>
 </button>
+${confirmedQuote && confirmedQuote.status === 'En curso' ? '<button class="btn btn-green full" type="button" onclick="finishConfirmedJob()">✅ Finalizar trabajo</button>' : ''}
 
   </main>`,'trabajos');
 
