@@ -835,7 +835,7 @@ const quote = {
   text: text,
   specialty: 'Electricidad',
   location: 'San Isidro',
-  job: 'Revisión de instalación eléctrica',
+  job: state.job.description,
   status: 'Esperando respuesta del cliente'
 };
 
