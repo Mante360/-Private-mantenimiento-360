@@ -12,6 +12,54 @@ const state = {
   status: localStorage.getItem('jobStatus') || 'Solicitud',
     professional:'Carlos Rodríguez'
   },
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+ 10
+ 11
+ 12
+ 13
+ 14
+ 15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
+ 22
+ 23
+ 24
+ 25
+ 26
+ 27
+ 28
+ 29
+ 30
+ 31
+ 32
+ 33
+ 34
+ 35
+ 36
+ 37
+ 38
+ 39
+ 40
+ 41
+ 42
+ 43
+ 44
+ 45
+ 46
+ 47
+ 48
+ 49
+
   messages:[
    ...JSON.parse(localStorage.getItem('messages') || '[]')
   ],
@@ -40,7 +88,8 @@ function layout(content, active='inicio', titleBrand=true){
 }
 
 function back(title){
-  return `<div class="backrow"><button class="back" onclick="historyBack()">←</button><h2>${title}</h2></div>`;
+  return `<div class="backrow"><button c
+  lass="back" onclick="historyBack()">←</button><h2>${title}</h2></div>`;
 }
 let historyStack=[];
 
@@ -178,7 +227,7 @@ function render(){
 }
  if(s==='professional-requests'){
   app.innerHTML=layout(`<main class="page">
-    ${back('Solicitudes disponibles')}
+    <div class="backrow"><button class="back" onclick="state.screen='professional-home'; render()">←</button><h2>Solicitudes disponibles</h2></div>
 
     <div class="list">
 ${(() => {
