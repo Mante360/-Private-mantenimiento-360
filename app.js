@@ -185,8 +185,8 @@ function render(){
     <div class="list">
 ${(() => {
   const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
-
-  if(!request) return '';
+const jobStatus = localStorage.getItem('jobStatus') || 'Solicitud';
+  if(!request || ['Confirmado', 'En curso', 'Finalizado'].includes(jobStatus)) return '';
 
   return `
     <div class="card pro">
