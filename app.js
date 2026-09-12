@@ -879,7 +879,7 @@ function finishConfirmedJob(){
   quote.status = 'Finalizado';
   localStorage.setItem('professionalQuote', JSON.stringify(quote));
 state.job.status = 'Finalizado';
-
+localStorage.setItem('jobStatus', 'Finalizado');
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
 
 if(!history.some(item =>
