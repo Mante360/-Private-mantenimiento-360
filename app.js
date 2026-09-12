@@ -635,7 +635,12 @@ const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professiona
           ⭐ Calificar profesional
         </button>
       `}
-
+<button class="btn btn-outline full"
+  type="button"
+  onclick="go('chat')"
+  style="margin-top:12px">
+  💬 Mensaje
+</button>
       <button class="btn btn-outline full"
         type="button"
         onclick="go('claim')"
