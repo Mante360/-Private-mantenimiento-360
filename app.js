@@ -877,12 +877,18 @@ state.job.status = 'Finalizado';
 
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
 
-history.push({
-  ...quote,
-  professional: state.job.professional,
-  finishedAt: new Date().toISOString()
-});
-
+if(!history.some(item =>
+  item.job === quote.job &&
+  Number(item.amount) === Number(quote.amount) &&
+  item.professional === state.job.professional
+)){
+  history.push({
+    ...quote,
+    id: state.job.id,
+    professional: state.job.professional,
+    finishedAt: new Date().toISOString()
+  });
+}
 localStorage.setItem('jobHistory', JSON.stringify(history));
   alert('Trabajo finalizado correctamente.');
   go('professional-confirmed-detail');
