@@ -368,9 +368,11 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
         <div class="card specialty"><div class="icon">🔧</div><b>Plomería</b></div>
       </div>
     ${(() => {
-  const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+ const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
 const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'null');
-  if(!q || q.status !== 'Finalizado') return '';
+const jobRated = localStorage.getItem('jobRated') === 'true';
+
+if(!q || q.status !== 'Finalizado' || jobRated) return '';
 
   return `
     <div class="card" style="margin-top:20px">
@@ -810,10 +812,24 @@ localStorage.setItem(
 );
   go('rating');
 }
-function setRating(n){ state.rating=n; render(); }
 function submitRating(){
-  if(!state.rating){ alert('Elegí de 1 a 5 estrellas.'); return; }
-  alert('Calificación guardada en esta demostración.');
+  if(!state.rating){
+    alert('Elegí de 1 a 5 estrellas.');
+    return;
+  }
+
+  const comment = document.getElementById('ratingComment')?.value.trim() || '';
+
+  const rating = {
+    stars: state.rating,
+    comment: comment,
+    createdAt: new Date().toISOString()
+  };
+
+  localStorage.setItem('jobRating', JSON.stringify(rating));
+  localStorage.setItem('jobRated', 'true');
+
+  alert('Calificación guardada correctamente.');
   go('jobs');
 }
 function submitClaim(){
@@ -932,7 +948,8 @@ state.selectedProfessional.rating = newAverage.toFixed(1);
 state.selectedProfessional.ratingCount = oldCount + 1;
   
   localStorage.setItem('professionalRating', JSON.stringify(rating));
-
+localStorage.setItem('jobRating', JSON.stringify(rating));
+localStorage.setItem('jobRated', 'true');
   alert('Calificación enviada correctamente. ¡Gracias!');
   go('home');
 }
