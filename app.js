@@ -372,7 +372,7 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
 const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'null');
 const jobRated = localStorage.getItem('jobRated') === 'true';
 
-if(!q || q.status !== 'Finalizado' || jobRated) return '';
+if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
 
   return `
     <div class="card" style="margin-top:20px">
