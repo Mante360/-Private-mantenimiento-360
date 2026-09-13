@@ -164,7 +164,7 @@ function render(){
         <b>Mensajes</b>
       </div>
 
-      <div class="card specialty">
+     <div class="card specialty" onclick="go('profile')" style="cursor:pointer">
         <div class="icon">👤</div>
         <b>Mi perfil</b>
       </div>
