@@ -202,33 +202,7 @@ const jobStatus = localStorage.getItem('jobStatus') || 'Solicitud';
     </div>
   `;
 })()}
-      <div class="card pro">
-        <div>
-          <b>Electricidad</b>
-          <div class="notice" style="margin:4px 0">
-            San Isidro · Revisión de instalación eléctrica
-          </div>
-          <p>Cliente solicita revisión de tablero y tomacorrientes.</p>
-        </div>
-
-        <button class="btn btn-primary" onclick="go('professional-request-detail')">
-          Ver solicitud
-        </button>
-      </div>
-
-      <div class="card pro">
-        <div>
-          <b>Refrigeración</b>
-          <div class="notice" style="margin:4px 0">
-            Vicente López · Aire acondicionado
-          </div>
-          <p>Equipo split no enfría correctamente.</p>
-        </div>
-
-        <button type="button" class="btn btn-outline"
-        onclick="go('professional-request-detail')">
-          Ver solicitud
-        </button>
+     
       </div>
 
     </div>
