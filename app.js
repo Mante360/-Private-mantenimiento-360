@@ -428,6 +428,9 @@ const filteredPros = pros.filter(p => p[1] === serviceTrade[state.job.service]);
         <div class="proleft"><div class="avatar">${p[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div><b>${p[0]}</b><div class="notice" style="margin:4px 0">${p[1]} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${p[3]} · <b>✓ Verificado</b></div></div>
         <button class="btn btn-outline" onclick="selectPro(${pros.indexOf(p)})">Ver</button>
       </div>`).join('')}</div>
+      <button class="btn btn-primary full" type="button" onclick="requestQuotesToTrade()" style="margin-top:20px">
+  📩 Solicitar presupuesto
+</button>
     </main>`,'inicio');
     return;
   }
@@ -702,8 +705,23 @@ function saveRequest(){
     locality: state.job.locality,
     status: 'Buscando profesional'
   }));
-localStorage.setItem('professionalRequest', localStorage.getItem('clientRequest'));
+
   go('professionals');
+}function requestQuotesToTrade(){
+  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+
+  if(!request){
+    alert('No hay una solicitud para enviar.');
+    return;
+  }
+
+  request.status = 'Solicitud enviada';
+
+  localStorage.setItem('clientRequest', JSON.stringify(request));
+  localStorage.setItem('professionalRequest', JSON.stringify(request));
+
+  alert('Solicitud de presupuesto enviada a los profesionales de ' + request.service + '.');
+  go('jobs');
 }
 function selectPro(i){
   const names=['Carlos Rodríguez','María Romero','Diego Fernández','Norte Servicios'];
