@@ -705,7 +705,7 @@ const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professiona
   if(s==='profile'){
     app.innerHTML=layout(`<main class="page">${back('Perfil')}
       <div class="card"><h2>Mi cuenta</h2><p>Esta pantalla seguirá siendo demostrativa hasta conectar registro y base de datos reales.</p>
-      <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>2</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-') : (state.rating || '-')}</strong></div></div></div>
+      <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional' ? JSON.parse(localStorage.getItem('jobHistory') || '[]').length : 2}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-') : (state.rating || '-')}</strong></div></div></div>
     <button class="btn btn-outline full" type="button" onclick="state.mode=null; go('role')">Cambiar tipo de cuenta</button></main>`,'perfil');
     return;
   }
