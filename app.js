@@ -718,7 +718,7 @@ function saveRequest(){
     locality: state.job.locality,
     status: 'Buscando profesional'
   }));
-
+localStorage.setItem('jobStatus', 'Solicitud');
   go('professionals');
 }function requestQuotesToTrade(){
   const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
