@@ -415,12 +415,18 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
       ['María Romero','Refrigeración','94','4.8'],
       ['Diego Fernández','Plomería','81','4.7'],
       ['Norte Servicios','Mantenimiento integral','210','5.0']
-    ];
+    ];const serviceTrade = {
+  'Electricidad': 'Electricista',
+  'Refrigeración': 'Refrigeración',
+  'Plomería': 'Plomería'
+};
+
+const filteredPros = pros.filter(p => p[1] === serviceTrade[state.job.service]);
     app.innerHTML=layout(`<main class="page">${back('Profesionales')}
       <div class="field"><input placeholder="🔎 Buscar especialidad o profesional"></div>
-      <div class="list">${pros.map((p,i)=>`<div class="card pro" onclick="selectPro(${i})" style="cursor:pointer">
+      <div class="list">${filteredPros.map((p,i)=>`<div class="card pro" onclick="selectPro(${pros.indexOf(p)})" style="cursor:pointer">
         <div class="proleft"><div class="avatar">${p[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div><b>${p[0]}</b><div class="notice" style="margin:4px 0">${p[1]} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${p[3]} · <b>✓ Verificado</b></div></div>
-        <button class="btn btn-outline" onclick="selectPro(${i})">Ver</button>
+        <button class="btn btn-outline" onclick="selectPro(${pros.indexOf(p)})">Ver</button>
       </div>`).join('')}</div>
     </main>`,'inicio');
     return;
