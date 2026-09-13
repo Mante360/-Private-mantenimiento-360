@@ -537,7 +537,7 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
     <div class="list">
       <h3>🟢 Trabajos activos</h3>
 
-      ${(hasPendingRequest ? `
+      ${hasPendingRequest ? `
 <div class="card pro">
   <div>
     <b>${pendingRequest.service}</b>
