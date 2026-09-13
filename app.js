@@ -529,13 +529,26 @@ return;
 }
   const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
   const finalizado = q && q.status === 'Finalizado';
+   const pendingRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada';
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
 
     <div class="list">
       <h3>🟢 Trabajos activos</h3>
 
-      ${!finalizado ? `
+      ${(hasPendingRequest ? `
+<div class="card pro">
+  <div>
+    <b>${pendingRequest.service}</b>
+    <div class="notice" style="margin:4px 0">
+      Solicitud enviada · Esperando presupuestos
+    </div>
+    <p>${pendingRequest.description}</p>
+    <p>${pendingRequest.locality}</p>
+  </div>
+</div>
+` : !finalizado ? `
       <div class="card pro"
          onclick="go('contracted')"
          style="cursor:pointer">
