@@ -249,7 +249,7 @@ if(s==='professional-quotes'){
   <p>${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
   <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
   <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
- <p><b>Estado:</b> ${confirmedQuote && confirmedQuote.status === 'En curso' ? '🟡 En curso' : '✅ Confirmado'}</p>
+ <p><b>Estado:</b> ${confirmedQuote?.status === 'Finalizado' ? '🏁 Finalizado' : confirmedQuote?.status === 'En curso' ? '🟡 En curso' : '✅ Confirmado'}</p>
 </button>
 ${confirmedQuote && confirmedQuote.status === 'En curso' ? '<button class="btn btn-green full" type="button" onclick="finishConfirmedJob()">✅ Finalizar trabajo</button>' : ''}
 
