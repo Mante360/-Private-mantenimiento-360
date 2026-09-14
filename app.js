@@ -884,12 +884,13 @@ function sendProfessionalQuote(){
     alert('Agregá un detalle del presupuesto.');
     return;
   }
-const quote = {
+const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+  const quote = {
  amount: Number(String(amount).replace(/\./g, '').replace(',', '.')),
   text: text,
-  specialty: state.job.service,
-  location: 'San Isidro',
-  job: state.job.description,
+ specialty: currentRequest?.service || state.job.service,
+ location: currentRequest?.locality || state.job.locality,
+ job: currentRequest?.description || state.job.description,
   status: 'Esperando respuesta del cliente'
 };
 
