@@ -641,12 +641,41 @@ if(historyChanged){
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
 const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
 const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-  const rating = JSON.parse(localStorage.getItem('professionalRating') || 'null');    
-
+    
   if(!q){
     go('jobs');
     return;
   }
+const currentQuote = JSON.parse(
+  localStorage.getItem('professionalQuote') || 'null'
+);
+
+const legacyRating = JSON.parse(
+  localStorage.getItem('professionalRating') || 'null'
+);
+
+const jobRating = JSON.parse(
+  localStorage.getItem('jobRating') || 'null'
+);
+
+const isCurrentJob =
+  currentQuote &&
+  q.job === currentQuote.job &&
+  Number(q.amount) === Number(currentQuote.amount) &&
+  (q.location || '') === (currentQuote.location || '');
+
+const rating =
+  q.rating ||
+  (
+    jobRating &&
+    jobRating.job === q.job &&
+    Number(jobRating.amount) === Number(q.amount) &&
+    (jobRating.location || '') === (q.location || '')
+      ? jobRating
+      : null
+  ) ||
+  (isCurrentJob ? legacyRating : null);   
+
 const claimForJob = state.claims.find(claim =>
   claim.job === q.job &&
   Number(claim.amount) === Number(q.amount) &&
@@ -898,15 +927,39 @@ function submitRating(){
 
   const comment = document.getElementById('ratingComment')?.value.trim() || '';
 
-  const rating = {
-    stars: state.rating,
-    comment: comment,
-    createdAt: new Date().toISOString()
-  };
+ const currentQuote = JSON.parse(
+  localStorage.getItem('professionalQuote') || 'null'
+);
 
-  localStorage.setItem('jobRating', JSON.stringify(rating));
-  localStorage.setItem('jobRated', 'true');
+const rating = {
+  stars: state.rating,
+  comment: comment,
+  createdAt: new Date().toISOString(),
+  job: currentQuote?.job || state.job.description,
+  amount: Number(currentQuote?.amount || state.job.amount || 0),
+  location: currentQuote?.location || state.job.locality,
+  professional: currentQuote?.professional || state.job.professional
+};
 
+localStorage.setItem('jobRating', JSON.stringify(rating));
+localStorage.setItem('jobRated', 'true');
+
+const history = JSON.parse(
+  localStorage.getItem('jobHistory') || '[]'
+);
+
+const ratingIndex = currentQuote
+  ? history.findIndex(item =>
+      item.job === currentQuote.job &&
+      Number(item.amount) === Number(currentQuote.amount) &&
+      (item.location || '') === (currentQuote.location || '')
+    )
+  : -1;
+
+if(ratingIndex >= 0){
+  history[ratingIndex].rating = rating;
+  localStorage.setItem('jobHistory', JSON.stringify(history));
+}
   alert('Calificación guardada correctamente.');
   go('jobs');
 }
