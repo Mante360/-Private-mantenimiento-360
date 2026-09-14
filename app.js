@@ -531,13 +531,28 @@ return;
   const finalizado = q && q.status === 'Finalizado';
    const pendingRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
 const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada';
+   const hasReceivedQuote = q && q.status === 'Esperando respuesta del cliente';
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
 
     <div class="list">
       <h3>🟢 Trabajos activos</h3>
 
-      ${hasPendingRequest ? `
+    ${hasReceivedQuote ? `
+<div class="card pro">
+  <div>
+    <b>${pendingRequest?.service || q.specialty || state.job.service}</b>
+    <div class="notice" style="margin:4px 0">
+      Presupuesto recibido
+    </div>
+    <div class="money">${money(q.amount || 0)}</div>
+    <p>${q.text || ''}</p>
+  </div>
+  <button class="btn btn-primary" type="button" onclick="go('quote-received')">
+    Ver presupuesto
+  </button>
+</div>
+` : hasPendingRequest ? ` 
 <div class="card pro">
   <div>
     <b>${pendingRequest.service}</b>
@@ -868,7 +883,7 @@ function sendProfessionalQuote(){
 const quote = {
  amount: Number(String(amount).replace(/\./g, '').replace(',', '.')),
   text: text,
-  specialty: 'Electricidad',
+  specialty: state.job.service,
   location: 'San Isidro',
   job: state.job.description,
   status: 'Esperando respuesta del cliente'
