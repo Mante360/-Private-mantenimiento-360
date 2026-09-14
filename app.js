@@ -751,7 +751,9 @@ localStorage.setItem('jobStatus', 'Solicitud');
 
   localStorage.setItem('clientRequest', JSON.stringify(request));
   localStorage.setItem('professionalRequest', JSON.stringify(request));
-
+localStorage.removeItem('professionalQuote');
+localStorage.removeItem('professionalRating');
+localStorage.removeItem('jobRated');
   alert('Solicitud de presupuesto enviada a los profesionales de ' + request.service + '.');
   go('jobs');
 }
