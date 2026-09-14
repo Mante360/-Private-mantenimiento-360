@@ -368,12 +368,13 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
     return;
   }
   if(s==='rating'){
+    const ratingQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
   app.innerHTML=layout(`<main class="page">
     ${back('Calificar profesional')}
 
     <div class="card">
       <h2>⭐ Calificar profesional</h2>
-     <p><b>Profesional:</b> ${state.job.service === 'Plomería' ? 'Diego Fernández' : state.job.service === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
+     <p><b>Profesional:</b> ${(ratingQuote?.specialty || state.job.service) === 'Plomería' ? 'Diego Fernández' : (ratingQuote?.specialty || state.job.service) === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
       <p>¿Cómo fue tu experiencia?</p>
 
       <div style="font-size:32px;margin:20px 0">
