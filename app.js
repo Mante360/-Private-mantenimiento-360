@@ -746,7 +746,7 @@ const existingClaim = claimJob
   return;
 }
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Nuevo reclamo')}
-      <div class="card claims"><p><b>Trabajo:</b> #${state.job.id} · ${state.job.service}</p>
+      <div class="card claims"><p><b>Trabajo:</b> #${claimJob?.id || state.job.id} · ${claimJob?.specialty || state.job.service}</p>
       <div class="field"><label>Motivo</label><select id="claimReason"><option>El profesional no se presentó</option><option>Problema con el trabajo</option><option>Problema con el presupuesto</option><option>Mala atención</option><option>Otro</option></select></div>
       <div class="field"><label>Contanos qué pasó</label><textarea id="claimText" placeholder="Describí el problema..."></textarea></div>
       <div class="notice">🔐 El reclamo será visible solamente para vos, el profesional involucrado y Administración.</div>
