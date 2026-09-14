@@ -572,9 +572,9 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
          onclick="go('contracted')"
          style="cursor:pointer">
            <div>
-            <b>${state.job.service}</b>
+            <b>${q?.specialty || pendingRequest?.service || state.job.service}</b>
             <div class="notice" style="margin:4px 0">
-              ${state.job.professional} · ${state.job.locality}
+              ${q?.professional || (q?.specialty === 'Plomería' ? 'Diego Fernández' : q?.specialty === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')} · ${q?.location || pendingRequest?.locality || state.job.locality}
             </div>
           </div>
           <button class="btn btn-primary" onclick="event.stopPropagation(); openCurrentJob()">Ver trabajo</button></div>
