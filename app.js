@@ -465,7 +465,7 @@ const filteredPros = pros.filter(p => p[1] === serviceTrade[state.job.service]);
     </div>
 
     <button class="btn btn-primary full" style="margin-top:20px"
-  onclick="requestProfessionalQuote()">Solicitarpresupuesto</button>
+  onclick="requestProfessionalQuote()">Solicitar presupuesto</button>
 
   </div></main>`,'inicio');
   return;
