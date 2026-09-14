@@ -476,8 +476,8 @@ const filteredPros = pros.filter(p => p[1] === serviceTrade[state.job.service]);
 
     <div class="card">
       <h2>Presupuesto recibido</h2>
-      <p><b>Servicio:</b> ${quote?.specialty || state.job.service}</p>
-      <p><b>Profesional:</b> ${state.job.professional}</p>
+      <p><b>Servicio:</b> ${state.job.service || quote?.specialty}</p>
+      <p><b>Profesional:</b> ${quote?.professional || (state.job.service === 'Plomería' ? 'Diego Fernández' : state.job.service === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')}</p>
       <p><b>Localidad:</b> ${quote?.location || state.job.locality}</p>
       <p><b>Trabajo:</b> ${quote?.job || state.job.description}</p>
       <div class="money">${money(quote?.amount || 0)}</div>
