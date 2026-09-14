@@ -533,7 +533,7 @@ return;
   const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
   const finalizado = q && q.status === 'Finalizado';
    const pendingRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
-const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada';
+const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada' && !q;
    const hasReceivedQuote = q && q.status === 'Esperando respuesta del cliente';
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
