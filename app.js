@@ -641,13 +641,17 @@ if(historyChanged){
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
 const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
 const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-  const rating = JSON.parse(localStorage.getItem('professionalRating') || 'null');
+  const rating = JSON.parse(localStorage.getItem('professionalRating') || 'null');    
 
   if(!q){
     go('jobs');
     return;
   }
-
+const claimForJob = state.claims.find(claim =>
+  claim.job === q.job &&
+  Number(claim.amount) === Number(q.amount) &&
+  (claim.location || '') === (q.location || '')
+);
   app.innerHTML=layout(`<main class="page">
     ${back('Detalle del trabajo')}
 
@@ -689,7 +693,7 @@ const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professiona
         type="button"
         onclick="go('claim')"
         style="margin-top:12px">
-        ${state.claims.length ? '⚠️ Ver reclamo' : '⚠️ Hacer reclamo'}
+       ${claimForJob ? '⚠️ Ver reclamo' : '⚠️ Hacer reclamo'}
       </button>
     </div>
   </main>`,'trabajos');
@@ -708,7 +712,22 @@ const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professiona
     return;
   }
   if(s==='claim'){
-    const existingClaim = state.claims[state.claims.length - 1];
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
+const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+const claimJob =
+  currentQuote?.status === 'Finalizado'
+    ? (history[selectedIndex] || currentQuote)
+    : currentQuote;
+
+const existingClaim = claimJob
+  ? state.claims.find(claim =>
+      claim.job === claimJob.job &&
+      Number(claim.amount) === Number(claimJob.amount) &&
+      (claim.location || '') === (claimJob.location || '')
+    )
+  : null;
     if(existingClaim){
   app.innerHTML = layout(`
     <main class="page">
@@ -892,13 +911,42 @@ function submitRating(){
   go('jobs');
 }
 function submitClaim(){
-  const reason=document.getElementById('claimReason').value;
-  const text=document.getElementById('claimText').value.trim();
-  if(!text){ alert('Contanos brevemente qué pasó.'); return; }
-  state.claims.push({reason,text,status:'En revisión'});
+  const reason = document.getElementById('claimReason').value;
+  const text = document.getElementById('claimText').value.trim();
+
+  if(!text){
+    alert('Contanos brevemente qué pasó.');
+    return;
+  }
+
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
+  const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  const claimJob =
+    currentQuote?.status === 'Finalizado'
+      ? (history[selectedIndex] || currentQuote)
+      : currentQuote;
+
+  state.claims.push({
+    reason,
+    text,
+    status: 'En revisión',
+    job: claimJob?.job || state.job.description,
+    amount: Number(claimJob?.amount || state.job.amount || 0),
+    location: claimJob?.location || state.job.locality,
+    professional: claimJob?.professional || state.job.professional
+  });
+
   localStorage.setItem('claims', JSON.stringify(state.claims));
+
   alert('Reclamo enviado. Administración podrá revisarlo.');
-  go('contracted');
+
+  if(claimJob?.status === 'Finalizado'){
+    go('finished-job-detail');
+  }else{
+    go('contracted');
+  }
 }
 function sendProfessionalQuote(){
   const amount=document.getElementById('proAmount').value;
