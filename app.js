@@ -537,6 +537,33 @@ return;
 const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada' && !q;
    const hasReceivedQuote = q && q.status === 'Esperando respuesta del cliente';
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+   let historyChanged = false;
+
+if(q && q.status === 'Finalizado'){
+  const currentProfessional =
+    q.specialty === 'Plomería'
+      ? 'Diego Fernández'
+      : q.specialty === 'Refrigeración'
+        ? 'María Romero'
+        : q.professional || 'Carlos Rodríguez';
+
+  history.forEach(item => {
+    if(
+      item.job === q.job &&
+      Number(item.amount) === Number(q.amount) &&
+      (item.location || '') === (q.location || '') &&
+      item.professional !== currentProfessional
+    ){
+      item.professional = currentProfessional;
+      historyChanged = true;
+    }
+  
+});
+
+if(historyChanged){
+  localStorage.setItem('jobHistory', JSON.stringify(history));
+}
+  }
   app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
 
     <div class="list">
@@ -926,20 +953,37 @@ function finishConfirmedJob(){
   }
 
   quote.status = 'Finalizado';
-  localStorage.setItem('professionalQuote', JSON.stringify(quote));
+ 
 state.job.status = 'Finalizado';
 localStorage.setItem('jobStatus', 'Finalizado');
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+const professionalName =
+  quote.specialty === 'Plomería'
+    ? 'Diego Fernández'
+    : quote.specialty === 'Refrigeración'
+      ? 'María Romero'
+      : quote.professional || 'Carlos Rodríguez';
 
-if(!history.some(item =>
+quote.professional = professionalName;
+localStorage.setItem('professionalQuote', JSON.stringify(quote));
+const existingIndex = history.findIndex(item =>
   item.job === quote.job &&
   Number(item.amount) === Number(quote.amount) &&
-  item.professional === state.job.professional
-)){
+  (item.location || '') === (quote.location || '')
+);
+
+if(existingIndex >= 0){
+  history[existingIndex] = {
+    ...history[existingIndex],
+    ...quote,
+    id: history[existingIndex].id || state.job.id,
+    professional: professionalName
+  };
+}else{
   history.push({
     ...quote,
     id: state.job.id,
-    professional: state.job.professional,
+    professional: professionalName,
     finishedAt: new Date().toISOString()
   });
 }
