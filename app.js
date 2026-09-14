@@ -634,7 +634,7 @@ const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professiona
 
       <hr>
 
-      <p><b>Profesional:</b> Carlos Rodríguez ✓ Verificado</p>
+      <p><b>Profesional:</b> ${q.professional || (q.specialty === 'Plomería' ? 'Diego Fernández' : q.specialty === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')} ✓ Verificado</p>
       <p><b>Localidad:</b> ${q.location || state.job.locality}</p>
       <p><b>Importe:</b> $${Number(q.amount || state.job.amount).toLocaleString('es-AR')}</p>
       <p><b>Estado:</b> 🏁 Finalizado</p>
