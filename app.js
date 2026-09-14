@@ -373,7 +373,7 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
 
     <div class="card">
       <h2>⭐ Calificar profesional</h2>
-      <p><b>Profesional:</b> Carlos Rodríguez</p>
+     <p><b>Profesional:</b> ${state.job.service === 'Plomería' ? 'Diego Fernández' : state.job.service === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
       <p>¿Cómo fue tu experiencia?</p>
 
       <div style="font-size:32px;margin:20px 0">
