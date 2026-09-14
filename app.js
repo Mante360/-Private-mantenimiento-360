@@ -353,7 +353,7 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
   return `
     <div class="card" style="margin-top:20px">
       <h2>🏁 Trabajo finalizado</h2>
-      <p><b>Profesional:</b> Carlos Rodríguez</p>
+      <p><b>Profesional:</b> ${(q.specialty || state.job.service) === 'Plomería' ? 'Diego Fernández' : (q.specialty || state.job.service) === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
       <p><b>Servicio:</b> ${q.specialty || 'Electricidad'}</p>
       <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
 
