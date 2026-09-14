@@ -619,7 +619,7 @@ if(historyChanged){
     <div>
       <b>${item.specialty || 'Servicio'}</b>
       <div class="notice" style="margin:4px 0">
-        ${item.professional || 'Profesional'} · ${item.location || ''}
+       ${item.professional || 'Profesional'} · ${item.location || ''}
       </div>
     </div>
     <span class="badge">Finalizado</span>
