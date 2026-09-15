@@ -186,8 +186,7 @@ function render(){
 ${(() => {
   const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
 const jobStatus = localStorage.getItem('jobStatus') || 'Solicitud';
-  if(!request || ['Confirmado', 'En curso', 'Finalizado'].includes(jobStatus)) return '';
-
+ if(!request || request.status === 'Presupuesto enviado' || ['Confirmado', 'En curso', 'Finalizado'].includes(jobStatus)) return '';
   return `
     <div class="card pro">
       <div>
@@ -1071,6 +1070,11 @@ const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null
 };
 
 localStorage.setItem('professionalQuote', JSON.stringify(quote));
+  
+  if(currentRequest){
+  currentRequest.status = 'Presupuesto enviado';
+  localStorage.setItem('clientRequest', JSON.stringify(currentRequest));
+}
   alert('Presupuesto enviado correctamente.');
   go('professional-home');
 }
