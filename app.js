@@ -714,7 +714,7 @@ const claimForJob = state.claims.find(claim =>
       `}
 <button class="btn btn-outline full"
   type="button"
-  onclick="go('chat')"
+ onclick="localStorage.setItem('chatJob', JSON.stringify(q)); go('chat')"
   style="margin-top:12px">
   💬 Mensaje
 </button>
@@ -730,8 +730,9 @@ const claimForJob = state.claims.find(claim =>
   return;
 }
   if(s==='chat'){
+    const chatJob = JSON.parse(localStorage.getItem('chatJob') || 'null');
     app.innerHTML=layout(`<main class="page">${back('Mensajes')}
-      <div class="card"><div class="jobhead"><div><h2>${state.job.professional}</h2><div class="notice">Trabajo #${state.job.id}</div></div><span class="badge blue">${state.job.status}</span></div>
+      <div class="card"><div class="jobhead"><div><h2>${chatJob?.professional || state.job.professional}</h2><div class="notice">Trabajo #${chatJob?.id || state.job.id}</div></div><span class="badge blue">${chatJob?.status || state.job.status}</span></div>
       <div class="chatbox" id="chatbox">${state.messages.map(m=>`<div class="msg ${m.from==='me'?'me':''}">${m.text}</div>`).join('')}</div>
       <div class="chatinput"><input id="msg" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-primary" onclick="sendMsg()">Enviar</button></div>
       <div class="notice">🔒 Tus datos están protegidos. Mantené la conversación dentro de la app.</div>
