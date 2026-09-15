@@ -681,6 +681,7 @@ const claimForJob = state.claims.find(claim =>
   Number(claim.amount) === Number(q.amount) &&
   (claim.location || '') === (q.location || '')
 );
+    localStorage.setItem('chatJob', JSON.stringify(q));
   app.innerHTML=layout(`<main class="page">
     ${back('Detalle del trabajo')}
 
@@ -714,7 +715,7 @@ const claimForJob = state.claims.find(claim =>
       `}
 <button class="btn btn-outline full"
   type="button"
- onclick="localStorage.setItem('chatJob', JSON.stringify(q)); go('chat')"
+ onclick="go('chat')"
   style="margin-top:12px">
   💬 Mensaje
 </button>
