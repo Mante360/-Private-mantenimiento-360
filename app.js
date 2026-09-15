@@ -818,8 +818,14 @@ function saveRequest(){
   state.job.service=document.getElementById('service').value;
   state.job.description=document.getElementById('desc').value || 'Trabajo solicitado desde Mantenimiento 360°';
   state.job.locality=document.getElementById('loc').value || 'San Isidro';
+const lastJobNumber = Number(localStorage.getItem('lastJobNumber') || '125');
+const nextJobNumber = lastJobNumber + 1;
 
+localStorage.setItem('lastJobNumber', String(nextJobNumber));
+
+state.job.id = `360-${String(nextJobNumber).padStart(5,'0')}`;
   localStorage.setItem('clientRequest', JSON.stringify({
+    id: state.job.id,
     service: state.job.service,
     description: state.job.description,
     locality: state.job.locality,
@@ -887,6 +893,7 @@ function acceptQuote(){
 }
 function confirmPayment(){
   state.job.status='Confirmado';localStorage.setItem('jobStatus', 'Confirmado');const q = JSON.parse(localStorage.getItem('professionalQuote') || '{}');
+  state.job.id = q.id || state.job.id;
 q.status = 'Confirmado';
 localStorage.setItem('professionalQuote', JSON.stringify(q));
   state.job.amount=Number(JSON.parse(localStorage.getItem('professionalQuote') ||'{}').amount || state.job.amount);
@@ -1054,6 +1061,7 @@ function sendProfessionalQuote(){
   }
 const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
   const quote = {
+    id: currentRequest?.id || state.job.id,
  amount: Number(String(amount).replace(/\./g, '').replace(',', '.')),
   text: text,
  specialty: currentRequest?.service || state.job.service,
@@ -1106,22 +1114,26 @@ const professionalName =
 quote.professional = professionalName;
 localStorage.setItem('professionalQuote', JSON.stringify(quote));
 const existingIndex = history.findIndex(item =>
-  item.job === quote.job &&
-  Number(item.amount) === Number(quote.amount) &&
-  (item.location || '') === (quote.location || '')
+  quote.id
+    ? item.id === quote.id
+    : (
+        item.job === quote.job &&
+        Number(item.amount) === Number(quote.amount) &&
+        (item.location || '') === (quote.location || '')
+      )
 );
 
 if(existingIndex >= 0){
   history[existingIndex] = {
     ...history[existingIndex],
     ...quote,
-    id: history[existingIndex].id || state.job.id,
+   id: quote.id || history[existingIndex].id || state.job.id,
     professional: professionalName
   };
 }else{
   history.push({
     ...quote,
-    id: state.job.id,
+   id: quote.id || state.job.id,
     professional: professionalName,
     finishedAt: new Date().toISOString()
   });
