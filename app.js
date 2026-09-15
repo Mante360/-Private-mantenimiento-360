@@ -264,6 +264,7 @@ if(s==='professional-quotes'){
 
     <div class="card">
       <h2>🧰 ${confirmedQuote?.status === 'Finalizado' ? 'Trabajo finalizado' : confirmedQuote?.status === 'En curso' ? 'Trabajo en curso' : 'Trabajo confirmado'}</h2>
+      <p><b>Trabajo #:</b> ${confirmedQuote?.id || state.job.id}</p>
       <p><b>Servicio:</b> ${confirmedQuote ? confirmedQuote.specialty : 'Electricidad'}</p>
       <p><b>Localidad:</b> ${confirmedQuote ? confirmedQuote.location : 'San Isidro'}</p>
       <p><b>Trabajo:</b> ${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
