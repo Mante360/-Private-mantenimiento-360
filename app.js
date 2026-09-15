@@ -732,9 +732,20 @@ const claimForJob = state.claims.find(claim =>
 }
   if(s==='chat'){
     const chatJob = JSON.parse(localStorage.getItem('chatJob') || 'null');
+    const chatKey = 'messages_' + [
+  chatJob?.specialty || state.job.service,
+  chatJob?.job || state.job.description,
+  chatJob?.amount || state.job.amount,
+  chatJob?.location || state.job.locality,
+  chatJob?.professional || state.job.professional
+].join('|');
+
+const chatMessages = JSON.parse(
+  localStorage.getItem(chatKey) || '[]'
+);
     app.innerHTML=layout(`<main class="page">${back('Mensajes')}
       <div class="card"><div class="jobhead"><div><h2>${chatJob?.professional || state.job.professional}</h2><div class="notice">Trabajo #${chatJob?.id || state.job.id}</div></div><span class="badge blue">${chatJob?.status || state.job.status}</span></div>
-      <div class="chatbox" id="chatbox">${state.messages.map(m=>`<div class="msg ${m.from==='me'?'me':''}">${m.text}</div>`).join('')}</div>
+      <div class="chatbox" id="chatbox">${chatMessages.map(m=>`<div class="msg ${m.from==='me'?'me':''}">${m.text}</div>`).join('')}</div>
       <div class="chatinput"><input id="msg" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-primary" onclick="sendMsg()">Enviar</button></div>
       <div class="notice">🔒 Tus datos están protegidos. Mantené la conversación dentro de la app.</div>
       </div>
@@ -882,10 +893,35 @@ localStorage.setItem('professionalQuote', JSON.stringify(q));
   go('contracted');
 }
 function sendMsg(){
-  const inp=document.getElementById('msg');
+  const inp = document.getElementById('msg');
   if(!inp || !inp.value.trim()) return;
-  state.messages.push({from:'me',text:inp.value.trim()});
-  localStorage.setItem('messages', JSON.stringify(state.messages));
+
+  const chatJob = JSON.parse(
+    localStorage.getItem('chatJob') || 'null'
+  );
+
+  const chatKey = 'messages_' + [
+    chatJob?.specialty || state.job.service,
+    chatJob?.job || state.job.description,
+    chatJob?.amount || state.job.amount,
+    chatJob?.location || state.job.locality,
+    chatJob?.professional || state.job.professional
+  ].join('|');
+
+  const messages = JSON.parse(
+    localStorage.getItem(chatKey) || '[]'
+  );
+
+  messages.push({
+    from: 'me',
+    text: inp.value.trim()
+  });
+
+  localStorage.setItem(
+    chatKey,
+    JSON.stringify(messages)
+  );
+
   render();
 }
 function finishJob(){
