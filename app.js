@@ -509,11 +509,11 @@ return;
     const contractedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
     app.innerHTML=layout(`<main class="page">${back('Detalle del Trabajo')}
       <div class="card">
-        <div class="jobhead"><div><span class="badge">${state.job.status === 'Solicitud' ? '⏳ Solicitud enviada' : '✓ ' + state.job.status}</span><h2>${state.job.service}</h2><p>${JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.job || state.job.description}</p></div><div class="money">${money(state.job.amount ?? (JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.amount ? Number(JSON.parse(localStorage.getItem('professionalQuote') || 'null').amount) : null))}</div></div>
+        <div class="jobhead"><div><span class="badge">${state.job.status === 'Solicitud' ? '⏳ Solicitud enviada' : '✓ ' + state.job.status}</span><h2>${contractedQuote?.specialty || state.job.service}</h2><p>${JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.job || state.job.description}</p></div><div class="money">${money(state.job.amount ?? (JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.amount ? Number(JSON.parse(localStorage.getItem('professionalQuote') || 'null').amount) : null))}</div></div>
         <hr style="border:0;border-top:1px solid var(--line)">
         <p><b>Profesional:</b> ${contractedQuote?.professional || (contractedQuote?.specialty === 'Plomería' ? 'Diego Fernández' : contractedQuote?.specialty === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')} · ✓ Verificado</p>
-        <p><b>Localidad:</b> ${state.job.locality}</p>
-        <p><b>Trabajo:</b> #${state.job.id}</p>
+    <p><b>Localidad:</b> ${contractedQuote?.location || state.job.locality}</p>
+<p><b>Trabajo:</b> #${contractedQuote?.id || state.job.id}</p>
         <div class="timeline">
           <div class="step done">Solicitud</div><div class="step ${state.job.status === 'Solicitud' ? '' : 'done'}">Presupuesto</div><div class="step ${state.job.status === 'Confirmado' ? 'current' : (state.job.status === 'En curso' || state.job.status === 'Finalizado') ? 'done' : ''}">Confirmado</div><div class="step ${state.job.status === 'En curso' ? 'current' : (state.job.status === 'Finalizado' ? 'done' : '')}">En curso</div><div class="step ${state.job.status === 'Finalizado' ? 'current' : ''}">Finalizado</div>
         </div>
