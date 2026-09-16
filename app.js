@@ -1039,7 +1039,7 @@ function submitClaim(){
     reason,
     text,
     status: 'En revisión',
-    id: claimJob?.id || state.job.id,<
+    id: claimJob?.id || state.job.id,
     job: claimJob?.job || state.job.description,
     amount: Number(claimJob?.amount || state.job.amount || 0),
     location: claimJob?.location || state.job.locality,
