@@ -282,10 +282,12 @@ if(s==='professional-quotes'){
       💬 Mensajes
     </button>
 ${state.claims.some(claim => claim.id === confirmedQuote?.id) ? `
-  <button class="btn btn-outline full" type="button" onclick="localStorage.setItem('claimJobId', confirmedQuote?.id || state.job.id); go('claim')"
+  <button class="btn btn-primary full" type="button"
+    onclick="localStorage.setItem('claimJobId','${confirmedQuote?.id || state.job.id}'); go('claim')">
     ⚠️ Ver reclamo
   </button>
 ` : ''}
+
 ${confirmedQuote && confirmedQuote.status === 'Finalizado'
   ? '<button class="btn btn-primary full" type="button" disabled>🏁 Trabajo finalizado</button>'
   : confirmedQuote && confirmedQuote.status === 'En curso'
