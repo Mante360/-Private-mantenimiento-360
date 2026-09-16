@@ -281,7 +281,11 @@ if(s==='professional-quotes'){
     <button class="btn btn-primary full" type="button" onclick="go('chat')">
       💬 Mensajes
     </button>
-
+${state.claims.some(claim => claim.id === confirmedQuote?.id) ? `
+  <button class="btn btn-outline full" type="button" onclick="localStorage.setItem('claimJobId', confirmedQuote?.id || state.job.id); go('claim')"
+    ⚠️ Ver reclamo
+  </button>
+` : ''}
 ${confirmedQuote && confirmedQuote.status === 'Finalizado'
   ? '<button class="btn btn-primary full" type="button" disabled>🏁 Trabajo finalizado</button>'
   : confirmedQuote && confirmedQuote.status === 'En curso'
@@ -762,11 +766,22 @@ const chatMessages = JSON.parse(
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
 const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
 const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-
+const claimJobId = localStorage.getItem('claimJobId');
 const claimJob =
-  currentQuote?.status === 'Finalizado'
-    ? (history[selectedIndex] || currentQuote)
-    : currentQuote;
+  claimJobId
+    ? (
+        history.find(item => item.id === claimJobId) ||
+        (currentQuote?.id === claimJobId ? currentQuote : null)
+      )
+    : (
+        currentQuote?.status === 'Finalizado'
+          ? (history[selectedIndex] || currentQuote)
+          : currentQuote
+      );
+
+if(claimJobId){
+  localStorage.removeItem('claimJobId');
+}
 
 const existingClaim = claimJob
   ? state.claims.find(claim =>
