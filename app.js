@@ -1073,6 +1073,22 @@ function submitClaim(){
     go('contracted');
   }
 }
+function resolveClaim(i){
+  const pendingClaims = state.claims.filter(c => c.status !== 'Resuelto');
+  const claim = pendingClaims[i];
+
+  if(!claim) return;
+
+  const originalIndex = state.claims.indexOf(claim);
+
+  if(originalIndex === -1) return;
+
+  state.claims[originalIndex].status = 'Resuelto';
+  localStorage.setItem('claims', JSON.stringify(state.claims));
+
+  alert('Reclamo marcado como resuelto.');
+  go('admin-home');
+}
 function sendProfessionalQuote(){
   const amount=document.getElementById('proAmount').value;
   const text=document.getElementById('proQuoteText').value.trim();
