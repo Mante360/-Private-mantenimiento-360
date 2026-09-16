@@ -677,9 +677,13 @@ const rating =
   (isCurrentJob ? legacyRating : null);   
 
 const claimForJob = state.claims.find(claim =>
-  claim.job === q.job &&
-  Number(claim.amount) === Number(q.amount) &&
-  (claim.location || '') === (q.location || '')
+  (claim.id && q.id)
+    ? claim.id === q.id
+    : (
+        claim.job === q.job &&
+        Number(claim.amount) === Number(q.amount) &&
+        (claim.location || '') === (q.location || '')
+      )
 );
     localStorage.setItem('chatJob', JSON.stringify(q));
   app.innerHTML=layout(`<main class="page">
@@ -766,9 +770,13 @@ const claimJob =
 
 const existingClaim = claimJob
   ? state.claims.find(claim =>
-      claim.job === claimJob.job &&
-      Number(claim.amount) === Number(claimJob.amount) &&
-      (claim.location || '') === (claimJob.location || '')
+      (claim.id && claimJob.id)
+        ? claim.id === claimJob.id
+        : (
+            claim.job === claimJob.job &&
+            Number(claim.amount) === Number(claimJob.amount) &&
+            (claim.location || '') === (claimJob.location || '')
+          )
     )
   : null;
     if(existingClaim){
@@ -1031,6 +1039,7 @@ function submitClaim(){
     reason,
     text,
     status: 'En revisión',
+    id: claimJob?.id || state.job.id,<
     job: claimJob?.job || state.job.description,
     amount: Number(claimJob?.amount || state.job.amount || 0),
     location: claimJob?.location || state.job.locality,
