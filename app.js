@@ -112,22 +112,34 @@ function render(){
 
       <h3>⚠️ Pendientes: ${state.claims.filter(c => c.status !== 'Resuelto').length} | ✅ Resueltos: ${state.claims.filter(c => c.status === 'Resuelto').length}</h3>
 
-      ${
-        state.claims.length
-        ? state.claims.filter(c => c.status !== 'Resuelto').map((c,i)=>`
-          <div class="card" style="margin-top:12px">
-           ${c.status === 'Resuelto'
-  ? '<p><b>✅ Reclamo resuelto</b></p>'
-  : '<button class="btn btn-primary" type="button" onclick="resolveClaim(' + i + ')">✅ Resolver reclamo</button>'
+${
+  state.claims.length
+    ? state.claims.filter(c => c.status !== 'Resuelto').map((c,i)=>`
+        <div class="card" style="margin-top:12px">
+          <button class="btn btn-primary" type="button" onclick="resolveClaim(${i})">
+            ✅ Resolver reclamo
+          </button>
+
+          <p><b>Trabajo #:</b> ${c.id || 'Sin ID'}</p>
+          <p><b>Profesional:</b> ${c.professional || 'Sin asignar'}</p>
+          <p><b>Motivo:</b> ${c.reason}</p>
+          <p><b>Detalle:</b> ${c.text}</p>
+          <p><b>Estado:</b> ${c.status}</p>
+        </div>
+      `).join('') +
+      state.claims.filter(c => c.status === 'Resuelto').map((c)=>`
+        <div class="card" style="margin-top:12px">
+          <p><b>✅ Reclamo resuelto</b></p>
+
+          <p><b>Trabajo #:</b> ${c.id || 'Sin ID'}</p>
+          <p><b>Profesional:</b> ${c.professional || 'Sin asignar'}</p>
+          <p><b>Motivo:</b> ${c.reason}</p>
+          <p><b>Detalle:</b> ${c.text}</p>
+          <p><b>Estado:</b> ${c.status}</p>
+        </div>
+      `).join('')
+    : '<p>No hay reclamos registrados.</p>'
 }
-            <p><b>Motivo:</b> ${c.reason}</p>
-            <p><b>Detalle:</b> ${c.text}</p>
-            <p><b>Estado:</b> ${c.status}</p>
-           
-          </div>
-        `).join('')
-        : '<p>No hay reclamos registrados.</p>'
-      }
     </div>
   </main>`,'inicio');
 
