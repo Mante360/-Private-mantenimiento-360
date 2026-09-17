@@ -270,7 +270,9 @@ if(s==='professional-quotes'){
 }
  if(s==='professional-confirmed-detail'){
   const confirmedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-
+if(confirmedQuote){
+  localStorage.setItem('chatJob', JSON.stringify(confirmedQuote));
+}
   app.innerHTML=layout(`<main class="page">
     ${back('Detalle del trabajo')}
 
