@@ -754,8 +754,11 @@ const claimForJob = state.claims.find(claim =>
   return;
 }
   if(s==='chat'){
-    const chatJob = JSON.parse(localStorage.getItem('chatJob') || 'null');
-    const chatKey = 'messages_' + [
+   const chatJob = JSON.parse(localStorage.getItem('chatJob') || 'null');
+const chatId = chatJob?.id || state.job.id;
+const chatKey = 'messages_' + chatId;
+
+const legacyChatKey = 'messages_' + [
   chatJob?.specialty || state.job.service,
   chatJob?.job || state.job.description,
   chatJob?.amount || state.job.amount,
@@ -764,8 +767,11 @@ const claimForJob = state.claims.find(claim =>
 ].join('|');
 
 const chatMessages = JSON.parse(
-  localStorage.getItem(chatKey) || '[]'
+  localStorage.getItem(chatKey) ||
+  localStorage.getItem(legacyChatKey) ||
+  '[]'
 );
+  
     app.innerHTML=layout(`<main class="page">${back('Mensajes')}
       <div class="card"><div class="jobhead"><div><h2>${chatJob?.professional || state.job.professional}</h2><div class="notice">Trabajo #${chatJob?.id || state.job.id}</div></div><span class="badge blue">${chatJob?.status || state.job.status}</span></div>
       <div class="chatbox" id="chatbox">${chatMessages.map(m=>`<div class="msg ${m.from==='me'?'me':''}">${m.text}</div>`).join('')}</div>
@@ -945,17 +951,22 @@ function sendMsg(){
     localStorage.getItem('chatJob') || 'null'
   );
 
-  const chatKey = 'messages_' + [
-    chatJob?.specialty || state.job.service,
-    chatJob?.job || state.job.description,
-    chatJob?.amount || state.job.amount,
-    chatJob?.location || state.job.locality,
-    chatJob?.professional || state.job.professional
-  ].join('|');
+ const chatId = chatJob?.id || state.job.id;
+const chatKey = 'messages_' + chatId;
 
-  const messages = JSON.parse(
-    localStorage.getItem(chatKey) || '[]'
-  );
+const legacyChatKey = 'messages_' + [
+  chatJob?.specialty || state.job.service,
+  chatJob?.job || state.job.description,
+  chatJob?.amount || state.job.amount,
+  chatJob?.location || state.job.locality,
+  chatJob?.professional || state.job.professional
+].join('|');
+
+const messages = JSON.parse(
+  localStorage.getItem(chatKey) ||
+  localStorage.getItem(legacyChatKey) ||
+  '[]'
+);
 
   messages.push({
     from: 'me',
