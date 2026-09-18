@@ -273,31 +273,67 @@ if(s==='professional-quotes'){
   return;
 }
   if(s==='professional-confirmed'){
-  const confirmedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-    app.innerHTML=layout(`<main class="page">
+  const professionalAccount = localStorage.getItem('professionalAccount') || '';
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  const professionalJobs = history.filter(
+    item => item.professional === professionalAccount
+  );
+
+  if(
+    currentQuote &&
+    currentQuote.professional === professionalAccount &&
+    !professionalJobs.some(item => item.id === currentQuote.id)
+  ){
+    professionalJobs.push(currentQuote);
+  }
+
+  app.innerHTML=layout(`<main class="page">
     ${back('Trabajos confirmados')}
 
     <div class="card">
       <h2>🧰 Trabajos confirmados</h2>
-      <p>Trabajos aceptados por clientes.</p>
+      <p>Trabajos de ${professionalAccount}.</p>
     </div>
 
-   <button class="card" type="button" onclick="go('professional-confirmed-detail')" style="cursor:pointer;width:100%;text-align:left">
-  <b>${confirmedQuote ? confirmedQuote.specialty : 'Electricidad'}</b>
-  <p>📍 ${confirmedQuote ? confirmedQuote.location : 'San Isidro'}</p>
-  <p>${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
-  <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
-  <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
- <p><b>Estado:</b> ${confirmedQuote?.status === 'Finalizado' ? '🏁 Finalizado' : confirmedQuote?.status === 'En curso' ? '🟡 En curso' : '✅ Confirmado'}</p>
-</button>
+    ${
+      professionalJobs.length
+        ? professionalJobs.map(j=>`
+            <button class="card" type="button"
+              onclick="localStorage.setItem('selectedProfessionalJobId','${j.id || ''}'); go('professional-confirmed-detail')"
+              style="cursor:pointer;width:100%;text-align:left">
 
+              <p><b>Trabajo #:</b> ${j.id || 'Sin ID'}</p>
+              <b>${j.specialty || state.job.service}</b>
+              <p>📍 ${j.location || state.job.locality}</p>
+              <p>${j.job || state.job.description}</p>
+              <p><b>Importe:</b> $${Number(j.amount || 0).toLocaleString('es-AR')}</p>
+              <p><b>Estado:</b> ${
+                j.status === 'Finalizado'
+                  ? '🏁 Finalizado'
+                  : j.status === 'En curso'
+                    ? '🟡 En curso'
+                    : '✅ Confirmado'
+              }</p>
+            </button>
+          `).join('')
+        : '<div class="card"><p>No hay trabajos para esta cuenta profesional.</p></div>'
+    }
 
   </main>`,'trabajos');
 
   return;
 }
  if(s==='professional-confirmed-detail'){
-  const confirmedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+ const selectedProfessionalJobId = localStorage.getItem('selectedProfessionalJobId');
+const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+const confirmedQuote =
+  history.find(item => item.id === selectedProfessionalJobId) ||
+  (currentQuote?.id === selectedProfessionalJobId ? currentQuote : null) ||
+  currentQuote;
 if(confirmedQuote){
   localStorage.setItem('chatJob', JSON.stringify(confirmedQuote));
 }
