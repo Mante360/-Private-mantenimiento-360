@@ -1,3 +1,9 @@
+const professionalsDemo = [
+  ['Carlos Rodríguez','Electricista','127','4.9'],
+  ['María Romero','Refrigeración','94','4.8'],
+  ['Diego Fernández','Plomería','81','4.7'],
+  ['Norte Servicios','Mantenimiento integral','210','5.0']
+];
 
 const state = {
   screen: 'splash',
@@ -91,7 +97,7 @@ function render(){
         👤 Soy cliente
       </button>
 
-      <button class="btn btn-light" style="margin-left:10px" onclick="state.mode='professional'; go('professional-home')">
+      <button class="btn btn-light" style="margin-left:10px" onclick="state.mode='professional'; go('professional-select')">
         🧰 Soy profesional
       </button>
       <button class="btn btn-light" style="margin-left:10px"
@@ -102,6 +108,27 @@ function render(){
   </div>`;
   return;
   }
+  if(s==='professional-select'){
+  app.innerHTML=layout(`<main class="page">
+    ${back('Elegir profesional')}
+
+    <div class="card">
+      <h2>🧰 ¿Qué profesional está ingresando?</h2>
+      <p>Elegí la cuenta profesional para continuar.</p>
+
+      ${professionalsDemo.map((p,i)=>`
+        <button class="btn btn-outline full" type="button"
+          style="margin-top:10px;text-align:left"
+          onclick="localStorage.setItem('professionalAccount','${p[0]}'); state.selectedProfessionalIndex=${i}; go('professional-home')">
+          <b>${p[0]}</b><br>
+          <span>${p[1]}</span>
+        </button>
+      `).join('')}
+    </div>
+  </main>`,'perfil');
+
+  return;
+}
  if(s==='admin-home'){
   app.innerHTML=layout(`<main class="page">
     ${back('Administración')}
@@ -146,11 +173,12 @@ ${
   return;
 }
   if(s==='professional-home'){
+    const professionalAccount = localStorage.getItem('professionalAccount') || 'Profesional';
   app.innerHTML=layout(`<main class="page">
     <section class="hero">
       <div>
         <small>PANEL PROFESIONAL</small>
-        <h1>Hola, profesional.</h1>
+       <h1>Hola, ${professionalAccount}.</h1>
         <p>Desde acá vas a poder recibir solicitudes, enviar presupuestos y gestionar tus trabajos.</p>
       </div>
       <div class="big360">360°</div>
@@ -433,12 +461,8 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
     return;
   }
   if(s==='professionals'){
-    const pros=[
-      ['Carlos Rodríguez','Electricista','127','4.9'],
-      ['María Romero','Refrigeración','94','4.8'],
-      ['Diego Fernández','Plomería','81','4.7'],
-      ['Norte Servicios','Mantenimiento integral','210','5.0']
-    ];const serviceTrade = {
+    const pros = professionalsDemo;
+const serviceTrade = {
   'Electricidad': 'Electricista',
   'Refrigeración': 'Refrigeración',
   'Plomería': 'Plomería'
@@ -458,12 +482,7 @@ const filteredPros = pros.filter(p => p[1] === serviceTrade[state.job.service]);
     return;
   }
   if(s==='professional-detail'){
-  const pros=[
-    ['Carlos Rodriguez','Electricista','127','4.9'],
-    ['Maria Romero','Refrigeración','94','4.8'],
-    ['Diego Fernández','Plomería','81','4.7'],
-    ['Norte Servicios','Mantenimiento integral','210','5.0']
-  ];
+ const pros = professionalsDemo;
 
   const p=pros[state.selectedProfessionalIndex || 0];
 
