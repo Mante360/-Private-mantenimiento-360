@@ -623,8 +623,9 @@ const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
 return;
 }
   if(s==='payment'){
+    const paymentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Confirmar pago')}
-      <div class="card"><div>Presupuesto aprobado</div><div class="money">${money(state.job.amount)}</div><small>Servicio + materiales según presupuesto</small></div>
+      <div class="card"><div>Presupuesto aprobado</div><div><b>Trabajo #:</b> ${paymentQuote?.id || state.job.id}</div><div class="money">${money(state.job.amount)}</div><small>Servicio + materiales según presupuesto</small></div>
       <div class="card" style="margin-top:14px"><label class="payopt">💳 Mercado Pago <input type="radio" name="pay" checked></label>
       <label class="payopt">🏦 Transferencia bancaria <input type="radio" name="pay"></label></div>
       <button class="btn btn-primary full" style="margin-top:20px" onclick="confirmPayment()">Pagar y contratar</button>
