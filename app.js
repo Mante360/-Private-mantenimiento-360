@@ -276,7 +276,21 @@ if(s==='professional-quotes'){
   const professionalAccount = localStorage.getItem('professionalAccount') || '';
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+if(currentQuote && !currentQuote.professional){
+  const quoteTrade =
+    currentQuote.specialty === 'Electricidad'
+      ? 'Electricista'
+      : currentQuote.specialty;
 
+  const matchedProfessional = professionalsDemo.find(
+    p => p[1] === quoteTrade
+  );
+
+  if(matchedProfessional){
+    currentQuote.professional = matchedProfessional[0];
+    localStorage.setItem('professionalQuote', JSON.stringify(currentQuote));
+  }
+}
   const professionalJobs = history.filter(
     item => item.professional === professionalAccount
   );
@@ -1189,6 +1203,7 @@ const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null
   text: text,
  specialty: currentRequest?.service || state.job.service,
  location: currentRequest?.locality || state.job.locality,
+    professional: localStorage.getItem('professionalAccount') || state.job.professional,
  job: currentRequest?.description || state.job.description,
   status: 'Esperando respuesta del cliente'
 };
