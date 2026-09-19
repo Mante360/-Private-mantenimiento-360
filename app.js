@@ -701,7 +701,14 @@ if(historyChanged){
 
       <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
-      ${history.length ? history.map((item, index) => `
+   ${history.length ? history
+  .map((item, index) => ({ item, index }))
+  .sort((a, b) => {
+    const numA = Number(String(a.item.id || '').replace(/\D/g, '')) || -1;
+    const numB = Number(String(b.item.id || '').replace(/\D/g, '')) || -1;
+    return numB - numA;
+  })
+  .map(({ item, index }) => `
   <div class="card pro"
        onclick="localStorage.setItem('selectedHistoryIndex','${index}'); go('finished-job-detail')"
        style="cursor:pointer">
