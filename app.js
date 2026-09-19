@@ -434,6 +434,7 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
 
       <div class="card">
        <h2>${state.job.service}</h2>
+       <p><b>Trabajo #:</b> ${state.job.id || 'Sin ID'}</p>
         <p><b>Localidad:</b> ${state.job.locality}</p>
         <p><b>Trabajo:</b> ${state.job.description}</p>
         
