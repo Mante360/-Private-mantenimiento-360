@@ -250,23 +250,41 @@ const jobStatus = localStorage.getItem('jobStatus') || 'Solicitud';
   return;
 }
 if(s==='professional-quotes'){
-  const savedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  const professionalAccount = localStorage.getItem('professionalAccount') || '';
+  const rawQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  const savedQuote =
+    rawQuote && rawQuote.professional === professionalAccount
+      ? rawQuote
+      : null;
+
   app.innerHTML=layout(`<main class="page">
     ${back('Mis presupuestos')}
 
     <div class="card">
       <h2>💰 Mis presupuestos</h2>
-      <p>Presupuestos enviados a clientes</p>
+      <p>Presupuestos enviados por ${professionalAccount}.</p>
     </div>
 
-    <div class="card">
-  <b>${savedQuote ? savedQuote.specialty : 'Electricidad'}</b>
-  <p>📍 ${savedQuote ? savedQuote.location : 'San Isidro'}</p>
-  <p>${savedQuote ? savedQuote.job : 'Revisión de instalación eléctrica'}</p>
-  <p><b>Importe: $${savedQuote ? Number(savedQuote.amount).toLocaleString('es-AR') : '0'}</b></p>
-  <p>Detalle: ${savedQuote ? savedQuote.text : 'Sin detalle'}</p>
-  <p>Estado: ⏳ ${savedQuote ? savedQuote.status : 'Sin presupuesto enviado'}</p>
-</div>
+    ${
+      savedQuote
+        ? `
+          <div class="card">
+            <p><b>Trabajo #:</b> ${savedQuote.id || 'Sin ID'}</p>
+            <b>${savedQuote.specialty || 'Servicio'}</b>
+            <p>📍 ${savedQuote.location || ''}</p>
+            <p>${savedQuote.job || ''}</p>
+            <p><b>Importe:</b> $${Number(savedQuote.amount || 0).toLocaleString('es-AR')}</p>
+            <p><b>Detalle:</b> ${savedQuote.text || 'Sin detalle'}</p>
+            <p><b>Estado:</b> ⏳ ${savedQuote.status || 'Sin estado'}</p>
+          </div>
+        `
+        : `
+          <div class="card">
+            <p>No hay presupuestos para esta cuenta profesional.</p>
+          </div>
+        `
+    }
 
   </main>`,'trabajos');
 
