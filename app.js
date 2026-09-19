@@ -714,6 +714,7 @@ if(historyChanged){
        style="cursor:pointer">
     <div>
       <b>${item.specialty || 'Servicio'}</b>
+      <div class="notice" style="margin:4px 0"><b>Trabajo #:</b> ${item.id || 'Sin ID'}</div>
       <div class="notice" style="margin:4px 0">
        ${item.professional || 'Profesional'} · ${item.location || ''}
       </div>
