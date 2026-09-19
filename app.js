@@ -605,6 +605,7 @@ const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
 
     <div class="card">
       <h2>Presupuesto recibido</h2>
+      <p><b>Trabajo #:</b> ${quote?.id || request?.id || state.job.id}</p>
      <p><b>Servicio:</b> ${request?.service || state.job.service || quote?.specialty}</p> 
       <p><b>Profesional:</b> ${quote?.professional || (request?.service === 'Plomería' ? 'Diego Fernández' : request?.service === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')}</p>
       <p><b>Localidad:</b> ${quote?.location || state.job.locality}</p>
