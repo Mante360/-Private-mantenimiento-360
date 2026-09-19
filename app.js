@@ -263,13 +263,18 @@ const rawQuote = JSON.parse(
 const myQuotes = professionalQuotes.filter(
   item => item.professional === professionalAccount
 );
-
 if(
   rawQuote &&
   rawQuote.professional === professionalAccount &&
   !myQuotes.some(item => item.id === rawQuote.id)
 ){
+  professionalQuotes.push(rawQuote);
   myQuotes.push(rawQuote);
+
+  localStorage.setItem(
+    'professionalQuotes',
+    JSON.stringify(professionalQuotes)
+  );
 }
 
   app.innerHTML=layout(`<main class="page">
