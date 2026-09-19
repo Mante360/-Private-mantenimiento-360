@@ -250,13 +250,27 @@ const jobStatus = localStorage.getItem('jobStatus') || 'Solicitud';
   return;
 }
 if(s==='professional-quotes'){
-  const professionalAccount = localStorage.getItem('professionalAccount') || '';
-  const rawQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+ const professionalAccount = localStorage.getItem('professionalAccount') || '';
 
-  const savedQuote =
-    rawQuote && rawQuote.professional === professionalAccount
-      ? rawQuote
-      : null;
+const professionalQuotes = JSON.parse(
+  localStorage.getItem('professionalQuotes') || '[]'
+);
+
+const rawQuote = JSON.parse(
+  localStorage.getItem('professionalQuote') || 'null'
+);
+
+const myQuotes = professionalQuotes.filter(
+  item => item.professional === professionalAccount
+);
+
+if(
+  rawQuote &&
+  rawQuote.professional === professionalAccount &&
+  !myQuotes.some(item => item.id === rawQuote.id)
+){
+  myQuotes.push(rawQuote);
+}
 
   app.innerHTML=layout(`<main class="page">
     ${back('Mis presupuestos')}
@@ -266,26 +280,25 @@ if(s==='professional-quotes'){
       <p>Presupuestos enviados por ${professionalAccount}.</p>
     </div>
 
-    ${
-      savedQuote
-        ? `
-          <div class="card">
-            <p><b>Trabajo #:</b> ${savedQuote.id || 'Sin ID'}</p>
-            <b>${savedQuote.specialty || 'Servicio'}</b>
-            <p>📍 ${savedQuote.location || ''}</p>
-            <p>${savedQuote.job || ''}</p>
-            <p><b>Importe:</b> $${Number(savedQuote.amount || 0).toLocaleString('es-AR')}</p>
-            <p><b>Detalle:</b> ${savedQuote.text || 'Sin detalle'}</p>
-            <p><b>Estado:</b> ⏳ ${savedQuote.status || 'Sin estado'}</p>
-          </div>
-        `
-        : `
-          <div class="card">
-            <p>No hay presupuestos para esta cuenta profesional.</p>
-          </div>
-        `
-    }
-
+  ${
+  myQuotes.length
+    ? myQuotes.map(q => `
+        <div class="card">
+          <p><b>Trabajo #:</b> ${q.id || 'Sin ID'}</p>
+          <b>${q.specialty || 'Servicio'}</b>
+          <p>📍 ${q.location || ''}</p>
+          <p>${q.job || ''}</p>
+          <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
+          <p><b>Detalle:</b> ${q.text || 'Sin detalle'}</p>
+          <p><b>Estado:</b> ⏳ ${q.status || 'Sin estado'}</p>
+        </div>
+      `).join('')
+    : `
+        <div class="card">
+          <p>No hay presupuestos para esta cuenta profesional.</p>
+        </div>
+      `
+}
   </main>`,'trabajos');
 
   return;
@@ -1235,7 +1248,24 @@ const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null
 };
 
 localStorage.setItem('professionalQuote', JSON.stringify(quote));
-  
+  const professionalQuotes = JSON.parse(
+  localStorage.getItem('professionalQuotes') || '[]'
+);
+
+const existingQuoteIndex = professionalQuotes.findIndex(
+  item => item.id === quote.id && item.professional === quote.professional
+);
+
+if(existingQuoteIndex >= 0){
+  professionalQuotes[existingQuoteIndex] = quote;
+}else{
+  professionalQuotes.push(quote);
+}
+
+localStorage.setItem(
+  'professionalQuotes',
+  JSON.stringify(professionalQuotes)
+);
   if(currentRequest){
   currentRequest.status = 'Presupuesto enviado';
   localStorage.setItem('clientRequest', JSON.stringify(currentRequest));
