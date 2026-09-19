@@ -265,18 +265,33 @@ const myQuotes = professionalQuotes.filter(
 );
 if(
   rawQuote &&
-  rawQuote.professional === professionalAccount &&
-  !myQuotes.some(item => item.id === rawQuote.id)
+  rawQuote.professional === professionalAccount
 ){
-  professionalQuotes.push(rawQuote);
-  myQuotes.push(rawQuote);
+  const historyIndex = professionalQuotes.findIndex(
+    item => item.id === rawQuote.id &&
+            item.professional === rawQuote.professional
+  );
+
+  const myIndex = myQuotes.findIndex(
+    item => item.id === rawQuote.id
+  );
+
+  if(historyIndex >= 0){
+    professionalQuotes[historyIndex] = rawQuote;
+
+    if(myIndex >= 0){
+      myQuotes[myIndex] = rawQuote;
+    }
+  }else{
+    professionalQuotes.push(rawQuote);
+    myQuotes.push(rawQuote);
+  }
 
   localStorage.setItem(
     'professionalQuotes',
     JSON.stringify(professionalQuotes)
   );
 }
-
   app.innerHTML=layout(`<main class="page">
     ${back('Mis presupuestos')}
 
@@ -1058,6 +1073,24 @@ function confirmPayment(){
   state.job.id = q.id || state.job.id;
 q.status = 'Confirmado';
 localStorage.setItem('professionalQuote', JSON.stringify(q));
+  const professionalQuotes = JSON.parse(
+  localStorage.getItem('professionalQuotes') || '[]'
+);
+
+const quoteIndex = professionalQuotes.findIndex(
+  item => item.id === q.id && item.professional === q.professional
+);
+
+if(quoteIndex >= 0){
+  professionalQuotes[quoteIndex] = q;
+}else{
+  professionalQuotes.push(q);
+}
+
+localStorage.setItem(
+  'professionalQuotes',
+  JSON.stringify(professionalQuotes)
+);
   state.job.amount=Number(JSON.parse(localStorage.getItem('professionalQuote') ||'{}').amount || state.job.amount);
   go('contracted');
 }
