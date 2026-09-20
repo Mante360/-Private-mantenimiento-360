@@ -141,30 +141,36 @@ function render(){
 
 ${
   state.claims.length
-    ? state.claims.filter(c => c.status !== 'Resuelto').map((c,i)=>`
-        <div class="card" style="margin-top:12px">
-          <button class="btn btn-primary" type="button" onclick="resolveClaim(${i})">
-            ✅ Resolver reclamo
-          </button>
+    ? state.claims
+        .map((c, index) => ({ c, index }))
+        .sort((a, b) => {
+          const numA = Number(String(a.c.id || '').replace(/\D/g, '')) || -1;
+          const numB = Number(String(b.c.id || '').replace(/\D/g, '')) || -1;
+          return numB - numA;
+        })
+        .map(({ c, index }) => `
+          <div class="card" style="margin-top:12px">
 
-          <p><b>Trabajo #:</b> ${c.id || 'Sin ID'}</p>
-          <p><b>Profesional:</b> ${c.professional || 'Sin asignar'}</p>
-          <p><b>Motivo:</b> ${c.reason}</p>
-          <p><b>Detalle:</b> ${c.text}</p>
-          <p><b>Estado:</b> ${c.status}</p>
-        </div>
-      `).join('') +
-      state.claims.filter(c => c.status === 'Resuelto').map((c)=>`
-        <div class="card" style="margin-top:12px">
-          <p><b>✅ Reclamo resuelto</b></p>
+            ${
+              c.status !== 'Resuelto'
+                ? `
+                  <button class="btn btn-primary" type="button" onclick="resolveClaim(${index})">
+                    ✅ Resolver reclamo
+                  </button>
+                `
+                : `
+                  <p><b>✅ Reclamo resuelto</b></p>
+                `
+            }
 
-          <p><b>Trabajo #:</b> ${c.id || 'Sin ID'}</p>
-          <p><b>Profesional:</b> ${c.professional || 'Sin asignar'}</p>
-          <p><b>Motivo:</b> ${c.reason}</p>
-          <p><b>Detalle:</b> ${c.text}</p>
-          <p><b>Estado:</b> ${c.status}</p>
-        </div>
-      `).join('')
+            <p><b>Trabajo #:</b> ${c.id || 'Sin ID'}</p>
+            <p><b>Profesional:</b> ${c.professional || 'Sin asignar'}</p>
+            <p><b>Motivo:</b> ${c.reason}</p>
+            <p><b>Detalle:</b> ${c.text}</p>
+            <p><b>Estado:</b> ${c.status}</p>
+
+          </div>
+        `).join('')
     : '<p>No hay reclamos registrados.</p>'
 }
     </div>
