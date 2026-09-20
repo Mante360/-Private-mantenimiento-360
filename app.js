@@ -302,7 +302,14 @@ if(
 
   ${
   myQuotes.length
-    ? myQuotes.map(q => `
+    ? myQuotes
+  .slice()
+  .sort((a, b) => {
+    const numA = Number(String(a.id || '').replace(/\D/g, '')) || -1;
+    const numB = Number(String(b.id || '').replace(/\D/g, '')) || -1;
+    return numB - numA;
+  })
+  .map(q => `
         <div class="card">
           <p><b>Trabajo #:</b> ${q.id || 'Sin ID'}</p>
           <b>${q.specialty || 'Servicio'}</b>
