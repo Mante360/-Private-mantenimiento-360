@@ -364,7 +364,14 @@ if(currentQuote && !currentQuote.professional){
 
     ${
       professionalJobs.length
-        ? professionalJobs.map(j=>`
+       ? professionalJobs
+  .slice()
+  .sort((a, b) => {
+    const numA = Number(String(a.id || '').replace(/\D/g, '')) || -1;
+    const numB = Number(String(b.id || '').replace(/\D/g, '')) || -1;
+    return numB - numA;
+  })
+  .map(j=>`
             <button class="card" type="button"
               onclick="localStorage.setItem('selectedProfessionalJobId','${j.id || ''}'); go('professional-confirmed-detail')"
               style="cursor:pointer;width:100%;text-align:left">
