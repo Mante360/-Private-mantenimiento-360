@@ -978,9 +978,9 @@ const existingClaim = claimJob
     if(existingClaim){
   app.innerHTML = layout(`
     <main class="page">
-      ${back('Reclamo enviado')}
+     ${back(existingClaim.status === 'Resuelto' ? 'Reclamo resuelto' : 'Reclamo enviado')}
       <div class="card">
-        <h2>⚠️ Reclamo enviado</h2>
+       <h2>${existingClaim.status === 'Resuelto' ? '✅ Reclamo resuelto' : '⚠️ Reclamo enviado'}</h2>
         <p><b>Motivo:</b> ${existingClaim.reason}</p>
         <p><b>Detalle:</b> ${existingClaim.text}</p>
         <p><b>Estado:</b> ${existingClaim.status}</p>
