@@ -935,7 +935,7 @@ const chatMessages = JSON.parse(
   
     app.innerHTML=layout(`<main class="page">${back('Mensajes')}
       <div class="card"><div class="jobhead"><div><h2>${chatJob?.professional || state.job.professional}</h2><div class="notice">Trabajo #${chatJob?.id || state.job.id}</div></div><span class="badge blue">${chatJob?.status || state.job.status}</span></div>
-      <div class="chatbox" id="chatbox">${chatMessages.map(m=>`<div class="msg ${m.from==='me'?'me':''}">${m.text}</div>`).join('')}</div>
+      <div class="chatbox" id="chatbox">${chatMessages.map(m=>`<div class="msg ${(m.from==='client' || m.from==='me') ? 'me' : ''}">${m.text}</div>`).join('')}</div>
       <div class="chatinput"><input id="msg" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-primary" onclick="sendMsg()">Enviar</button></div>
       <div class="notice">🔒 Tus datos están protegidos. Mantené la conversación dentro de la app.</div>
       </div>
@@ -1147,11 +1147,10 @@ const messages = JSON.parse(
   '[]'
 );
 
-  messages.push({
-    from: 'me',
-    text: inp.value.trim()
-  });
-
+ messages.push({
+  from: state.mode === 'professional' ? 'professional' : 'client',
+  text: inp.value.trim()
+});
   localStorage.setItem(
     chatKey,
     JSON.stringify(messages)
