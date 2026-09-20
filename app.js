@@ -310,7 +310,15 @@ if(
           <p>${q.job || ''}</p>
           <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
           <p><b>Detalle:</b> ${q.text || 'Sin detalle'}</p>
-          <p><b>Estado:</b> ⏳ ${q.status || 'Sin estado'}</p>
+          <p><b>Estado:</b> ${
+  q.status === 'Finalizado'
+    ? '🏁 Finalizado'
+    : q.status === 'En curso'
+      ? '🟡 En curso'
+      : q.status === 'Confirmado'
+        ? '✅ Confirmado'
+        : '⏳ ' + (q.status || 'Sin estado')
+}</p>
         </div>
       `).join('')
     : `
