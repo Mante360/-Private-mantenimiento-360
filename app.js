@@ -1197,6 +1197,7 @@ const history = JSON.parse(
 
 history.push({
   ...quote,
+  id: quote.id || state.job.id,
   professional: state.job.professional,
   finishedAt: new Date().toISOString()
 });
