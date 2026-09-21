@@ -906,12 +906,14 @@ const claimForJob = state.claims.find(claim =>
           ⭐ Calificar profesional
         </button>
       `}
-<button class="btn btn-outline full"
-  type="button"
- onclick="go('chat')"
-  style="margin-top:12px">
-  💬 Mensaje
-</button>
+${state.mode !== 'admin' ? `
+  <button class="btn btn-outline full"
+    type="button"
+    onclick="go('chat')"
+    style="margin-top:12px">
+    💬 Mensaje
+  </button>
+` : ''}
       <button class="btn btn-outline full"
         type="button"
         onclick="go('claim')"
