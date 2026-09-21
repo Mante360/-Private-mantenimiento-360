@@ -168,7 +168,16 @@ ${
             <p><b>Motivo:</b> ${c.reason}</p>
             <p><b>Detalle:</b> ${c.text}</p>
             <p><b>Estado:</b> ${c.status}</p>
-
+${c.id ? `
+  <button class="btn btn-outline full" type="button"
+    onclick="localStorage.setItem('chatJob', JSON.stringify({
+      id:'${c.id}',
+      professional:'${c.professional || 'Profesional'}',
+      status:'Reclamo'
+    })); go('chat')">
+    💬 Ver chat del trabajo
+  </button>
+` : ''}
           </div>
         `).join('')
     : '<p>No hay reclamos registrados.</p>'
@@ -936,7 +945,10 @@ const chatMessages = JSON.parse(
     app.innerHTML=layout(`<main class="page">${back('Mensajes')}
       <div class="card"><div class="jobhead"><div><h2>${chatJob?.professional || state.job.professional}</h2><div class="notice">Trabajo #${chatJob?.id || state.job.id}</div></div><span class="badge blue">${chatJob?.status || state.job.status}</span></div>
       <div class="chatbox" id="chatbox">${chatMessages.map(m=>`<div class="msg ${(m.from==='client' || m.from==='me') ? 'me' : ''}">${m.text}</div>`).join('')}</div>
-      <div class="chatinput"><input id="msg" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-primary" onclick="sendMsg()">Enviar</button></div>
+     ${state.mode === 'admin'
+  ? `<div class="notice">🔒 Administración puede consultar este chat por el reclamo, pero no enviar mensajes.</div>`
+  : `<div class="chatinput"><input id="msg" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-primary" onclick="sendMsg()">Enviar</button></div>`
+}
       <div class="notice">🔒 Tus datos están protegidos. Mantené la conversación dentro de la app.</div>
       </div>
     </main>`,'mensajes');
