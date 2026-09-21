@@ -914,12 +914,14 @@ ${state.mode !== 'admin' ? `
     💬 Mensaje
   </button>
 ` : ''}
-      <button class="btn btn-outline full"
-        type="button"
-        onclick="go('claim')"
-        style="margin-top:12px">
-       ${claimForJob ? '⚠️ Ver reclamo' : '⚠️ Hacer reclamo'}
-      </button>
+      ${state.mode !== 'admin' ? `
+  <button class="btn btn-outline full"
+    type="button"
+    onclick="go('claim')"
+    style="margin-top:12px">
+    ${claimForJob ? '⚠️ Ver reclamo' : '⚠️ Hacer reclamo'}
+  </button>
+` : ''}
     </div>
   </main>`,'trabajos');
 
