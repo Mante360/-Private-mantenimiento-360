@@ -899,13 +899,13 @@ const claimForJob = state.claims.find(claim =>
           <b>Tu calificación:</b> ${'⭐'.repeat(rating.stars)}
         ${rating.comment ? `<p>${rating.comment}</p>` : ''}
         </div>
-      ` : `
-        <button class="btn btn-primary full"
-          type="button"
-          onclick="go('rating')">
-          ⭐ Calificar profesional
-        </button>
-      `}
+    ` : state.mode !== 'admin' ? `
+  <button class="btn btn-primary full"
+    type="button"
+    onclick="go('rating')">
+    ⭐ Calificar profesional
+  </button>
+` : ''}
 ${state.mode !== 'admin' ? `
   <button class="btn btn-outline full"
     type="button"
