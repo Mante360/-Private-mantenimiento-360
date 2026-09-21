@@ -25,7 +25,40 @@ const state = {
  claims: JSON.parse(localStorage.getItem('claims') || '[]'),
   rating:0
 };
+function migrateMissingJobIds(){
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+ let lastJobNumber = Math.max(
+  Number(localStorage.getItem('lastJobNumber') || '125'),
+  ...history.map(item => Number(String(item.id || '').replace('360-', '')) || 0)
+);
+  let changed = false;
 
+  const usedIds = new Set(
+    history.map(item => item.id).filter(Boolean)
+  );
+
+  history.forEach(item => {
+    if(!item.id){
+      let newId;
+
+      do {
+        lastJobNumber += 1;
+        newId = `360-${String(lastJobNumber).padStart(5,'0')}`;
+      } while(usedIds.has(newId));
+
+      item.id = newId;
+      usedIds.add(newId);
+      changed = true;
+    }
+  });
+
+  if(changed){
+    localStorage.setItem('jobHistory', JSON.stringify(history));
+    localStorage.setItem('lastJobNumber', String(lastJobNumber));
+  }
+}
+
+migrateMissingJobIds();
 const app = document.getElementById('app');
 const money = n => n == null ? 'Presupuesto pendiente' : '$ ' + n.toLocaleString('es-AR');
 
