@@ -40,7 +40,7 @@ function layout(content, active='inicio', titleBrand=true){
  <nav class="bottomnav">
   <button class="${active==='inicio'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-home' : 'home')">⌂<br>Inicio</button>
   <button class="${active==='trabajos'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-confirmed' : 'jobs')">🧰<br>Trabajos</button>
-  <button class="${active==='mensajes'?'active':''}" onclick="go('chat')">💬<br>Mensajes</button>
+ ${state.mode !== 'admin' ? `<button class="${active==='mensajes'?'active':''}" onclick="go('chat')">💬<br>Mensajes</button>` : ''}
   <button class="${active==='perfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
 </nav>
 </div>`;
