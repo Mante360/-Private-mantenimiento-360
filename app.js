@@ -65,7 +65,7 @@ const money = n => n == null ? 'Presupuesto pendiente' : '$ ' + n.toLocaleString
 function layout(content, active='inicio', titleBrand=true){
   return `<div class="shell">
     <header class="topbar">
-      <div class="brand"><b>360°</b> Mantenimiento 360°</div>
+     <div class="brand"><b>360°</b> Mantenimiento</div>
       <div class="userdot">👤</div>
     </header>
     ${content}
