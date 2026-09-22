@@ -10,14 +10,14 @@ const state = {
   mode: null,
   selectedProfessional: {name:'Carlos Rodríguez', trade:'Electricista', rating:'4.9',ratingCount:127, jobs:127},
   job: {
-    id:'360-00125',
-    service:'Electricidad',
-    description:'Revisión de instalación eléctrica',
-    locality:'San Isidro',
-    amount: null,
+  id: '',
+  service: '',
+  description: '',
+  locality: '',
+  amount: null,
   status: localStorage.getItem('jobStatus') || 'Solicitud',
-    professional:'Carlos Rodríguez'
-  },
+  professional: ''
+},
   
   messages:[
    ...JSON.parse(localStorage.getItem('messages') || '[]')
