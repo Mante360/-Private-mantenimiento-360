@@ -724,6 +724,9 @@ return;
   }
   if(s==='contracted'){
     const contractedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+    if(contractedQuote){
+  localStorage.setItem('chatJob', JSON.stringify(contractedQuote));
+}
     if (!contractedQuote && !state.job.id) {
   app.innerHTML = layout(`<main class="page">
     ${back('Mis trabajos')}
