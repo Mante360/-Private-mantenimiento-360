@@ -73,7 +73,7 @@ function layout(content, active='inicio', titleBrand=true){
  <nav class="bottomnav">
   <button class="${active==='inicio'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-home' : 'home')">⌂<br>Inicio</button>
   <button class="${active==='trabajos'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-confirmed' : 'jobs')">🧰<br>Trabajos</button>
- ${state.mode !== 'admin' ? `<button class="${active==='mensajes'?'active':''}" onclick="go('chat')">💬<br>Mensajes</button>` : ''}
+ ${state.mode !== 'admin' ? `<button class="${active==='mensajes'?'active':''}" onclick="go('messages')">💬<br>Mensajes</button>` : ''}
   <button class="${active==='perfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
 </nav>
 </div>`;
@@ -977,6 +977,80 @@ ${state.mode !== 'admin' ? `
 ` : ''}
     </div>
   </main>`,'trabajos');
+
+  return;
+}
+  if(s==='messages'){
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  const professionalAccount = localStorage.getItem('professionalAccount');
+
+  const chatIds = Object.keys(localStorage)
+    .filter(k => k.startsWith('messages_360-'))
+    .map(k => k.replace('messages_', ''))
+    .filter((id, i, arr) => arr.indexOf(id) === i)
+    .sort((a, b) =>
+      Number(String(b).replace(/\D/g, '')) -
+      Number(String(a).replace(/\D/g, ''))
+    );
+
+  window.openConversation = function(id){
+    const hist = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+    const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+    const job =
+      hist.find(j => j.id === id) ||
+      (quote?.id === id ? quote : null) ||
+      { id };
+
+    localStorage.setItem('chatJob', JSON.stringify(job));
+    go('chat');
+  };
+
+  const conversations = chatIds.map(id => {
+    const job =
+      history.find(j => j.id === id) ||
+      (currentQuote?.id === id ? currentQuote : null) ||
+      { id };
+
+    const service = job.specialty || job.service || 'Trabajo';
+
+    const professional =
+      job.professional ||
+      (service === 'Plomería'
+        ? 'Diego Fernández'
+        : service === 'Refrigeración'
+        ? 'María Romero'
+        : service === 'Electricidad'
+        ? 'Carlos Rodríguez'
+        : 'Profesional');
+
+    if(state.mode === 'professional' && professional !== professionalAccount){
+      return '';
+    }
+
+    const status = job.status || 'Conversación';
+
+    return `
+      <div class="card" style="margin-bottom:12px;cursor:pointer"
+           onclick="openConversation('${id}')">
+        <b>${professional}</b>
+        <p>Trabajo #${id}</p>
+        <p>${service} · ${status}</p>
+      </div>
+    `;
+  }).join('');
+
+  app.innerHTML = layout(`
+    <main class="page">
+      ${back('Mensajes')}
+      <h2>Mensajes</h2>
+
+      <div class="list">
+        ${conversations || '<p>No tenés conversaciones todavía.</p>'}
+      </div>
+    </main>
+  `, 'mensajes');
 
   return;
 }
