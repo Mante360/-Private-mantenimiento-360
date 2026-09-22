@@ -8,7 +8,7 @@ const professionalsDemo = [
 const state = {
   screen: 'splash',
   mode: null,
-  selectedProfessional: {name:'Carlos Rodríguez', trade:'Electricista', rating:'4.9',ratingCount:127, jobs:127},
+  selectedProfessional: {name:'', trade:'', rating:'', ratingCount:0, jobs:0},
   job: {
   id: '',
   service: '',
