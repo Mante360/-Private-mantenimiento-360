@@ -720,6 +720,19 @@ return;
   }
   if(s==='contracted'){
     const contractedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+    if (!contractedQuote && !state.job.id) {
+  app.innerHTML = layout(`<main class="page">
+    ${back('Mis trabajos')}
+    <div class="card">
+      <h2>No hay trabajo seleccionado</h2>
+      <p>Cuando tengas un trabajo activo, su detalle aparecerá acá.</p>
+      <button class="btn btn-primary" type="button" onclick="go('jobs')">
+        Ir a Mis trabajos
+      </button>
+    </div>
+  </main>`, 'trabajos');
+  return;
+}
     app.innerHTML=layout(`<main class="page">${back('Detalle del Trabajo')}
       <div class="card">
         <div class="jobhead"><div><span class="badge">${state.job.status === 'Solicitud' ? '⏳ Solicitud enviada' : '✓ ' + state.job.status}</span><h2>${contractedQuote?.specialty || state.job.service}</h2><p>${JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.job || state.job.description}</p></div><div class="money">${money(state.job.amount ?? (JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.amount ? Number(JSON.parse(localStorage.getItem('professionalQuote') || 'null').amount) : null))}</div></div>
