@@ -163,13 +163,92 @@ function render(){
   return;
 }
  if(s==='admin-home'){
+   const pendingSpecialties = JSON.parse(
+  localStorage.getItem('pendingSpecialties') || '[]'
+);
+   window.approveSpecialty = function(index){
+  const pending = JSON.parse(
+    localStorage.getItem('pendingSpecialties') || '[]'
+  );
+
+  const approved = JSON.parse(
+    localStorage.getItem('approvedSpecialties') || '[]'
+  );
+
+  const item = pending[index];
+  if(!item) return;
+
+  const alreadyApproved = approved.some(
+    name => String(name).toLowerCase() === String(item.name).toLowerCase()
+  );
+
+  if(!alreadyApproved){
+    approved.push(item.name);
+  }
+
+  pending.splice(index, 1);
+
+  localStorage.setItem(
+    'pendingSpecialties',
+    JSON.stringify(pending)
+  );
+
+  localStorage.setItem(
+    'approvedSpecialties',
+    JSON.stringify(approved)
+  );
+
+  go('admin-home');
+};
+
+window.rejectSpecialty = function(index){
+  const pending = JSON.parse(
+    localStorage.getItem('pendingSpecialties') || '[]'
+  );
+
+  pending.splice(index, 1);
+
+  localStorage.setItem(
+    'pendingSpecialties',
+    JSON.stringify(pending)
+  );
+
+  go('admin-home');
+};
   app.innerHTML=layout(`<main class="page">
     ${back('Administración')}
 
     <div class="card">
       <h2>🛡️ Panel de Administración</h2>
       <p>Gestión de reclamos de Mantenimiento 360°.</p>
+<h3 style="margin-top:24px">🧰 Especialidades pendientes de aprobación</h3>
 
+${
+  pendingSpecialties.length
+    ? pendingSpecialties.map((item, index) => `
+        <div class="card" style="margin-top:10px">
+          <b>${item.name}</b>
+          <p>Estado: ${item.status || 'Pendiente'}</p>
+
+          <div class="actions">
+            <button class="btn btn-primary"
+              type="button"
+              onclick="approveSpecialty(${index})">
+              ✅ Aprobar
+            </button>
+
+            <button class="btn btn-outline"
+              type="button"
+              onclick="rejectSpecialty(${index})">
+              ❌ Rechazar
+            </button>
+          </div>
+        </div>
+      `).join('')
+    : '<p>No hay especialidades pendientes.</p>'
+}
+
+<hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
       <h3>⚠️ Pendientes: ${state.claims.filter(c => c.status !== 'Resuelto').length} | ✅ Resueltos: ${state.claims.filter(c => c.status === 'Resuelto').length}</h3>
 
 ${
@@ -627,7 +706,23 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
 }
   if(s==='request'){
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Solicitar servicio')}
-      <div class="field"><label>¿Qué servicio necesitás?</label><select id="service"><option>Electricidad</option><option>Refrigeración</option><option>Plomería</option><option>Pintura</option><option>Carpintería</option></select></div>
+     <div class="field">
+  <label>¿Qué servicio necesitás?</label>
+  <select id="service" onchange="document.getElementById('customServiceField').style.display=this.value==='__otra__'?'block':'none'">
+    <option>Electricidad</option>
+    <option>Refrigeración</option>
+    <option>Plomería</option>
+    <option>Pintura</option>
+    <option>Carpintería</option>
+    <option value="__otra__">➕ Otra especialidad</option>
+  </select>
+</div>
+
+<div class="field" id="customServiceField" style="display:none">
+  <label>Escribí la especialidad que necesitás</label>
+  <input id="customService" placeholder="Ej.: Jardinería, Techista, Limpieza...">
+  <small>Esta especialidad quedará pendiente de aprobación por Administración.</small>
+</div>
       <div class="field"><label>Describí el trabajo</label><textarea id="desc" placeholder="Contanos qué necesitás reparar o instalar..."></textarea></div>
       <div class="field"><label>Localidad</label><input id="loc" placeholder="Ej.: San Isidro, Vicente López"></div>
       <div class="field"><label>Fotos (opcional)</label><div class="upload">📷 Agregar fotos del trabajo</div></div>
@@ -1163,7 +1258,39 @@ const existingClaim = claimJob
 }
 
 function saveRequest(){
-  state.job.service=document.getElementById('service').value;
+  const selectedService = document.getElementById('service').value;
+const customService = (document.getElementById('customService')?.value || '').trim();
+
+if(selectedService === '__otra__'){
+  if(!customService){
+    alert('Escribí la especialidad que necesitás.');
+    return;
+  }
+
+  state.job.service = customService;
+  const pendingSpecialties = JSON.parse(
+  localStorage.getItem('pendingSpecialties') || '[]'
+);
+
+const alreadyExists = pendingSpecialties.some(
+  item => (item.name || '').toLowerCase() === customService.toLowerCase()
+);
+
+if(!alreadyExists){
+  pendingSpecialties.push({
+    name: customService,
+    status: 'Pendiente',
+    createdAt: new Date().toISOString()
+  });
+
+  localStorage.setItem(
+    'pendingSpecialties',
+    JSON.stringify(pendingSpecialties)
+  );
+}
+} else {
+  state.job.service = selectedService;
+}
   state.job.description=document.getElementById('desc').value || 'Trabajo solicitado desde Mantenimiento 360°';
   state.job.locality=document.getElementById('loc').value || 'San Isidro';
 const lastJobNumber = Number(localStorage.getItem('lastJobNumber') || '125');
