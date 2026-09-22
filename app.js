@@ -548,6 +548,10 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
   return;
 }
   if(s==='home'){
+    if(state.mode === 'professional'){
+  go('professional-requests');
+  return;
+}
     app.innerHTML=layout(`<main class="page">
       <section class="hero">
         <div><small>SERVICIOS INTEGRALES</small><h1>Encontrá al profesional que necesitás.</h1>
