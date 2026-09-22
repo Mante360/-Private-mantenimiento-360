@@ -820,7 +820,7 @@ if(historyChanged){
     <p>${pendingRequest.locality}</p>
   </div>
 </div>
-` : !finalizado ? `
+`: q && !finalizado ? `
       <div class="card pro"
          onclick="go('contracted')"
          style="cursor:pointer">
