@@ -705,6 +705,9 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
   return;
 }
   if(s==='request'){
+    const approvedSpecialties = JSON.parse(
+  localStorage.getItem('approvedSpecialties') || '[]'
+);
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Solicitar servicio')}
      <div class="field">
   <label>¿Qué servicio necesitás?</label>
@@ -714,6 +717,13 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
     <option>Plomería</option>
     <option>Pintura</option>
     <option>Carpintería</option>
+    ${approvedSpecialties
+  .filter(name =>
+    !['Electricidad','Refrigeración','Plomería','Pintura','Carpintería']
+      .some(base => base.toLowerCase() === String(name).toLowerCase())
+  )
+  .map(name => `<option>${name}</option>`)
+  .join('')}
     <option value="__otra__">➕ Otra especialidad</option>
   </select>
 </div>
