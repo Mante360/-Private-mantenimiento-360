@@ -724,7 +724,7 @@ return;
       <div class="card">
         <div class="jobhead"><div><span class="badge">${state.job.status === 'Solicitud' ? '⏳ Solicitud enviada' : '✓ ' + state.job.status}</span><h2>${contractedQuote?.specialty || state.job.service}</h2><p>${JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.job || state.job.description}</p></div><div class="money">${money(state.job.amount ?? (JSON.parse(localStorage.getItem('professionalQuote') || 'null')?.amount ? Number(JSON.parse(localStorage.getItem('professionalQuote') || 'null').amount) : null))}</div></div>
         <hr style="border:0;border-top:1px solid var(--line)">
-        <p><b>Profesional:</b> ${contractedQuote?.professional || (contractedQuote?.specialty === 'Plomería' ? 'Diego Fernández' : contractedQuote?.specialty === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')} · ✓ Verificado</p>
+        <p><b>Profesional:</b> ${contractedQuote ? (contractedQuote.professional || (contractedQuote.specialty === 'Plomería' ? 'Diego Fernández' : contractedQuote.specialty === 'Refrigeración' ? 'María Romero' : contractedQuote.specialty === 'Electricidad' ? 'Carlos Rodríguez' : '')) : ''} · ${contractedQuote ? '✓ Verificado' : ''}</p>
     <p><b>Localidad:</b> ${contractedQuote?.location || state.job.locality}</p>
 <p><b>Trabajo:</b> #${contractedQuote?.id || state.job.id}</p>
         <div class="timeline">
