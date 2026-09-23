@@ -159,7 +159,7 @@ function render(){
     JSON.parse(
       localStorage.getItem('professionalSpecialties_' + p[0]) || 'null'
     ) || [p[1]]
-  ).join(' · ')
+  ).join(' - ')
 }</span>
         </button>
       `).join('')}
