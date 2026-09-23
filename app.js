@@ -154,7 +154,13 @@ function render(){
           style="margin-top:10px;text-align:left"
           onclick="localStorage.setItem('professionalAccount','${p[0]}'); state.selectedProfessionalIndex=${i}; go('professional-home')">
           <b>${p[0]}</b><br>
-          <span>${p[1]}</span>
+          <span>${
+  (
+    JSON.parse(
+      localStorage.getItem('professionalSpecialties_' + p[0]) || 'null'
+    ) || [p[1]]
+  ).join(' · ')
+}</span>
         </button>
       `).join('')}
     </div>
