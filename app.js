@@ -831,13 +831,34 @@ const lastSameService = [...jobHistory]
     item.professional
   );
 
-if(lastSameService?.professional){
-  filteredPros.sort((a, b) => {
+filteredPros.sort((a, b) => {
+
+  // 1. Primero el último profesional usado
+  // por este cliente en esta misma especialidad
+  if(lastSameService?.professional){
     if(a[0] === lastSameService.professional) return -1;
     if(b[0] === lastSameService.professional) return 1;
-    return 0;
-  });
-}
+  }
+
+  // 2. Mejor calificación
+  const ratingA = Number(a[3]) || 0;
+  const ratingB = Number(b[3]) || 0;
+
+  if(ratingB !== ratingA){
+    return ratingB - ratingA;
+  }
+
+  // 3. Mayor cantidad de trabajos realizados
+  const jobsA = Number(a[2]) || 0;
+  const jobsB = Number(b[2]) || 0;
+
+  if(jobsB !== jobsA){
+    return jobsB - jobsA;
+  }
+
+  // 4. Si todavía empatan, orden alfabético
+  return String(a[0]).localeCompare(String(b[0]), 'es');
+});
     app.innerHTML=layout(`<main class="page">${back('Profesionales')}
       <div class="field"><input placeholder="🔎 Buscar especialidad o profesional"></div>
       <div class="list">${filteredPros.map((p,i)=>`<div class="card pro" onclick="selectPro(${pros.indexOf(p)})" style="cursor:pointer">
