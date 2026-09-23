@@ -749,6 +749,76 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
     select.dispatchEvent(new Event('change'));
   }
 };
+    const clientTaskCatalog = {
+  'Refrigeración': [
+    'Instalación',
+    'Reparación',
+    'Mantenimiento preventivo',
+    'Desinstalación',
+    'Diagnóstico'
+  ],
+
+  'Electricidad': [
+    'Armado de tableros',
+    'Cambio de térmica o disyuntor',
+    'Reparación de cableado',
+    'Instalación de tomas y luminarias',
+    'Diagnóstico eléctrico'
+  ],
+
+  'Jardinería': [
+    'Poda baja',
+    'Corte de césped',
+    'Ligustros y cercos',
+    'Limpieza de jardín',
+    'Nivelación de suelo'
+  ],
+
+  'Plomería': [
+    'Reparación de pérdidas',
+    'Cambio de grifería',
+    'Destapaciones',
+    'Instalación sanitaria',
+    'Reparación de cañerías'
+  ],
+
+  'Pintura': [
+    'Pintura interior',
+    'Pintura exterior',
+    'Preparación de paredes',
+    'Impermeabilización',
+    'Reparaciones de pintura'
+  ],
+
+  'Carpintería': [
+    'Reparación de muebles',
+    'Armado de muebles',
+    'Puertas y marcos',
+    'Estantes',
+    'Trabajos a medida'
+  ]
+};
+    window.updateClientTaskOptions = function(service){
+  const field = document.getElementById('clientTaskField');
+  const select = document.getElementById('clientTask');
+
+  if(!field || !select) return;
+
+  const tasks = clientTaskCatalog[service] || [];
+
+  if(!tasks.length){
+    field.style.display = 'none';
+    select.innerHTML = '';
+    return;
+  }
+
+  field.style.display = 'block';
+
+  select.innerHTML =
+    '<option value="">Seleccioná el trabajo</option>' +
+    tasks.map(task => `<option value="${task}">${task}</option>`).join('') +
+    '<option value="__otro__">Otro trabajo</option>';
+};
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Solicitar servicio')}
     <div class="field">
   <label>🔎 Buscar profesión</label>
@@ -760,7 +830,7 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
 </div>
      <div class="field">
   <label>¿Qué servicio necesitás?</label>
-  <select id="service" onchange="document.getElementById('customServiceField').style.display=this.value==='__otra__'?'block':'none'">
+ <select id="service" onchange="document.getElementById('customServiceField').style.display=this.value==='__otra__'?'block':'none'; updateClientTaskOptions(this.value)">
     <option>Electricidad</option>
     <option>Refrigeración</option>
     <option>Plomería</option>
@@ -776,7 +846,24 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
     <option value="__otra__">➕ Otra especialidad</option>
   </select>
 </div>
+<div class="field" id="clientTaskField">
+  <label>¿Qué trabajo necesitás?</label>
 
+ <select id="clientTask" onchange="document.getElementById('customTaskField').style.display=this.value==='__otro__'?'block':'none'">
+    <option value="">Seleccioná el trabajo</option>
+    ${clientTaskCatalog['Electricidad']
+      .map(task => `<option value="${task}">${task}</option>`)
+      .join('')}
+    <option value="__otro__">Otro trabajo</option>
+  </select>
+</div>
+<div class="field" id="customTaskField" style="display:none">
+  <label>Describí qué trabajo necesitás</label>
+  <input
+    id="customTask"
+    placeholder="Ej.: poda de ligustros, reparación de plaqueta..."
+  >
+</div>
 <div class="field" id="customServiceField" style="display:none">
   <label>Escribí la especialidad que necesitás</label>
   <input id="customService" placeholder="Ej.: Jardinería, Techista, Limpieza...">
@@ -811,9 +898,25 @@ const filteredPros = pros.filter(p => {
             ? 'Electricidad'
             : p[1]
         ];
+  const savedTasks = JSON.parse(
+  localStorage.getItem('professionalTasks_' + p[0]) || '{}'
+);
+
+const serviceTasks =
+  Array.isArray(savedTasks[state.job.service])
+    ? savedTasks[state.job.service]
+    : [];
+
+const taskMatches =
+  !state.job.task ||
+  serviceTasks.some(
+    task =>
+      String(task).toLowerCase() ===
+      String(state.job.task).toLowerCase()
+  );
 const isAvailable =
   localStorage.getItem('professionalAvailable_' + p[0]) !== 'false';
-  return isAvailable && specialties.some(
+ return isAvailable && taskMatches && specialties.some(
     specialty =>
       String(specialty).toLowerCase() ===
       String(state.job.service).toLowerCase()
@@ -1661,6 +1764,44 @@ if(!alreadyExists){
 } else {
   state.job.service = selectedService;
 }
+  const selectedTask =
+  document.getElementById('clientTask')?.value || '';
+
+const customTask =
+  (document.getElementById('customTask')?.value || '').trim();
+
+const clientTaskField =
+  document.getElementById('clientTaskField');
+
+const taskIsVisible =
+  clientTaskField &&
+  clientTaskField.style.display !== 'none';
+
+if(taskIsVisible){
+
+  if(!selectedTask){
+    alert('Elegí qué trabajo necesitás.');
+    return;
+  }
+
+  if(selectedTask === '__otro__'){
+
+    if(!customTask){
+      alert('Describí qué trabajo necesitás.');
+      return;
+    }
+
+    state.job.task = customTask;
+
+  } else {
+
+    state.job.task = selectedTask;
+  }
+
+} else {
+
+  state.job.task = '';
+}
   state.job.description=document.getElementById('desc').value || 'Trabajo solicitado desde Mantenimiento 360°';
   state.job.locality=document.getElementById('loc').value || 'San Isidro';
 const lastJobNumber = Number(localStorage.getItem('lastJobNumber') || '125');
@@ -1672,6 +1813,7 @@ state.job.id = `360-${String(nextJobNumber).padStart(5,'0')}`;
   localStorage.setItem('clientRequest', JSON.stringify({
     id: state.job.id,
     service: state.job.service,
+    task: state.job.task,
     description: state.job.description,
     locality: state.job.locality,
     status: 'Buscando profesional'
