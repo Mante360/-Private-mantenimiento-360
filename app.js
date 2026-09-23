@@ -821,7 +821,11 @@ const filteredPros = pros.filter(p => {
     app.innerHTML=layout(`<main class="page">${back('Profesionales')}
       <div class="field"><input placeholder="🔎 Buscar especialidad o profesional"></div>
       <div class="list">${filteredPros.map((p,i)=>`<div class="card pro" onclick="selectPro(${pros.indexOf(p)})" style="cursor:pointer">
-        <div class="proleft"><div class="avatar">${p[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div><b>${p[0]}</b><div class="notice" style="margin:4px 0">${p[1]} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${p[3]} · <b>✓ Verificado</b></div></div>
+        <div class="proleft"><div class="avatar">${p[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div><b>${p[0]}</b><div class="notice" style="margin:4px 0">${(
+  JSON.parse(
+    localStorage.getItem('professionalSpecialties_' + p[0]) || 'null'
+  ) || [p[1]]
+).join(' - ')} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${p[3]} · <b>✓ Verificado</b></div></div>
         <button class="btn btn-outline" onclick="selectPro(${pros.indexOf(p)})">Ver</button>
       </div>`).join('')}</div>
       <button class="btn btn-primary full" type="button" onclick="requestQuotesToTrade()" style="margin-top:20px">
