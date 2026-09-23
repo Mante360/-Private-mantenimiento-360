@@ -1302,8 +1302,93 @@ const existingClaim = claimJob
     return;
   }
   if(s==='profile'){
+    const professionalAccount =
+  localStorage.getItem('professionalAccount') || '';
+
+const approvedSpecialties = JSON.parse(
+  localStorage.getItem('approvedSpecialties') || '[]'
+);
+
+const baseSpecialties = [
+  'Electricidad',
+  'Refrigeración',
+  'Plomería',
+  'Pintura',
+  'Carpintería'
+];
+
+const allSpecialties = [
+  ...new Set([...baseSpecialties, ...approvedSpecialties])
+];
+
+const defaultSpecialty =
+  professionalAccount === 'Carlos Rodríguez'
+    ? 'Electricidad'
+    : professionalAccount === 'María Romero'
+    ? 'Refrigeración'
+    : professionalAccount === 'Diego Fernández'
+    ? 'Plomería'
+    : '';
+
+const specialtiesKey =
+  `professionalSpecialties_${professionalAccount}`;
+
+let professionalSpecialties = JSON.parse(
+  localStorage.getItem(specialtiesKey) || 'null'
+);
+
+if(!Array.isArray(professionalSpecialties)){
+  professionalSpecialties =
+    defaultSpecialty ? [defaultSpecialty] : [];
+}
+    window.saveProfessionalSpecialties = function(){
+  const checked = Array.from(
+    document.querySelectorAll('input[name="professionalSpecialty"]:checked')
+  ).map(input => input.value);
+
+  if(!checked.length){
+    alert('Elegí al menos una especialidad.');
+    return;
+  }
+
+  localStorage.setItem(
+    specialtiesKey,
+    JSON.stringify(checked)
+  );
+
+  alert('Especialidades guardadas correctamente.');
+  go('profile');
+};
     app.innerHTML=layout(`<main class="page">${back('Perfil')}
       <div class="card"><h2>Mi cuenta</h2><p>Esta pantalla seguirá siendo demostrativa hasta conectar registro y base de datos reales.</p>
+      ${state.mode === 'professional' ? `
+  <div class="card" style="margin-top:14px">
+    <h3>🧰 Mis especialidades</h3>
+    <p><b>${professionalAccount}</b></p>
+
+    <div style="display:grid;gap:10px;margin-top:12px">
+      ${allSpecialties.map(name => `
+        <label class="payopt">
+          <input
+            type="checkbox"
+            name="professionalSpecialty"
+            value="${name}"
+            ${professionalSpecialties.includes(name) ? 'checked' : ''}
+          >
+          ${name}
+        </label>
+      `).join('')}
+    </div>
+
+    <button
+      class="btn btn-primary full"
+      type="button"
+      style="margin-top:16px"
+      onclick="saveProfessionalSpecialties()">
+      Guardar especialidades
+    </button>
+  </div>
+` : ''}
       <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional' ? JSON.parse(localStorage.getItem('jobHistory') || '[]').length : JSON.parse(localStorage.getItem('jobHistory') || '[]').length}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-') : (JSON.parse(localStorage.getItem('jobRating') || 'null')?.stars || JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-')}</strong></div></div></div>
     <button class="btn btn-outline full" type="button" onclick="state.mode=null; go('role')">Cambiar tipo de cuenta</button></main>`,'perfil');
     return;
