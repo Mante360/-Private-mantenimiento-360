@@ -708,7 +708,50 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
     const approvedSpecialties = JSON.parse(
   localStorage.getItem('approvedSpecialties') || '[]'
 );
+    window.filterServiceOptions = function(text){
+  const select = document.getElementById('service');
+  if(!select) return;
+
+  const search = String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  let firstMatch = null;
+
+  Array.from(select.options).forEach(option => {
+    if(option.value === '__otra__'){
+      option.hidden = false;
+      return;
+    }
+
+    const optionText = option.text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    const match = optionText.includes(search);
+    option.hidden = !match;
+
+    if(match && !firstMatch){
+      firstMatch = option;
+    }
+  });
+
+  if(search && firstMatch){
+    select.value = firstMatch.value;
+    select.dispatchEvent(new Event('change'));
+  }
+};
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Solicitar servicio')}
+    <div class="field">
+  <label>🔎 Buscar profesión</label>
+  <input
+    type="text"
+    placeholder="Ej.: jardin, refrigeración, pintura..."
+    oninput="filterServiceOptions(this.value)"
+  >
+</div>
      <div class="field">
   <label>¿Qué servicio necesitás?</label>
   <select id="service" onchange="document.getElementById('customServiceField').style.display=this.value==='__otra__'?'block':'none'">
