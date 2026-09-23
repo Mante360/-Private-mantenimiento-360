@@ -798,7 +798,26 @@ const serviceTrade = {
   'Plomería': 'Plomería'
 };
 
-const filteredPros = pros.filter(p => p[1] === serviceTrade[state.job.service]);
+const filteredPros = pros.filter(p => {
+  const savedSpecialties = JSON.parse(
+    localStorage.getItem('professionalSpecialties_' + p[0]) || 'null'
+  );
+
+  const specialties =
+    Array.isArray(savedSpecialties) && savedSpecialties.length
+      ? savedSpecialties
+      : [
+          p[1] === 'Electricista'
+            ? 'Electricidad'
+            : p[1]
+        ];
+
+  return specialties.some(
+    specialty =>
+      String(specialty).toLowerCase() ===
+      String(state.job.service).toLowerCase()
+  );
+});
     app.innerHTML=layout(`<main class="page">${back('Profesionales')}
       <div class="field"><input placeholder="🔎 Buscar especialidad o profesional"></div>
       <div class="list">${filteredPros.map((p,i)=>`<div class="card pro" onclick="selectPro(${pros.indexOf(p)})" style="cursor:pointer">
