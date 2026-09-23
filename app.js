@@ -818,6 +818,26 @@ const filteredPros = pros.filter(p => {
       String(state.job.service).toLowerCase()
   );
 });
+    const jobHistory = JSON.parse(
+  localStorage.getItem('jobHistory') || '[]'
+);
+
+const lastSameService = [...jobHistory]
+  .reverse()
+  .find(item =>
+    String(item.status || '').toLowerCase() === 'finalizado' &&
+    String(item.specialty || item.service || '').toLowerCase() ===
+      String(state.job.service || '').toLowerCase() &&
+    item.professional
+  );
+
+if(lastSameService?.professional){
+  filteredPros.sort((a, b) => {
+    if(a[0] === lastSameService.professional) return -1;
+    if(b[0] === lastSameService.professional) return 1;
+    return 0;
+  });
+}
     app.innerHTML=layout(`<main class="page">${back('Profesionales')}
       <div class="field"><input placeholder="🔎 Buscar especialidad o profesional"></div>
       <div class="list">${filteredPros.map((p,i)=>`<div class="card pro" onclick="selectPro(${pros.indexOf(p)})" style="cursor:pointer">
