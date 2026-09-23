@@ -1390,6 +1390,13 @@ if(!Array.isArray(professionalSpecialties)){
 };
     app.innerHTML=layout(`<main class="page">${back('Perfil')}
       <div class="card"><h2>Mi cuenta</h2><p>Esta pantalla seguirá siendo demostrativa hasta conectar registro y base de datos reales.</p>
+      <button
+  class="btn btn-outline full"
+  type="button"
+  style="margin-top:12px"
+  onclick="state.mode=null; go('role')">
+  Cambiar tipo de cuenta
+</button>
       ${state.mode === 'professional' ? `
   <div class="card" style="margin-top:14px">
     <h3>🧰 Mis especialidades</h3>
