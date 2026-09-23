@@ -811,8 +811,9 @@ const filteredPros = pros.filter(p => {
             ? 'Electricidad'
             : p[1]
         ];
-
-  return specialties.some(
+const isAvailable =
+  localStorage.getItem('professionalAvailable_' + p[0]) !== 'false';
+  return isAvailable && specialties.some(
     specialty =>
       String(specialty).toLowerCase() ===
       String(state.job.service).toLowerCase()
@@ -1439,6 +1440,27 @@ if(!Array.isArray(professionalSpecialties)){
   Cambiar tipo de cuenta
 </button>
       ${state.mode === 'professional' ? `
+      <div class="card" style="margin-top:14px">
+  <h3>🟢 Estado para recibir trabajos</h3>
+
+  <label class="payopt">
+    <input
+      type="checkbox"
+      ${localStorage.getItem('professionalAvailable_' + professionalAccount) !== 'false' ? 'checked' : ''}
+      onchange="localStorage.setItem(
+        'professionalAvailable_${professionalAccount}',
+        this.checked ? 'true' : 'false'
+      ); go('profile')"
+    >
+    ${localStorage.getItem('professionalAvailable_' + professionalAccount) !== 'false'
+      ? 'Disponible'
+      : 'No disponible'}
+  </label>
+
+  <small>
+    Si estás no disponible, no aparecerás en nuevas búsquedas de clientes.
+  </small>
+</div>
   <div class="card" style="margin-top:14px">
     <h3>🧰 Mis especialidades</h3>
     <p><b>${professionalAccount}</b></p>
