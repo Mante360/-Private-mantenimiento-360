@@ -1387,7 +1387,55 @@ const baseSpecialties = [
   'Pintura',
   'Carpintería'
 ];
+const specialtyTaskCatalog = {
+  'Refrigeración': [
+    'Instalación',
+    'Reparación',
+    'Mantenimiento preventivo',
+    'Desinstalación',
+    'Diagnóstico'
+  ],
 
+  'Electricidad': [
+    'Armado de tableros',
+    'Cambio de térmica o disyuntor',
+    'Reparación de cableado',
+    'Instalación de tomas y luminarias',
+    'Diagnóstico eléctrico'
+  ],
+
+  'Jardinería': [
+    'Poda baja',
+    'Corte de césped',
+    'Ligustros y cercos',
+    'Limpieza de jardín',
+    'Nivelación de suelo'
+  ],
+
+  'Plomería': [
+    'Reparación de pérdidas',
+    'Cambio de grifería',
+    'Destapaciones',
+    'Instalación sanitaria',
+    'Reparación de cañerías'
+  ],
+
+  'Pintura': [
+    'Pintura interior',
+    'Pintura exterior',
+    'Preparación de paredes',
+    'Impermeabilización',
+    'Reparaciones de pintura'
+  ],
+
+  'Carpintería': [
+    'Reparación de muebles',
+    'Armado de muebles',
+    'Puertas y marcos',
+    'Estantes',
+    'Trabajos a medida'
+  ]
+};
 const allSpecialties = [
   ...new Set([...baseSpecialties, ...approvedSpecialties])
 ];
@@ -1412,6 +1460,20 @@ if(!Array.isArray(professionalSpecialties)){
   professionalSpecialties =
     defaultSpecialty ? [defaultSpecialty] : [];
 }
+    const professionalTasksKey =
+  `professionalTasks_${professionalAccount}`;
+
+let professionalTasks = JSON.parse(
+  localStorage.getItem(professionalTasksKey) || '{}'
+);
+
+if(
+  !professionalTasks ||
+  typeof professionalTasks !== 'object' ||
+  Array.isArray(professionalTasks)
+){
+  professionalTasks = {};
+}
     window.saveProfessionalSpecialties = function(){
   const checked = Array.from(
     document.querySelectorAll('input[name="professionalSpecialty"]:checked')
@@ -1428,6 +1490,33 @@ if(!Array.isArray(professionalSpecialties)){
   );
 
   alert('Especialidades guardadas correctamente.');
+  go('profile');
+};
+    window.saveProfessionalTasks = function(){
+
+  const selectedTasks = {};
+
+  document
+    .querySelectorAll('input[name="professionalTask"]:checked')
+    .forEach(input => {
+
+      const specialty = input.dataset.specialty;
+
+      if(!specialty) return;
+
+      if(!selectedTasks[specialty]){
+        selectedTasks[specialty] = [];
+      }
+
+      selectedTasks[specialty].push(input.value);
+    });
+
+  localStorage.setItem(
+    professionalTasksKey,
+    JSON.stringify(selectedTasks)
+  );
+
+  alert('Trabajos que realizás guardados correctamente.');
   go('profile');
 };
     app.innerHTML=layout(`<main class="page">${back('Perfil')}
@@ -1487,6 +1576,50 @@ if(!Array.isArray(professionalSpecialties)){
       Guardar especialidades
     </button>
   </div>
+  <div class="card" style="margin-top:14px">
+  <h3>🛠️ Trabajos que realizo</h3>
+  <p>Marcá los trabajos que realizás dentro de cada especialidad.</p>
+
+  ${professionalSpecialties.map(specialty => {
+    const tasks = specialtyTaskCatalog[specialty] || [];
+
+    return `
+      <div style="margin-top:18px">
+        <h4>${specialty}</h4>
+
+        ${
+          tasks.length
+            ? tasks.map(task => `
+                <label class="payopt">
+                  <input
+                    type="checkbox"
+                    name="professionalTask"
+                    data-specialty="${specialty}"
+                    value="${task}"
+                    ${
+                      Array.isArray(professionalTasks[specialty]) &&
+                      professionalTasks[specialty].includes(task)
+                        ? 'checked'
+                        : ''
+                    }
+                  >
+                  ${task}
+                </label>
+              `).join('')
+            : '<p>No hay trabajos predefinidos para esta especialidad.</p>'
+        }
+      </div>
+    `;
+  }).join('')}
+
+  <button
+    class="btn btn-primary full"
+    type="button"
+    style="margin-top:16px"
+    onclick="saveProfessionalTasks()">
+    Guardar trabajos que realizo
+  </button>
+</div>
 ` : ''}
       <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional' ? JSON.parse(localStorage.getItem('jobHistory') || '[]').length : JSON.parse(localStorage.getItem('jobHistory') || '[]').length}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-') : (JSON.parse(localStorage.getItem('jobRating') || 'null')?.stars || JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-')}</strong></div></div></div></main>`,'perfil');
     
