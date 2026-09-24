@@ -446,6 +446,7 @@ if(
         <div class="card">
           <p><b>Trabajo #:</b> ${q.id || 'Sin ID'}</p>
           <b>${q.specialty || 'Servicio'}</b>
+          ${q.task ? `<p><b>Trabajo específico:</b> ${q.task}</p>` : ''}
           <p>📍 ${q.location || ''}</p>
           <p>${q.job || ''}</p>
           <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
