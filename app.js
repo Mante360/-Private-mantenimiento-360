@@ -606,6 +606,7 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
        <h2>${state.job.service}</h2>
        <p><b>Trabajo #:</b> ${state.job.id || 'Sin ID'}</p>
         <p><b>Localidad:</b> ${state.job.locality}</p>
+        ${state.job.task ? `<p><b>Trabajo específico:</b> ${state.job.task}</p>` : ''}
         <p><b>Trabajo:</b> ${state.job.description}</p>
         
       </div>
@@ -1020,6 +1021,7 @@ const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
      <p><b>Servicio:</b> ${request?.service || state.job.service || quote?.specialty}</p> 
       <p><b>Profesional:</b> ${quote?.professional || (request?.service === 'Plomería' ? 'Diego Fernández' : request?.service === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')}</p>
       <p><b>Localidad:</b> ${quote?.location || state.job.locality}</p>
+      ${(request?.task || state.job.task) ? `<p><b>Trabajo específico:</b> ${request?.task || state.job.task}</p>` : ''}
       <p><b>Trabajo:</b> ${quote?.job || state.job.description}</p>
       <div class="money">${money(quote?.amount || 0)}</div>
      <p>${quote?.text || 'Presupuesto enviado por el profesional.'}</p>
@@ -1068,6 +1070,7 @@ return;
         <hr style="border:0;border-top:1px solid var(--line)">
         <p><b>Profesional:</b> ${contractedQuote ? (contractedQuote.professional || (contractedQuote.specialty === 'Plomería' ? 'Diego Fernández' : contractedQuote.specialty === 'Refrigeración' ? 'María Romero' : contractedQuote.specialty === 'Electricidad' ? 'Carlos Rodríguez' : '')) : ''} · ${contractedQuote ? '✓ Verificado' : ''}</p>
     <p><b>Localidad:</b> ${contractedQuote?.location || state.job.locality}</p>
+${state.job.task ? `<p><b>Trabajo específico:</b> ${state.job.task}</p>` : ''}
 <p><b>Trabajo:</b> #${contractedQuote?.id || state.job.id}</p>
         <div class="timeline">
           <div class="step done">Solicitud</div><div class="step ${state.job.status === 'Solicitud' ? '' : 'done'}">Presupuesto</div><div class="step ${state.job.status === 'Confirmado' ? 'current' : (state.job.status === 'En curso' || state.job.status === 'Finalizado') ? 'done' : ''}">Confirmado</div><div class="step ${state.job.status === 'En curso' ? 'current' : (state.job.status === 'Finalizado' ? 'done' : '')}">En curso</div><div class="step ${state.job.status === 'Finalizado' ? 'current' : ''}">Finalizado</div>
@@ -1181,6 +1184,7 @@ if(historyChanged){
     <div>
       <b>${item.specialty || 'Servicio'}</b>
       <div class="notice" style="margin:4px 0"><b>Trabajo #:</b> ${item.id || 'Sin ID'}</div>
+      ${item.task ? `<div class="notice" style="margin:4px 0"><b>Trabajo específico:</b> ${item.task}</div>` : ''}
       <div class="notice" style="margin:4px 0">
        ${item.professional || 'Profesional'} · ${item.location || ''}
       </div>
@@ -2177,15 +2181,17 @@ if(existingIndex >= 0){
   history[existingIndex] = {
     ...history[existingIndex],
     ...quote,
-   id: quote.id || history[existingIndex].id || state.job.id,
-    professional: professionalName
+  id: quote.id || history[existingIndex].id || state.job.id,
+task: state.job.task || history[existingIndex].task || '',
+professional: professionalName
   };
 }else{
   history.push({
     ...quote,
-   id: quote.id || state.job.id,
-    professional: professionalName,
-    finishedAt: new Date().toISOString()
+  id: quote.id || state.job.id,
+professional: professionalName,
+task: state.job.task || '',
+finishedAt: new Date().toISOString()
   });
 }
 localStorage.setItem('jobHistory', JSON.stringify(history));
