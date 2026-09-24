@@ -566,6 +566,7 @@ if(confirmedQuote){
       <p><b>Trabajo #:</b> ${confirmedQuote?.id || state.job.id}</p>
       <p><b>Servicio:</b> ${confirmedQuote ? confirmedQuote.specialty : 'Electricidad'}</p>
       <p><b>Localidad:</b> ${confirmedQuote ? confirmedQuote.location : 'San Isidro'}</p>
+      ${(confirmedQuote?.task || state.job.task) ? `<p><b>Trabajo específico:</b> ${confirmedQuote?.task || state.job.task}</p>` : ''}
       <p><b>Trabajo:</b> ${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
       <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
       <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
