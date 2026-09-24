@@ -2185,7 +2185,7 @@ if(existingIndex >= 0){
     ...history[existingIndex],
     ...quote,
   id: quote.id || history[existingIndex].id || state.job.id,
-task: state.job.task || history[existingIndex].task || '',
+task: quote.task || state.job.task || history[existingIndex].task || '',
 professional: professionalName
   };
 }else{
@@ -2193,7 +2193,7 @@ professional: professionalName
     ...quote,
   id: quote.id || state.job.id,
 professional: professionalName,
-task: state.job.task || '',
+task: quote.task || state.job.task || '',
 finishedAt: new Date().toISOString()
   });
 }
