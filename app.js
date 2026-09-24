@@ -502,7 +502,13 @@ if(currentQuote && !currentQuote.professional){
   ){
     professionalJobs.push(currentQuote);
   }
+const activeProfessionalJobs = professionalJobs.filter(
+  item => String(item.status || '').toLowerCase() !== 'finalizado'
+);
 
+const finishedProfessionalJobs = professionalJobs.filter(
+  item => String(item.status || '').toLowerCase() === 'finalizado'
+);
   app.innerHTML=layout(`<main class="page">
     ${back('Trabajos confirmados')}
 
@@ -512,8 +518,8 @@ if(currentQuote && !currentQuote.professional){
     </div>
 
     ${
-      professionalJobs.length
-       ? professionalJobs
+     activeProfessionalJobs.length
+  ? activeProfessionalJobs
   .slice()
   .sort((a, b) => {
     const numA = Number(String(a.id || '').replace(/\D/g, '')) || -1;
@@ -541,7 +547,38 @@ if(currentQuote && !currentQuote.professional){
           `).join('')
         : '<div class="card"><p>No hay trabajos para esta cuenta profesional.</p></div>'
     }
+<h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
+${
+  finishedProfessionalJobs.length
+    ? finishedProfessionalJobs
+        .slice()
+        .sort((a, b) => {
+          const numA = Number(String(a.id || '').replace(/\D/g, '')) || -1;
+          const numB = Number(String(b.id || '').replace(/\D/g, '')) || -1;
+          return numB - numA;
+        })
+        .map(j => `
+          <button
+            class="card"
+            type="button"
+            onclick="localStorage.setItem('selectedProfessionalJobId','${j.id || ''}'); go('professional-confirmed-detail')"
+            style="cursor:pointer;width:100%;text-align:left;margin-top:10px"
+          >
+            <p><b>Trabajo #:</b> ${j.id || 'Sin ID'}</p>
+            <b>${j.specialty || 'Servicio'}</b>
+
+            ${j.task ? `<p><b>Trabajo específico:</b> ${j.task}</p>` : ''}
+
+            <p>📍 ${j.location || ''}</p>
+            <p>${j.job || ''}</p>
+            <p><b>Importe:</b> $${Number(j.amount || 0).toLocaleString('es-AR')}</p>
+            <p><b>Estado:</b> 🏁 Finalizado</p>
+          </button>
+        `)
+        .join('')
+    : `<div class="card"><p>Todavía no tenés trabajos finalizados.</p></div>`
+}
   </main>`,'trabajos');
 
   return;
