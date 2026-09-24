@@ -545,7 +545,7 @@ const finishedProfessionalJobs = professionalJobs.filter(
               }</p>
             </button>
           `).join('')
-        : '<div class="card"><p>No hay trabajos para esta cuenta profesional.</p></div>'
+       : `<div class="card"><p>No tenés trabajos activos en este momento.</p></div>`
     }
 <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
