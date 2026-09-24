@@ -2097,6 +2097,7 @@ const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null
  amount: Number(String(amount).replace(/\./g, '').replace(',', '.')),
   text: text,
  specialty: currentRequest?.service || state.job.service,
+    task: currentRequest?.task || state.job.task || '',
  location: currentRequest?.locality || state.job.locality,
     professional: localStorage.getItem('professionalAccount') || state.job.professional,
  job: currentRequest?.description || state.job.description,
