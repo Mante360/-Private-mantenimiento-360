@@ -664,7 +664,10 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
           <label>Detalle del presupuesto</label>
           <textarea id="proQuoteText" placeholder="Describí mano de obra, materiales, tiempo estimado..."></textarea>
         </div>
-
+<div class="field">
+  <label>Garantía del trabajo (días)</label>
+  <input id="proWarrantyDays" type="number" min="0" placeholder="Ej.: 30">
+</div>
         <button class="btn btn-primary full" onclick="sendProfessionalQuote()">
           Enviar presupuesto
         </button>
@@ -1066,6 +1069,7 @@ const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
       <p><b>Trabajo:</b> ${quote?.job || state.job.description}</p>
       <div class="money">${money(quote?.amount || 0)}</div>
      <p>${quote?.text || 'Presupuesto enviado por el profesional.'}</p>
+     <p><b>Garantía del trabajo:</b> ${Number(quote?.warrantyDays || 0) > 0 ? Number(quote.warrantyDays) + ' días' : 'Sin garantía ofrecida'}</p>
     </div>
 
     <div class="actions">
@@ -2121,7 +2125,7 @@ function resolveClaim(i){
 function sendProfessionalQuote(){
   const amount=document.getElementById('proAmount').value;
   const text=document.getElementById('proQuoteText').value.trim();
-
+const warrantyDays = Number(document.getElementById('proWarrantyDays')?.value || 0);
   if(!amount){
     alert('Ingresá el importe del presupuesto.');
     return;
@@ -2136,6 +2140,7 @@ const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null
     id: currentRequest?.id || state.job.id,
  amount: Number(String(amount).replace(/\./g, '').replace(',', '.')),
   text: text,
+    warrantyDays: warrantyDays,
  specialty: currentRequest?.service || state.job.service,
     task: currentRequest?.task || state.job.task || '',
  location: currentRequest?.locality || state.job.locality,
