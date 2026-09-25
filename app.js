@@ -1116,6 +1116,7 @@ return;
         <p><b>Profesional:</b> ${contractedQuote ? (contractedQuote.professional || (contractedQuote.specialty === 'Plomería' ? 'Diego Fernández' : contractedQuote.specialty === 'Refrigeración' ? 'María Romero' : contractedQuote.specialty === 'Electricidad' ? 'Carlos Rodríguez' : '')) : ''} · ${contractedQuote ? '✓ Verificado' : ''}</p>
     <p><b>Localidad:</b> ${contractedQuote?.location || state.job.locality}</p>
 ${state.job.task ? `<p><b>Trabajo específico:</b> ${state.job.task}</p>` : ''}
+${Number(contractedQuote?.warrantyDays || 0) > 0 ? `<p><b>Garantía ofrecida:</b> ${Number(contractedQuote.warrantyDays)} días</p>` : ''}
 <p><b>Trabajo:</b> #${contractedQuote?.id || state.job.id}</p>
         <div class="timeline">
           <div class="step done">Solicitud</div><div class="step ${state.job.status === 'Solicitud' ? '' : 'done'}">Presupuesto</div><div class="step ${state.job.status === 'Confirmado' ? 'current' : (state.job.status === 'En curso' || state.job.status === 'Finalizado') ? 'done' : ''}">Confirmado</div><div class="step ${state.job.status === 'En curso' ? 'current' : (state.job.status === 'Finalizado' ? 'done' : '')}">En curso</div><div class="step ${state.job.status === 'Finalizado' ? 'current' : ''}">Finalizado</div>
