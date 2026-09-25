@@ -573,6 +573,7 @@ ${
             <p>📍 ${j.location || ''}</p>
             <p>${j.job || ''}</p>
             <p><b>Importe:</b> $${Number(j.amount || 0).toLocaleString('es-AR')}</p>
+            ${j.text ? `<p><b>Detalle:</b> ${j.text}</p>` : ''}
             <p><b>Estado:</b> 🏁 Finalizado</p>
           </button>
         `)
