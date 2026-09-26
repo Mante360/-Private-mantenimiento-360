@@ -1096,6 +1096,8 @@ return;
   }
   if(s==='contracted'){
     const contractedQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+    const clientHistory = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+const clientHistoryItem = clientHistory.find(item => item.id === (contractedQuote?.id || state.job.id)) || null;
     if(contractedQuote){
   localStorage.setItem('chatJob', JSON.stringify(contractedQuote));
 }
@@ -1120,6 +1122,10 @@ return;
     <p><b>Localidad:</b> ${contractedQuote?.location || state.job.locality}</p>
 ${state.job.task ? `<p><b>Trabajo específico:</b> ${state.job.task}</p>` : ''}
 ${Number(contractedQuote?.warrantyDays || 0) > 0 ? `<p><b>Garantía ofrecida:</b> ${Number(contractedQuote.warrantyDays)} días</p>` : ''}
+
+${clientHistoryItem?.finishedAt ? `<p><b>Finalizado:</b> ${new Date(clientHistoryItem.finishedAt).toLocaleDateString('es-AR')}</p>` : ''}
+${clientHistoryItem?.finishedAt && Number(clientHistoryItem?.warrantyDays || contractedQuote?.warrantyDays || 0) > 0 ? `<p><b>Garantía hasta:</b> ${new Date(new Date(clientHistoryItem.finishedAt).getTime() + Number(clientHistoryItem?.warrantyDays || contractedQuote?.warrantyDays || 0) * 86400000).toLocaleDateString('es-AR')}</p>` : ''}
+${clientHistoryItem?.finishedAt && Number(clientHistoryItem?.warrantyDays || contractedQuote?.warrantyDays || 0) > 0 ? `<p><b>Estado de garantía:</b> ${Date.now() <= new Date(clientHistoryItem.finishedAt).getTime() + Number(clientHistoryItem?.warrantyDays || contractedQuote?.warrantyDays || 0) * 86400000 ? '🟢 En garantía' : '⚪ Garantía vencida'}</p>` : ''}
 <p><b>Trabajo:</b> #${contractedQuote?.id || state.job.id}</p>
         <div class="timeline">
           <div class="step done">Solicitud</div><div class="step ${state.job.status === 'Solicitud' ? '' : 'done'}">Presupuesto</div><div class="step ${state.job.status === 'Confirmado' ? 'current' : (state.job.status === 'En curso' || state.job.status === 'Finalizado') ? 'done' : ''}">Confirmado</div><div class="step ${state.job.status === 'En curso' ? 'current' : (state.job.status === 'Finalizado' ? 'done' : '')}">En curso</div><div class="step ${state.job.status === 'Finalizado' ? 'current' : ''}">Finalizado</div>
