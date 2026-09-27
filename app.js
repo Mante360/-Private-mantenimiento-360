@@ -2129,10 +2129,7 @@ function submitClaim(){
   }
 }
 function resolveClaim(i){
-  const pendingClaims = state.claims.filter(c => c.status !== 'Resuelto');
- 
-  const claim = pendingClaims[i];
-
+ const claim = state.claims[i];
   if(!claim) return;
   const resolution = document.getElementById(`claimResolution-${i}`)?.value.trim() || '';
 
