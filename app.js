@@ -287,6 +287,12 @@ ${
             <p><b>Detalle:</b> ${c.text}</p>
             ${Number(c.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(c.warrantyDays)} días</p>` : ''}
             <p><b>Estado:</b> ${c.status}</p>
+            ${c.status !== 'Resuelto' ? `
+  <div class="field" style="margin-top:12px">
+    <label>Resolución de Administración</label>
+    <textarea id="claimResolution-${index}" placeholder="Describí qué medida se tomó y por qué..."></textarea>
+  </div>
+` : ''}
 ${c.id ? `
   <button class="btn btn-outline full" type="button"
     onclick="localStorage.setItem('chatJob', JSON.stringify({
@@ -2124,14 +2130,22 @@ function submitClaim(){
 }
 function resolveClaim(i){
   const pendingClaims = state.claims.filter(c => c.status !== 'Resuelto');
+ 
   const claim = pendingClaims[i];
 
   if(!claim) return;
+  const resolution = document.getElementById(`claimResolution-${i}`)?.value.trim() || '';
+
+if(!resolution){
+  alert('Escribí la resolución antes de cerrar el reclamo.');
+  return;
+}
 
   const originalIndex = state.claims.indexOf(claim);
 
   if(originalIndex === -1) return;
-
+ state.claims[originalIndex].resolution = resolution;
+state.claims[originalIndex].resolvedAt = new Date().toISOString();
   state.claims[originalIndex].status = 'Resuelto';
   localStorage.setItem('claims', JSON.stringify(state.claims));
 
