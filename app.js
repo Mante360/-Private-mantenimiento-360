@@ -285,6 +285,7 @@ ${
             <p><b>Profesional:</b> ${c.professional || 'Sin asignar'}</p>
             <p><b>Motivo:</b> ${c.reason}</p>
             <p><b>Detalle:</b> ${c.text}</p>
+            ${Number(c.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(c.warrantyDays)} días</p>` : ''}
             <p><b>Estado:</b> ${c.status}</p>
 ${c.id ? `
   <button class="btn btn-outline full" type="button"
