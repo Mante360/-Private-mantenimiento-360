@@ -1326,6 +1326,7 @@ const claimForJob = state.claims.find(claim =>
       <p><b>Localidad:</b> ${q.location || state.job.locality}</p>
       <p><b>Trabajo #:</b> ${q.id || state.job.id}</p>
       <p><b>Importe:</b> $${Number(q.amount || state.job.amount).toLocaleString('es-AR')}</p>
+      ${Number(q.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(q.warrantyDays)} días</p>` : ''}
       <p><b>Estado:</b> 🏁 Finalizado</p>
 
       ${rating ? `
