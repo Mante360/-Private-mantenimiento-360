@@ -1329,6 +1329,7 @@ const claimForJob = state.claims.find(claim =>
       ${Number(q.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(q.warrantyDays)} días</p>` : ''}
       ${q.finishedAt ? `<p><b>Finalizado:</b> ${new Date(q.finishedAt).toLocaleDateString('es-AR')}</p>` : ''}
       ${q.finishedAt && Number(q.warrantyDays || 0) > 0 ? `<p><b>Garantía hasta:</b> ${new Date(new Date(q.finishedAt).getTime() + Number(q.warrantyDays) * 86400000).toLocaleDateString('es-AR')}</p>` : ''}
+      ${q.finishedAt && Number(q.warrantyDays || 0) > 0 ? `<p><b>Estado de garantía:</b> ${Date.now() <= new Date(q.finishedAt).getTime() + Number(q.warrantyDays) * 86400000 ? '🟢 En garantía' : '⚪ Garantía vencida'}</p>` : ''}
       <p><b>Estado:</b> 🏁 Finalizado</p>
 
       ${rating ? `
