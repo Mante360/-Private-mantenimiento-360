@@ -1328,6 +1328,7 @@ const claimForJob = state.claims.find(claim =>
       <p><b>Importe:</b> $${Number(q.amount || state.job.amount).toLocaleString('es-AR')}</p>
       ${Number(q.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(q.warrantyDays)} días</p>` : ''}
       ${q.finishedAt ? `<p><b>Finalizado:</b> ${new Date(q.finishedAt).toLocaleDateString('es-AR')}</p>` : ''}
+      ${q.finishedAt && Number(q.warrantyDays || 0) > 0 ? `<p><b>Garantía hasta:</b> ${new Date(new Date(q.finishedAt).getTime() + Number(q.warrantyDays) * 86400000).toLocaleDateString('es-AR')}</p>` : ''}
       <p><b>Estado:</b> 🏁 Finalizado</p>
 
       ${rating ? `
