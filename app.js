@@ -2099,17 +2099,18 @@ function submitClaim(){
       ? (history[selectedIndex] || currentQuote)
       : currentQuote;
 
-  state.claims.push({
-    reason,
-    text,
-    status: 'En revisión',
-    id: claimJob?.id || state.job.id,
-    job: claimJob?.job || state.job.description,
-    amount: Number(claimJob?.amount || state.job.amount || 0),
-    location: claimJob?.location || state.job.locality,
-    professional: claimJob?.professional || state.job.professional
-  });
-
+ state.claims.push({
+  reason,
+  text,
+  status: 'En revisión',
+  id: claimJob?.id || state.job.id,
+  job: claimJob?.job || state.job.description,
+  amount: Number(claimJob?.amount || state.job.amount || 0),
+  location: claimJob?.location || state.job.locality,
+  professional: claimJob?.professional || state.job.professional,
+  warrantyDays: Number(claimJob?.warrantyDays || 0),
+  finishedAt: claimJob?.finishedAt || null
+});
   localStorage.setItem('claims', JSON.stringify(state.claims));
 
   alert('Reclamo enviado. Administración podrá revisarlo.');
