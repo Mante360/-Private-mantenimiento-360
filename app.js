@@ -221,7 +221,7 @@ window.rejectSpecialty = function(index){
 
   go('admin-home');
 };
-  app.innerHTML=layout(`<main class="page" style="padding-bottom:120px">s
+  app.innerHTML=layout(`<main class="page" style="padding-bottom:120px">
     ${back('Administración')}
 
     <div class="card">
