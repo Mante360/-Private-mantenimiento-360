@@ -12,7 +12,7 @@ button{cursor:pointer}
 .topbar{height:72px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 7%;position:sticky;top:0;z-index:10}
 .brand{font-weight:800}.brand b{font-size:22px;margin-right:8px}.brand small{opacity:.8}
 .userdot{font-size:24px}
-.page{max-width:980px;margin:0 auto;padding:36px 28px 90px}
+.page{max-width:980px;margin:0 auto;padding:36px 28px calc(72px + 32px + env(safe-area-inset-bottom))}
 .hero{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:26px;padding:38px;display:flex;justify-content:space-between;align-items:center;min-height:280px}
 .hero h1{font-size:38px;max-width:540px;margin:10px 0}.hero p{max-width:560px;line-height:1.5}.big360{font-size:76px;font-weight:900}
 .btn{border:0;border-radius:12px;padding:14px 20px;font-weight:700}
