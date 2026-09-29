@@ -1832,7 +1832,25 @@ if(
   </button>
 </div>
 ` : ''}
-      <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional' ? JSON.parse(localStorage.getItem('jobHistory') || '[]').length : JSON.parse(localStorage.getItem('jobHistory') || '[]').length}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-') : (JSON.parse(localStorage.getItem('jobRating') || 'null')?.stars || JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-')}</strong></div></div></div></main>`,'perfil');
+      <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional' ? JSON.parse(localStorage.getItem('jobHistory') || '[]').length : JSON.parse(localStorage.getItem('jobHistory') || '[]').length}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (() => {const account = localStorage.getItem('professionalAccount') || '';
+const ratedJobs = JSON.parse(localStorage.getItem('jobHistory') || '[]')
+  .filter(item =>
+    item.professional === account &&
+    Number(item.rating?.stars) > 0
+  );
+
+if(!ratedJobs.length) return '-';
+
+const average = ratedJobs.reduce(
+  (sum, item) => sum + Number(item.rating.stars),
+  0
+) / ratedJobs.length;
+
+return average.toLocaleString('es-AR', {
+  maximumFractionDigits: 1
+});
+})() : (JSON.parse(localStorage.getItem('jobRating') || 'null')?.stars || JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-')}</strong></div></div></div></main>`,'perfil');
+ 
     
     return;
   }
