@@ -1832,7 +1832,21 @@ if(
   </button>
 </div>
 ` : ''}
-      <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional' ? JSON.parse(localStorage.getItem('jobHistory') || '[]').length : JSON.parse(localStorage.getItem('jobHistory') || '[]').length}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (() => {const account = localStorage.getItem('professionalAccount') || '';
+      <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional'
+  ? JSON.parse(localStorage.getItem('jobHistory') || '[]')
+      .filter(item => item.professional === professionalAccount).length
+  : JSON.parse(localStorage.getItem('jobHistory') || '[]').length}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.mode === 'professional'
+  ? JSON.parse(localStorage.getItem('jobHistory') || '[]')
+      .filter(item => item.professional === professionalAccount)
+      .reduce((total, item) => {
+        const messages = JSON.parse(
+          localStorage.getItem('messages_' + item.id) || '[]'
+        );
+        return total + messages.length;
+      }, 0)
+  : state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.mode === 'professional'
+  ? state.claims.filter(claim => claim.professional === professionalAccount).length
+  : state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (() => {const account = localStorage.getItem('professionalAccount') || '';
 const ratedJobs = JSON.parse(localStorage.getItem('jobHistory') || '[]')
   .filter(item =>
     item.professional === account &&
