@@ -1310,16 +1310,35 @@ const isCurrentJob =
   (q.location || '') === (currentQuote.location || '');
 
 const rating =
-  q.rating ||
+  (q.rating?.id === q.id ? q.rating : null) ||
+
+  (jobRating?.id === q.id ? jobRating : null) ||
+
   (
+    !q.warrantyJob &&
+    q.rating &&
+    !q.rating.id
+      ? q.rating
+      : null
+  ) ||
+
+  (
+    !q.warrantyJob &&
     jobRating &&
+    !jobRating.id &&
     jobRating.job === q.job &&
     Number(jobRating.amount) === Number(q.amount) &&
     (jobRating.location || '') === (q.location || '')
       ? jobRating
       : null
   ) ||
-  (isCurrentJob ? legacyRating : null);   
+
+  (
+    !q.warrantyJob &&
+    isCurrentJob
+      ? legacyRating
+      : null
+  );   
 
 const claimForJob = state.claims.find(claim =>
   (claim.id && q.id)
@@ -1363,7 +1382,7 @@ const claimForJob = state.claims.find(claim =>
     ` : state.mode !== 'admin' ? `
   <button class="btn btn-primary full"
     type="button"
-    onclick="go('rating')">
+   onclick="localStorage.setItem('ratingJobId','${q.id || ''}'); go('rating')">
     ⭐ Calificar profesional
   </button>
 ` : ''}
@@ -2394,11 +2413,14 @@ function submitRating(){
   }
 
   const comment = document.getElementById('ratingComment')?.value.trim() || '';
-
+const ratingJobId = localStorage.getItem('ratingJobId') || '';
+const ratingHistory = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+const ratingJob = ratingHistory.find(item => item.id === ratingJobId);
   const rating = {
+    id: localStorage.getItem('ratingJobId') || '',
     stars: selectedRating,
     comment: comment,
-    professional: 'Carlos Rodríguez',
+    professional: ratingJob?.professional || state.job.professional || 'Profesional',
     createdAt: new Date().toISOString()
   };
 const oldAverage = Number(state.selectedProfessional.rating);
@@ -2411,6 +2433,18 @@ state.selectedProfessional.ratingCount = oldCount + 1;
   localStorage.setItem('professionalRating', JSON.stringify(rating));
 localStorage.setItem('jobRating', JSON.stringify(rating));
 localStorage.setItem('jobRated', 'true');
+  const ratingIndex = ratingHistory.findIndex(
+  item => item.id === ratingJobId
+);
+
+if(ratingIndex >= 0){
+  ratingHistory[ratingIndex].rating = rating;
+
+  localStorage.setItem(
+    'jobHistory',
+    JSON.stringify(ratingHistory)
+  );
+}
   alert('Calificación enviada correctamente. ¡Gracias!');
   go('home');
 }
