@@ -2168,6 +2168,85 @@ if(!resolution){
  state.claims[originalIndex].resolution = resolution;
 state.claims[originalIndex].resolvedAt = new Date().toISOString();
   state.claims[originalIndex].status = 'Resuelto';
+  if(measure === 'Corrección en garantía' && !state.claims[originalIndex].warrantyJobId){
+
+  const history = JSON.parse(
+    localStorage.getItem('jobHistory') || '[]'
+  );
+
+  const originalJob =
+    history.find(item => item.id === claim.id) || {};
+
+  const lastJobNumber = Number(
+    localStorage.getItem('lastJobNumber') || '125'
+  );
+
+  const nextJobNumber = lastJobNumber + 1;
+
+  const warrantyJobId =
+    `360-${String(nextJobNumber).padStart(5,'0')}`;
+
+  const warrantyJob = {
+    ...originalJob,
+
+    id: warrantyJobId,
+
+    specialty:
+      originalJob.specialty ||
+      state.job.service ||
+      '',
+
+    task:
+      originalJob.task ||
+      state.job.task ||
+      '',
+
+    job: `Corrección en garantía del trabajo ${claim.id}`,
+
+    text:
+      `Trabajo de garantía sin cargo. Origen: ${claim.id}`,
+
+    location:
+      originalJob.location ||
+      claim.location ||
+      state.job.locality ||
+      '',
+
+    professional:
+      claim.professional ||
+      originalJob.professional ||
+      state.job.professional ||
+      '',
+
+    amount: 0,
+    status: 'Confirmado',
+
+    warrantyJob: true,
+    originJobId: claim.id,
+    warrantyDays: 0,
+    finishedAt: null
+  };
+
+  history.push(warrantyJob);
+
+  localStorage.setItem(
+    'jobHistory',
+    JSON.stringify(history)
+  );
+
+  localStorage.setItem(
+    'professionalQuote',
+    JSON.stringify(warrantyJob)
+  );
+
+  localStorage.setItem(
+    'lastJobNumber',
+    String(nextJobNumber)
+  );
+
+  state.claims[originalIndex].warrantyJobId =
+    warrantyJobId;
+}
   localStorage.setItem('claims', JSON.stringify(state.claims));
 
   alert('Reclamo marcado como resuelto.');
