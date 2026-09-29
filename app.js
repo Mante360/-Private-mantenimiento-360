@@ -1535,6 +1535,9 @@ const existingClaim = claimJob
         <p><b>Motivo:</b> ${existingClaim.reason}</p>
         <p><b>Detalle:</b> ${existingClaim.text}</p>
         <p><b>Estado:</b> ${existingClaim.status}</p>
+        ${existingClaim.measure ? `<p><b>Medida tomada:</b> ${existingClaim.measure}</p>` : ''}
+${existingClaim.resolution ? `<p><b>Resolución de Administración:</b> ${existingClaim.resolution}</p>` : ''}
+${existingClaim.resolvedAt ? `<p><b>Fecha de resolución:</b> ${new Date(existingClaim.resolvedAt).toLocaleDateString('es-AR')}</p>` : ''}
         <div class="notice">
           🔒 Este reclamo es visible solamente para vos, el profesional involucrado y Administración.
         </div>
