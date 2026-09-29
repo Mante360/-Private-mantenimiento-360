@@ -287,9 +287,23 @@ ${
             <p><b>Detalle:</b> ${c.text}</p>
             ${Number(c.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(c.warrantyDays)} días</p>` : ''}
             <p><b>Estado:</b> ${c.status}</p>
+            ${c.measure ? `<p><b>Medida tomada:</b> ${c.measure}</p>` : ''}
             ${c.resolution ? `<p><b>Resolución:</b> ${c.resolution}</p>` : ''}
 ${c.resolvedAt ? `<p><b>Fecha de resolución:</b> ${new Date(c.resolvedAt).toLocaleDateString('es-AR')}</p>` : ''}
             ${c.status !== 'Resuelto' ? `
+            <div class="field" style="margin-top:12px">
+  <label>Medida tomada</label>
+  <select id="claimMeasure-${index}">
+    <option value="">Seleccionar medida...</option>
+    <option value="Corrección en garantía">Corrección en garantía</option>
+    <option value="Profesional vuelve a realizar el trabajo">Profesional vuelve a realizar el trabajo</option>
+    <option value="Reasignado a otro profesional">Reasignado a otro profesional</option>
+    <option value="Acuerdo entre cliente y profesional">Acuerdo entre cliente y profesional</option>
+    <option value="Reclamo rechazado">Reclamo rechazado</option>
+    <option value="Devolución o ajuste acordado">Devolución o ajuste acordado</option>
+    <option value="Otro">Otro</option>
+  </select>
+</div>
   <div class="field" style="margin-top:12px">
     <label>Resolución de Administración</label>
     <textarea id="claimResolution-${index}" placeholder="Describí qué medida se tomó y por qué..."></textarea>
@@ -2133,8 +2147,12 @@ function submitClaim(){
 function resolveClaim(i){
  const claim = state.claims[i];
   if(!claim) return;
+  const measure = document.getElementById(`claimMeasure-${i}`)?.value || '';
   const resolution = document.getElementById(`claimResolution-${i}`)?.value.trim() || '';
-
+if(!measure){
+  alert('Seleccioná una medida antes de cerrar el reclamo.');
+  return;
+}
 if(!resolution){
   alert('Escribí la resolución antes de cerrar el reclamo.');
   return;
@@ -2143,6 +2161,7 @@ if(!resolution){
   const originalIndex = state.claims.indexOf(claim);
 
   if(originalIndex === -1) return;
+  state.claims[originalIndex].measure = measure;
  state.claims[originalIndex].resolution = resolution;
 state.claims[originalIndex].resolvedAt = new Date().toISOString();
   state.claims[originalIndex].status = 'Resuelto';
