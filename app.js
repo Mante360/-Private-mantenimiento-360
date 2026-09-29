@@ -617,8 +617,8 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
 const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
 
 const confirmedQuote =
-  history.find(item => item.id === selectedProfessionalJobId) ||
   (currentQuote?.id === selectedProfessionalJobId ? currentQuote : null) ||
+  history.find(item => item.id === selectedProfessionalJobId) ||
   currentQuote;
 if(confirmedQuote){
   localStorage.setItem('chatJob', JSON.stringify(confirmedQuote));
