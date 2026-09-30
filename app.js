@@ -285,6 +285,11 @@ ${
             <p><b>Profesional:</b> ${c.professional || 'Sin asignar'}</p>
             <p><b>Motivo:</b> ${c.reason}</p>
             <p><b>Detalle:</b> ${c.text}</p>
+            ${c.warrantyIssueJobId ? `
+  <p><b>Problema con la corrección en garantía:</b> Trabajo #${c.warrantyIssueJobId}</p>
+  <p><b>Motivo de la garantía:</b> ${c.warrantyIssueReason || '-'}</p>
+  <p><b>Detalle del problema:</b> ${c.warrantyIssueText || '-'}</p>
+` : ''}
             ${Number(c.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(c.warrantyDays)} días</p>` : ''}
             <p><b>Estado:</b> ${c.status}</p>
             ${c.measure ? `<p><b>Medida tomada:</b> ${c.measure}</p>` : ''}
@@ -1396,7 +1401,9 @@ ${state.mode !== 'admin' ? `
     type="button"
     onclick="go('claim')"
     style="margin-top:12px">
-    ${claimForJob ? '⚠️ Ver reclamo' : '⚠️ Hacer reclamo'}
+    ${claimForJob 
+? '⚠️ Ver reclamo' 
+: (job.warrantyJob ? '⚠️ Informar problema con la garantía' : '⚠️ Hacer reclamo')}
   </button>
 ` : ''}
     </div>
@@ -2191,7 +2198,39 @@ function submitClaim(){
     currentQuote?.status === 'Finalizado'
       ? (history[selectedIndex] || currentQuote)
       : currentQuote;
+if(claimJob?.warrantyJob){
+  const originalClaim = state.claims.find(
+    c => c.id === claimJob.originJobId
+  );
 
+  if(originalClaim){
+    originalClaim.previousResolution = {
+      measure: originalClaim.measure || '',
+      resolution: originalClaim.resolution || '',
+      resolvedAt: originalClaim.resolvedAt || null
+    };
+
+    originalClaim.status = 'En revisión';
+    originalClaim.measure = '';
+    originalClaim.resolution = '';
+    originalClaim.resolvedAt = null;
+
+    originalClaim.warrantyIssueReason = reason;
+    originalClaim.warrantyIssueText = text;
+    originalClaim.warrantyIssueJobId = claimJob.id;
+    originalClaim.reopenedAt = new Date().toISOString();
+
+    localStorage.setItem(
+      'claims',
+      JSON.stringify(state.claims)
+    );
+
+    alert('Problema de garantía enviado a Administración.');
+
+    go('finished-job-detail');
+    return;
+  }
+}
  state.claims.push({
   reason,
   text,
