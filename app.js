@@ -618,10 +618,14 @@ ${j.finishedAt && Number(j.warrantyDays || 0) > 0 ? `<p><b>Estado de garantía:<
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
 const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
 
+const selectedId = String(selectedProfessionalJobId || '');
+
 const confirmedQuote =
-  (currentQuote?.id === selectedProfessionalJobId ? currentQuote : null) ||
-  history.find(item => item.id === selectedProfessionalJobId) ||
-  currentQuote;
+  (currentQuote && String(currentQuote.id) === selectedId
+    ? currentQuote
+    : null) ||
+  history.find(item => String(item?.id || '') === selectedId) ||
+  null;
 if(confirmedQuote){
   localStorage.setItem('chatJob', JSON.stringify(confirmedQuote));
 }
