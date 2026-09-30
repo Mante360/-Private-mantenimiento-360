@@ -355,10 +355,7 @@ ${c.id ? `
   <b>Trabajos confirmados</b>
 </button>
 
-      <div class="card specialty">
-        <div class="icon">💬</div>
-        <b>Mensajes</b>
-      </div>
+     
 
      <div class="card specialty" onclick="go('profile')" style="cursor:pointer">
         <div class="icon">👤</div>
