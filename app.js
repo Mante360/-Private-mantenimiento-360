@@ -1426,7 +1426,12 @@ ${state.mode !== 'admin' ? `
       hist.find(j => j.id === id) ||
       (quote?.id === id ? quote : null) ||
       { id };
+const messages = JSON.parse(
+  localStorage.getItem('messages_' + id) || '[]'
+);
 
+const readKey = `read_${state.mode}_${id}`;
+localStorage.setItem(readKey, String(messages.length));
     localStorage.setItem('chatJob', JSON.stringify(job));
     go('chat');
   };
@@ -1452,13 +1457,27 @@ ${state.mode !== 'admin' ? `
     if(state.mode === 'professional' && professional !== professionalAccount){
       return '';
     }
+const messages = JSON.parse(
+  localStorage.getItem('messages_' + id) || '[]'
+);
 
+const readKey = `read_${state.mode}_${id}`;
+const lastRead = Number(localStorage.getItem(readKey) || 0);
+
+const unreadCount = messages
+  .slice(lastRead)
+  .filter(m =>
+    m.from !== (state.mode === 'professional' ? 'professional' : 'client')
+  ).length;
     const status = job.status || 'Conversación';
 
     return `
       <div class="card" style="margin-bottom:12px;cursor:pointer"
            onclick="openConversation('${id}')">
-        <b>${professional}</b>
+        <b>
+  ${professional}
+  ${unreadCount > 0 ? ` 🔴 ${unreadCount}` : ''}
+</b>
         <p>Trabajo #${id}</p>
         <p>${service} · ${status}</p>
       </div>
