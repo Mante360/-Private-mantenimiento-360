@@ -1263,7 +1263,7 @@ if(historyChanged){
   })
   .map(({ item, index }) => `
   <div class="card pro"
-       onclick="localStorage.setItem('selectedHistoryIndex','${index}'); go('finished-job-detail')"
+       onclick="localStorage.setItem('selectedHistoryId', '${item.id || ''}'); go('finished-job-detail')"
        style="cursor:pointer">
     <div>
       <b>${item.specialty || 'Servicio'}</b>
@@ -1290,8 +1290,11 @@ if(historyChanged){
 
   if(s==='finished-job-detail'){
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
-const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
-const q = history[selectedIndex] || JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+const selectedId = localStorage.getItem('selectedHistoryId') || '';
+
+const q = history.find(
+  item => String(item?.id || '') === String(selectedId)
+) || null;
     
   if(!q){
     go('jobs');
