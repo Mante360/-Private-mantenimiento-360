@@ -1252,9 +1252,12 @@ if(historyChanged){
         <div class="notice">No tenés trabajos activos.</div>
       `}
 
+      const visibleHistory = state.mode === 'client'
+  ? history.filter(item => !item.warrantyJob)
+  : history;
       <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
-   ${history.length ? history
+  ${visibleHistory.length ? visibleHistory
   .map((item, index) => ({ item, index }))
   .sort((a, b) => {
     const numA = Number(String(a.item.id || '').replace(/\D/g, '')) || -1;
