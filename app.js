@@ -1293,7 +1293,8 @@ if(historyChanged){
 const selectedId = localStorage.getItem('selectedHistoryId') || '';
 
 const q = history.find(
-  item => String(item?.id || '') === String(selectedId)
+  item => String(item?.id || '').trim() === String(selectedId).trim() ||
+        String(item?.job || '').trim() === String(selectedId).trim()
 ) || null;
     
   if(!q){
