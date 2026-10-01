@@ -1411,7 +1411,7 @@ ${state.mode !== 'admin' ? `
     style="margin-top:12px">
     ${claimForJob 
 ? '⚠️ Ver reclamo' 
-: (job.warrantyJob ? '⚠️ Informar problema con la garantía' : '⚠️ Hacer reclamo')}
+: (q.warrantyJob ? '⚠️ Informar problema con la garantía' : '⚠️ Hacer reclamo')}
   </button>
 ` : ''}
     </div>
