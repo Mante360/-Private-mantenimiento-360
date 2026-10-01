@@ -1370,14 +1370,16 @@ const claimForJob = state.claims.find(claim =>
         ${q.specialty || state.job.service}
       </h2>
 
-      <p>${q.job || state.job.description}</p>
+      <p>${q.warrantyJob
+  ? `<b>Tipo:</b> Corrección en garantía<br><b>Trabajo relacionado:</b> ${q.originalJobId || 'No informado'}`
+  : (q.job || state.job.description)}</p>
 
       <hr>
 
       <p><b>Profesional:</b> ${q.professional || (q.specialty === 'Plomería' ? 'Diego Fernández' : q.specialty === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')} ✓ Verificado</p>
       <p><b>Localidad:</b> ${q.location || state.job.locality}</p>
       <p><b>Trabajo #:</b> ${q.id || state.job.id}</p>
-      <p><b>Importe:</b> $${Number(q.amount || state.job.amount).toLocaleString('es-AR')}</p>
+      <p><b>Importe:</b> ${q.warrantyJob ? 'Sin cargo' : '$' + Number(q.amount || state.job.amount).toLocaleString('es-AR')}</p>
       ${Number(q.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(q.warrantyDays)} días</p>` : ''}
       ${q.finishedAt ? `<p><b>Finalizado:</b> ${new Date(q.finishedAt).toLocaleDateString('es-AR')}</p>` : ''}
       ${q.finishedAt && Number(q.warrantyDays || 0) > 0 ? `<p><b>Garantía hasta:</b> ${new Date(new Date(q.finishedAt).getTime() + Number(q.warrantyDays) * 86400000).toLocaleDateString('es-AR')}</p>` : ''}
