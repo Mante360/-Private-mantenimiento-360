@@ -116,7 +116,7 @@ function historyBack(){
 function render(){
   const s=state.screen;
   if(s==='splash'){
-    app.innerHTML=`<div class="splash"><div><div class="big">360°</div><h1>MANTENIMIENTO 360°</h1><p>Servicios integrales, profesionales verificados.</p><button class="btn btn-light" onclick="go('role')">Comenzar</button></div></div>`;
+    app.innerHTML=`<div class="splash"><div><div class="big">360°</div><h1>MANTENIMIENTO</h1><p>Servicios integrales, profesionales verificados.</p><button class="btn btn-light" onclick="go('role')">Comenzar</button></div></div>`;
     return;
   }
  if(s==='role'){
