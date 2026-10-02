@@ -1377,7 +1377,7 @@ const claimForJob = state.claims.find(claim =>
       </h2>
 
       <p>${q.warrantyJob
-  ? `<b>Tipo:</b> Corrección en garantía<br><b>Trabajo relacionado:</b> ${q.originalJobId || 'No informado'}`
+  ? `<b>Tipo:</b> Corrección en garantía<br><b>Trabajo relacionado:</b> ${q.originJobId || 'No informado'}
   : (q.job || state.job.description)}</p>
 
       <hr>
