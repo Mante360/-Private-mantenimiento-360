@@ -1421,7 +1421,7 @@ ${state.mode !== 'admin' ? `
 ? '⚠️ Ver reclamo' 
 : (q.warrantyJob ? '⚠️ Informar problema con la garantía' : '⚠️ Hacer reclamo')}
   </button>
-` : ''}
+: ''}
     </div>
 </main>`,'trabajos');
 
