@@ -1268,6 +1268,12 @@ if(historyChanged){
     <div>
       <b>${item.specialty || 'Servicio'}</b>
       <div class="notice" style="margin:4px 0"><b>Trabajo #:</b> ${item.id || 'Sin ID'}</div>
+      ${item.warrantyJob
+  ? '<div class="notice" style="margin:4px 0"><b>Tipo:</b> Corrección en garantía</div>'
+  : '<div class="notice" style="margin:4px 0"><b>Tipo:</b> Trabajo original</div>'}
+${item.warrantyJob && item.originJobId
+  ? '<div class="notice" style="margin:4px 0"><b>Trabajo original:</b> ' + item.originJobId + '</div>'
+  : ''}
       ${item.task ? `<div class="notice" style="margin:4px 0"><b>Trabajo específico:</b> ${item.task}</div>` : ''}
       <div class="notice" style="margin:4px 0">
        ${item.professional || 'Profesional'} · ${item.location || ''}
