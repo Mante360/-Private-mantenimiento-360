@@ -2293,14 +2293,20 @@ state.claims[originalIndex].resolvedAt = new Date().toISOString();
   const originalJob =
     history.find(item => item.id === claim.id) || {};
 
-  const lastJobNumber = Number(
-    localStorage.getItem('lastJobNumber') || '125'
-  );
+  const originalJobId =
+  claim.id || originalJob.id || state.job.id || '';
 
-  const nextJobNumber = lastJobNumber + 1;
+const warrantyCount = history.filter(
+  item =>
+    item.warrantyJob &&
+    (item.originalJobId || '') === originalJobId
+).length;
 
-  const warrantyJobId =
-    `360-${String(nextJobNumber).padStart(5,'0')}`;
+const warrantyLetter =
+  String.fromCharCode(65 + warrantyCount);
+
+const warrantyJobId =
+  `${originalJobId}-${warrantyLetter}`;
 
   const warrantyJob = {
     ...originalJob,
@@ -2338,7 +2344,7 @@ state.claims[originalIndex].resolvedAt = new Date().toISOString();
     status: 'Confirmado',
 
     warrantyJob: true,
-    originJobId: claim.id,
+   originJobId: originalJobId,
     warrantyDays: 0,
     finishedAt: null
   };
@@ -2355,11 +2361,7 @@ state.claims[originalIndex].resolvedAt = new Date().toISOString();
     JSON.stringify(warrantyJob)
   );
 
-  localStorage.setItem(
-    'lastJobNumber',
-    String(nextJobNumber)
-  );
-
+ 
   state.claims[originalIndex].warrantyJobId =
     warrantyJobId;
 }
