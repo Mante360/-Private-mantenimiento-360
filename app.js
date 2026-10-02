@@ -2201,7 +2201,8 @@ function submitClaim(){
   }
 
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
-  const selectedIndex = Number(localStorage.getItem('selectedHistoryIndex'));
+ const selectedHistoryId = localStorage.getItem('selectedHistoryId');
+const selectedIndex = history.findIndex(item => String(item.id || '') === String(selectedHistoryId || ''));
   const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
 
   const claimJob =
