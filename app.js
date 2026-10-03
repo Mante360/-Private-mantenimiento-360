@@ -1908,7 +1908,64 @@ return average.toLocaleString('es-AR', {
     return;
   }
 }
+function detectServiceFromText(text){
+  const t = String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'');
 
+  const rules = {
+    'Electricidad': [
+      'sin luz','no tengo luz','se corto la luz',
+      'cable','cables','lampara','lamparas','foco','focos',
+      'enchufe','tomacorriente','disyuntor','termica',
+      'tablero','electricidad','instalacion electrica',
+      'cortocircuito','iluminacion'
+    ],
+
+    'Jardinería': [
+      'poda','podar','arbol','arboles','arbusto','arbustos',
+      'ligustro','cerco','plantas','rama','ramas',
+      'pasto','cesped','jardin','malezas','espacios verdes'
+    ],
+
+    'Refrigeración': [
+      'aire acondicionado','no enfria','no calienta',
+      'refrigeracion','heladera','freezer',
+      'camara frigorifica','evaporador','condensador',
+      'gas refrigerante','refrigerante'
+    ],
+
+    'Plomería': [
+      'perdida de agua','pierde agua','canilla',
+      'griferia','cano','caneria','desague',
+      'inodoro','bano','pileta','destapacion','cloaca'
+    ]
+  };
+
+  const results = Object.entries(rules)
+    .map(([service, words]) => ({
+      service,
+      score: words.reduce(
+        (total, word) => total + (t.includes(word) ? 1 : 0),
+        0
+      )
+    }))
+    .filter(item => item.score > 0)
+    .sort((a,b) => b.score - a.score);
+
+  if(!results.length) return null;
+
+  if(results.length === 1){
+    return results[0].service;
+  }
+
+  if(results[0].score > results[1].score){
+    return results[0].service;
+  }
+
+  return null;
+}
 function saveRequest(){
   const selectedService = document.getElementById('service').value;
 const customService = (document.getElementById('customService')?.value || '').trim();
@@ -1982,6 +2039,13 @@ if(taskIsVisible){
   state.job.task = '';
 }
   state.job.description=document.getElementById('desc').value || 'Trabajo solicitado desde Mantenimiento 360°';
+  const detectedService = detectServiceFromText(
+  `${state.job.description} ${state.job.task || ''}`
+);
+
+if(!state.job.service && detectedService){
+  state.job.service = detectedService;
+}
   state.job.locality=document.getElementById('loc').value || 'San Isidro';
 const lastJobNumber = Number(localStorage.getItem('lastJobNumber') || '125');
 const nextJobNumber = lastJobNumber + 1;
