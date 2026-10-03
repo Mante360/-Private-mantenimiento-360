@@ -80,8 +80,7 @@ function layout(content, active='inicio', titleBrand=true){
 }
 
 function back(title){
-  return `<div class="backrow"><button c
-  lass="back" onclick="historyBack()">←</button><h2>${title}</h2></div>`;
+  return `<div class="backrow"><button class="back" type="button" onclick="historyBack()">←</button><h2>${title}</h2></div>`;
 }
 let historyStack=[];
 
