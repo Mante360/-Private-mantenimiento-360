@@ -2211,50 +2211,7 @@ localStorage.setItem(
 );
   go('rating');
 }
-function submitRating(){
-  if(!state.rating){
-    alert('Elegí de 1 a 5 estrellas.');
-    return;
-  }
 
-  const comment = document.getElementById('ratingComment')?.value.trim() || '';
-
- const currentQuote = JSON.parse(
-  localStorage.getItem('professionalQuote') || 'null'
-);
-
-const rating = {
-  stars: state.rating,
-  comment: comment,
-  createdAt: new Date().toISOString(),
-  job: currentQuote?.job || state.job.description,
-  amount: Number(currentQuote?.amount || state.job.amount || 0),
-  location: currentQuote?.location || state.job.locality,
-  professional: currentQuote?.professional || state.job.professional
-};
-
-localStorage.setItem('jobRating', JSON.stringify(rating));
-localStorage.setItem('jobRated', 'true');
-
-const history = JSON.parse(
-  localStorage.getItem('jobHistory') || '[]'
-);
-
-const ratingIndex = currentQuote
-  ? history.findIndex(item =>
-      item.job === currentQuote.job &&
-      Number(item.amount) === Number(currentQuote.amount) &&
-      (item.location || '') === (currentQuote.location || '')
-    )
-  : -1;
-
-if(ratingIndex >= 0){
-  history[ratingIndex].rating = rating;
-  localStorage.setItem('jobHistory', JSON.stringify(history));
-}
-  alert('Calificación guardada correctamente.');
-  go('jobs');
-}
 function submitClaim(){
   const reason = document.getElementById('claimReason').value;
   const text = document.getElementById('claimText').value.trim();
