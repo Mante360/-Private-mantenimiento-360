@@ -88,11 +88,6 @@ function go(screen){
   if(state.screen!==screen) historyStack.push(state.screen);
   state.screen=screen; render();
 }
-function resolveClaim(i){
-  state.claims[i].status = 'Resuelto';
-  localStorage.setItem('claims', JSON.stringify(state.claims));
-  render();
-}
 function openCurrentJob(){
   if(state.mode === 'professional'){
     go('professional-confirmed-detail');
