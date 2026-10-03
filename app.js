@@ -1422,7 +1422,7 @@ ${state.mode !== 'admin' ? `
   </button>
 : ''}
     </div>
-</main>`;
+</main>`);
 
   return;
 }
