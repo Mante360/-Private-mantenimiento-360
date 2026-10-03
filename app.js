@@ -1607,15 +1607,7 @@ ${existingClaim.resolvedAt ? `<p><b>Fecha de resolución:</b> ${new Date(existin
     </div></main>`,'trabajos');
     return;
   }
-  if(s==='rating'){
-    app.innerHTML=layout(`<main class="page"><div class="form">${back('Calificar trabajo')}
-      <div class="card"><h2>¿Cómo fue tu experiencia?</h2><p>${state.job.professional} · ${state.job.service}</p>
-      <div class="rating-stars">${[1,2,3,4,5].map(n=>`<button class="${n<=state.rating?'on':''}" onclick="setRating(${n})">★</button>`).join('')}</div>
-      <div class="field"><label>Comentario (opcional)</label><textarea id="ratingText" placeholder="Contanos cómo fue el trabajo..."></textarea></div>
-      <button class="btn btn-primary full" onclick="submitRating()">Enviar calificación</button></div>
-    </div></main>`,'trabajos');
-    return;
-  }
+  
   if(s==='profile'){
     const professionalAccount =
   localStorage.getItem('professionalAccount') || '';
