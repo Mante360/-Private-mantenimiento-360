@@ -1618,6 +1618,7 @@ const existingClaim = claimJob
      ${back(existingClaim.status === 'Resuelto' ? 'Reclamo resuelto' : 'Reclamo enviado')}
       <div class="card">
        <h2>${existingClaim.status === 'Resuelto' ? '✅ Reclamo resuelto' : '⚠️ Reclamo enviado'}</h2>
+       <p><b>Trabajo #:</b> ${existingClaim.id || claimJob?.id || state.job.id}</p>
         <p><b>Motivo:</b> ${existingClaim.reason}</p>
         <p><b>Detalle:</b> ${existingClaim.text}</p>
         <p><b>Estado:</b> ${existingClaim.status}</p>
