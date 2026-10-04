@@ -1435,7 +1435,7 @@ ${state.mode !== 'admin' ? `
       ${state.mode !== 'admin' ? `
   <button class="btn btn-outline full"
     type="button"
-    onclick="go('claim')"
+   onclick="localStorage.setItem('claimJobId','${q.id || ''}'); go('claim')"
     style="margin-top:12px">
     ${claimForJob 
 ? '⚠️ Ver reclamo' 
