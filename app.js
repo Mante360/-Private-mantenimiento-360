@@ -1442,6 +1442,14 @@ ${state.mode !== 'admin' ? `
 : (q.warrantyJob ? '⚠️ Informar problema con la garantía' : '⚠️ Hacer reclamo')}
   </button>
 ` : ''}
+${claimForJob?.warrantyJobId ? `
+  <button class="btn btn-outline full"
+    type="button"
+    onclick="localStorage.setItem('selectedHistoryId','${claimForJob.warrantyJobId}'); go('finished-job-detail')"
+    style="margin-top:12px">
+    🛡️ Ver garantía
+  </button>
+` : ''}
     </div>
 </main>`);
 
