@@ -106,7 +106,27 @@ function openCurrentJob(){
 function historyBack(){
   state.screen = historyStack.pop() || 'home'; render();
 }
+function filterProfessionalCards(value){
+  const term = String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
+  const cards = document.querySelectorAll('.list .card.pro');
+
+  cards.forEach(card => {
+    const text = card.textContent
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    card.style.display =
+      !term || text.includes(term)
+        ? ''
+        : 'none';
+  });
+}
 function render(){
   const s=state.screen;
   if(s==='splash'){
@@ -1035,7 +1055,13 @@ filteredPros.sort((a, b) => {
   return String(a[0]).localeCompare(String(b[0]), 'es');
 });
     app.innerHTML=layout(`<main class="page">${back('Profesionales')}
-      <div class="field"><input placeholder="🔎 Buscar especialidad o profesional"></div>
+     <div class="field">
+  <input
+    id="professionalSearch"
+    placeholder="🔎 Buscar especialidad o profesional"
+    oninput="filterProfessionalCards(this.value)"
+  >
+</div>
       <div class="list">${filteredPros.map((p,i)=>`<div class="card pro" onclick="selectPro(${pros.indexOf(p)})" style="cursor:pointer">
         <div class="proleft"><div class="avatar">${p[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</div><div><b>${p[0]}</b><div class="notice" style="margin:4px 0">${(
   JSON.parse(
