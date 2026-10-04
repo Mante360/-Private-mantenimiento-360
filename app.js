@@ -2107,6 +2107,49 @@ function acceptQuote(){
 
   go('payment');
 }
+function rejectQuote(){
+  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+
+  if(!quote){
+    alert('No se encontró el presupuesto.');
+    return;
+  }
+
+  quote.status = 'Rechazado por el cliente';
+
+  const professionalQuotes = JSON.parse(
+    localStorage.getItem('professionalQuotes') || '[]'
+  );
+
+  const quoteIndex = professionalQuotes.findIndex(
+    item => item.id === quote.id && item.professional === quote.professional
+  );
+
+  if(quoteIndex >= 0){
+    professionalQuotes[quoteIndex] = quote;
+  }else{
+    professionalQuotes.push(quote);
+  }
+
+  localStorage.setItem(
+    'professionalQuotes',
+    JSON.stringify(professionalQuotes)
+  );
+
+  const request = JSON.parse(
+    localStorage.getItem('clientRequest') || 'null'
+  );
+
+  if(request){
+    request.status = 'Solicitud enviada';
+    localStorage.setItem('clientRequest', JSON.stringify(request));
+  }
+
+  localStorage.removeItem('professionalQuote');
+
+  alert('Presupuesto rechazado. Podés continuar buscando otro profesional.');
+  go('home');
+}
 function confirmPayment(){
   state.job.status='Confirmado';localStorage.setItem('jobStatus', 'Confirmado');const q = JSON.parse(localStorage.getItem('professionalQuote') || '{}');
   state.job.id = q.id || state.job.id;
