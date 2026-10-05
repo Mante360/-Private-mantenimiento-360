@@ -1401,16 +1401,24 @@ const rating =
       : null
   );   
 
-const claimForJob = state.claims.find(claim =>
-  (claim.id && q.id && claim.id === q.id) ||
-  (claim.warrantyIssueJobId && q.id && claim.warrantyIssueJobId === q.id) ||
-  (
-    !claim.warrantyIssueJobId &&
+const claimForJob = state.claims.find(claim => {
+  if(!q?.id) return false;
+
+  if(q.warrantyJob){
+    return claim.warrantyIssueJobId === q.id &&
+           claim.status !== 'Resuelto';
+  }
+
+  if(claim.id && q.id){
+    return claim.id === q.id;
+  }
+
+  return (
     claim.job === q.job &&
     Number(claim.amount) === Number(q.amount) &&
     (claim.location || '') === (q.location || '')
-  )
-);
+  );
+});
     localStorage.setItem('chatJob', JSON.stringify(q));
   app.innerHTML=layout(`<main class="page">
     ${back('Detalle del trabajo')}
@@ -1628,16 +1636,22 @@ if(claimJobId){
 }
 
 const existingClaim = claimJob
-  ? state.claims.find(claim =>
-      (claim.id && claimJob.id && claim.id === claimJob.id) ||
-      (claim.warrantyIssueJobId && claimJob.id && claim.warrantyIssueJobId === claimJob.id) ||
-      (
-        !claim.warrantyIssueJobId &&
+  ? state.claims.find(claim => {
+      if(claimJob.warrantyJob){
+        return claim.warrantyIssueJobId === claimJob.id &&
+               claim.status !== 'Resuelto';
+      }
+
+      if(claim.id && claimJob.id){
+        return claim.id === claimJob.id;
+      }
+
+      return (
         claim.job === claimJob.job &&
         Number(claim.amount) === Number(claimJob.amount) &&
         (claim.location || '') === (claimJob.location || '')
-      )
-    )
+      );
+    })
   : null;
     if(existingClaim){
   app.innerHTML = layout(`
