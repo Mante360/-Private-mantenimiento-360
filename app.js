@@ -2362,6 +2362,7 @@ if(claimJob?.warrantyJob){
     finishedAt: claimJob.finishedAt || null,
     warrantyJob: true,
     originJobId: claimJob.originJobId || claimJob.id,
+    warrantyIssueJobId: claimJob.id,
     warrantyIssueReason: reason,
     warrantyIssueText: text,
     createdAt: new Date().toISOString()
