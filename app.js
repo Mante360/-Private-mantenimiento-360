@@ -1203,7 +1203,7 @@ ${clientHistoryItem?.finishedAt && Number(clientHistoryItem?.warrantyDays || con
         <div class="actions">
           <button class="btn btn-primary" onclick="go('chat')">💬 Abrir chat</button>
           <button class="btn btn-outline" onclick="go('jobs')">🧰 Mis trabajos</button>
-          <button class="btn btn-outline" onclick="go('claim')">⚠️ Hacer reclamo</button>
+          <button class="btn btn-outline" onclick="if('${clientHistoryItem?.status || contractedQuote?.status || state.job.status}' !== 'Finalizado'){alert('⚠️ No podés realizar un nuevo reclamo todavía. El trabajo #${contractedQuote?.id || state.job.id} aún no fue finalizado por el profesional.');return;} go('claim')">⚠️ Hacer reclamo</button>
         
       </div>
     </main>`,'trabajos');
