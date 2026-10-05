@@ -1640,9 +1640,14 @@ if(claimJobId){
 
 const existingClaim = claimJob
   ? state.claims.find(claim => {
-     if(claimJob.warrantyJob){
-  return claim.warrantyIssueJobId === claimJob.id &&
-         (claim.status !== 'Resuelto' || state.mode === 'professional');
+    if(claimJob.warrantyJob){
+  return (
+    claim.warrantyIssueJobId === claimJob.id ||
+    (
+      claim.warrantyJob === true &&
+      claim.id === claimJob.id
+    )
+  );
 }
 
       if(claim.id && claimJob.id){
