@@ -372,7 +372,10 @@ ${(() => {
   const pendingClaims = state.claims.filter(
     claim =>
       claim.professional === professionalAccount &&
-      claim.status !== 'Resuelto'
+      (
+        claim.status !== 'Resuelto' ||
+        claim.professionalSeen !== true
+      )
   );
 
   return pendingClaims.length ? `
@@ -383,9 +386,9 @@ ${(() => {
       style="cursor:pointer;width:100%;text-align:left;border:2px solid #d32f2f"
     >
       <div class="icon">🔴</div>
-      <b>Reclamos pendientes (${pendingClaims.length})</b>
+      <b>Reclamos para revisar (${pendingClaims.length})</b>
       <div class="notice" style="margin-top:6px">
-        Tenés ${pendingClaims.length} reclamo${pendingClaims.length === 1 ? '' : 's'} pendiente${pendingClaims.length === 1 ? '' : 's'} para revisar.
+        Tenés ${pendingClaims.length} reclamo${pendingClaims.length === 1 ? '' : 's'} para revisar.
       </div>
     </button>
   ` : '';
@@ -1637,10 +1640,10 @@ if(claimJobId){
 
 const existingClaim = claimJob
   ? state.claims.find(claim => {
-      if(claimJob.warrantyJob){
-        return claim.warrantyIssueJobId === claimJob.id &&
-               claim.status !== 'Resuelto';
-      }
+     if(claimJob.warrantyJob){
+  return claim.warrantyIssueJobId === claimJob.id &&
+         (claim.status !== 'Resuelto' || state.mode === 'professional');
+}
 
       if(claim.id && claimJob.id){
         return claim.id === claimJob.id;
@@ -1653,6 +1656,10 @@ const existingClaim = claimJob
       );
     })
   : null;
+    if(existingClaim && state.mode === 'professional'){
+  existingClaim.professionalSeen = true;
+  localStorage.setItem('claims', JSON.stringify(state.claims));
+}
     if(existingClaim){
   app.innerHTML = layout(`
     <main class="page">
