@@ -1402,13 +1402,14 @@ const rating =
   );   
 
 const claimForJob = state.claims.find(claim =>
-  (claim.id && q.id)
-    ? claim.id === q.id
-    : (
-        claim.job === q.job &&
-        Number(claim.amount) === Number(q.amount) &&
-        (claim.location || '') === (q.location || '')
-      )
+  (claim.id && q.id && claim.id === q.id) ||
+  (claim.warrantyIssueJobId && q.id && claim.warrantyIssueJobId === q.id) ||
+  (
+    !claim.warrantyIssueJobId &&
+    claim.job === q.job &&
+    Number(claim.amount) === Number(q.amount) &&
+    (claim.location || '') === (q.location || '')
+  )
 );
     localStorage.setItem('chatJob', JSON.stringify(q));
   app.innerHTML=layout(`<main class="page">
@@ -1628,13 +1629,14 @@ if(claimJobId){
 
 const existingClaim = claimJob
   ? state.claims.find(claim =>
-      (claim.id && claimJob.id)
-        ? claim.id === claimJob.id
-        : (
-            claim.job === claimJob.job &&
-            Number(claim.amount) === Number(claimJob.amount) &&
-            (claim.location || '') === (claimJob.location || '')
-          )
+      (claim.id && claimJob.id && claim.id === claimJob.id) ||
+      (claim.warrantyIssueJobId && claimJob.id && claim.warrantyIssueJobId === claimJob.id) ||
+      (
+        !claim.warrantyIssueJobId &&
+        claim.job === claimJob.job &&
+        Number(claim.amount) === Number(claimJob.amount) &&
+        (claim.location || '') === (claimJob.location || '')
+      )
     )
   : null;
     if(existingClaim){
