@@ -368,7 +368,28 @@ ${c.id ? `
   <div class="icon">💰</div>
   <b>Mis presupuestos</b>
 </button>
+${(() => {
+  const pendingClaims = state.claims.filter(
+    claim =>
+      claim.professional === professionalAccount &&
+      claim.status !== 'Resuelto'
+  );
 
+  return pendingClaims.length ? `
+    <button
+      class="card"
+      type="button"
+      onclick="go('professional-confirmed')"
+      style="cursor:pointer;width:100%;text-align:left;border:2px solid #d32f2f"
+    >
+      <div class="icon">🔴</div>
+      <b>Reclamos pendientes (${pendingClaims.length})</b>
+      <div class="notice" style="margin-top:6px">
+        Tenés ${pendingClaims.length} reclamo${pendingClaims.length === 1 ? '' : 's'} pendiente${pendingClaims.length === 1 ? '' : 's'} para revisar.
+      </div>
+    </button>
+  ` : '';
+})()}
       <button class="card specialty" type="button" onclick="go('professional-confirmed')" style="cursor:pointer;width:100%;text-align:left">
   <div class="icon">🧰</div>
   <b>Trabajos confirmados</b>
