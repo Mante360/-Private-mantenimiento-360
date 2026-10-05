@@ -2370,7 +2370,7 @@ if(claimJob?.warrantyJob){
   go('finished-job-detail');
   return;
 }
-}
+
  state.claims.push({
   reason,
   text,
