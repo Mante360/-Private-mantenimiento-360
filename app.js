@@ -2342,37 +2342,34 @@ const selectedIndex = history.findIndex(item => String(item.id || '') === String
       ? (history[selectedIndex] || currentQuote)
       : currentQuote;
 if(claimJob?.warrantyJob){
-  const originalClaim = state.claims.find(
-    c => c.id === claimJob.originJobId
+  state.claims.push({
+    reason,
+    text,
+    status: 'En revisión',
+    id: claimJob.id || state.job.id,
+    job: claimJob.job || state.job.description,
+    amount: claimJob.amount ?? 0,
+    location: claimJob.location || state.job.locality,
+    professional: claimJob.professional || state.job.professional,
+    warrantyDays: claimJob.warrantyDays ?? 0,
+    finishedAt: claimJob.finishedAt || null,
+    warrantyJob: true,
+    originJobId: claimJob.originJobId || claimJob.id,
+    warrantyIssueReason: reason,
+    warrantyIssueText: text,
+    createdAt: new Date().toISOString()
+  });
+
+  localStorage.setItem(
+    'claims',
+    JSON.stringify(state.claims)
   );
 
-  if(originalClaim){
-    originalClaim.previousResolution = {
-      measure: originalClaim.measure || '',
-      resolution: originalClaim.resolution || '',
-      resolvedAt: originalClaim.resolvedAt || null
-    };
+  alert('Problema de garantía enviado a Administración.');
 
-    originalClaim.status = 'En revisión';
-    originalClaim.measure = '';
-    originalClaim.resolution = '';
-    originalClaim.resolvedAt = null;
-
-    originalClaim.warrantyIssueReason = reason;
-    originalClaim.warrantyIssueText = text;
-    originalClaim.warrantyIssueJobId = claimJob.id;
-    originalClaim.reopenedAt = new Date().toISOString();
-
-    localStorage.setItem(
-      'claims',
-      JSON.stringify(state.claims)
-    );
-
-    alert('Problema de garantía enviado a Administración.');
-
-    go('finished-job-detail');
-    return;
-  }
+  go('finished-job-detail');
+  return;
+}
 }
  state.claims.push({
   reason,
@@ -2427,12 +2424,17 @@ state.claims[originalIndex].resolvedAt = new Date().toISOString();
     history.find(item => item.id === claim.id) || {};
 
   const originalJobId =
-  claim.id || originalJob.id || state.job.id || '';
+  claim.originJobId ||
+  originalJob.originJobId ||
+  claim.id ||
+  originalJob.id ||
+  state.job.id ||
+  '';
 
 const warrantyCount = history.filter(
   item =>
     item.warrantyJob &&
-    (item.originalJobId || '') === originalJobId
+   (item.originJobId || '') === originalJobId
 ).length;
 
 const warrantyLetter =
