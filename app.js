@@ -1222,7 +1222,14 @@ ${clientHistoryItem?.finishedAt && Number(clientHistoryItem?.warrantyDays || con
   return;
 }
   const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-  const finalizado = q && q.status === 'Finalizado';
+ const finalizado = q && (
+  q.status === 'Finalizado' ||
+  JSON.parse(localStorage.getItem('jobHistory') || '[]').some(
+    item =>
+      String(item.id || '') === String(q.id || '') &&
+      item.status === 'Finalizado'
+  )
+);
    const pendingRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
 const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada' && !q;
    const hasReceivedQuote = q && q.status === 'Esperando respuesta del cliente';
