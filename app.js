@@ -2525,6 +2525,41 @@ const warrantyJobId =
   state.claims[originalIndex].warrantyJobId =
     warrantyJobId;
 }
+  if(measure === 'Profesional vuelve a realizar el trabajo'){
+  const history = JSON.parse(
+    localStorage.getItem('jobHistory') || '[]'
+  );
+
+  const jobIndex = history.findIndex(
+    item => String(item.id || '') === String(claim.id || '')
+  );
+
+  if(jobIndex !== -1){
+    const previousFinishedAt = history[jobIndex].finishedAt || null;
+
+    history[jobIndex] = {
+      ...history[jobIndex],
+      status: 'Confirmado',
+      reopenedByClaim: true,
+      reopenedAt: new Date().toISOString(),
+      previousFinishedAt: previousFinishedAt,
+      finishedAt: null
+    };
+
+    localStorage.setItem(
+      'jobHistory',
+      JSON.stringify(history)
+    );
+
+    localStorage.setItem(
+      'professionalQuote',
+      JSON.stringify(history[jobIndex])
+    );
+
+    state.claims[originalIndex].reopenedJobId =
+      history[jobIndex].id;
+  }
+}
   localStorage.setItem('claims', JSON.stringify(state.claims));
 
   alert('Reclamo marcado como resuelto.');
