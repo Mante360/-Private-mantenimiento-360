@@ -369,14 +369,11 @@ ${c.id ? `
   <b>Mis presupuestos</b>
 </button>
 ${(() => {
-  const pendingClaims = state.claims.filter(
-    claim =>
-      claim.professional === professionalAccount &&
-      (
-        claim.status !== 'Resuelto' ||
-        claim.professionalSeen !== true
-      )
-  );
+ const pendingClaims = state.claims.filter(
+  claim =>
+    claim.professional === professionalAccount &&
+    claim.status !== 'Resuelto'
+);
 
   return pendingClaims.length ? `
     <button
