@@ -1309,7 +1309,8 @@ if(historyChanged){
 
       <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
-  ${history.length ? history
+ ${history.filter(item => String(item.status || '').toLowerCase() === 'finalizado').length ? history
+  .filter(item => String(item.status || '').toLowerCase() === 'finalizado')
   .map((item, index) => ({ item, index }))
   .sort((a, b) => {
     const numA = Number(String(a.item.id || '').replace(/\D/g, '')) || -1;
