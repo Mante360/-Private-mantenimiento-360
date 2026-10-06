@@ -601,13 +601,14 @@ if(currentQuote && !currentQuote.professional){
     item => item.professional === professionalAccount
   );
 
-  if(
-    currentQuote &&
-    currentQuote.professional === professionalAccount &&
-    !professionalJobs.some(item => item.id === currentQuote.id)
-  ){
-    professionalJobs.push(currentQuote);
-  }
+ if(
+  currentQuote &&
+  currentQuote.professional === professionalAccount &&
+  currentQuote.status === 'Confirmado' &&
+  !professionalJobs.some(item => item.id === currentQuote.id)
+){
+  professionalJobs.push(currentQuote);
+}
 const activeProfessionalJobs = professionalJobs.filter(
   item => String(item.status || '').toLowerCase() !== 'finalizado'
 );
@@ -2668,10 +2669,10 @@ render();
 function startConfirmedJob(){
   const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
 
-  if(!quote){
-    alert('No hay un trabajo confirmado.');
-    return;
-  }
+ if(!quote || quote.status !== 'Confirmado'){
+  alert('Este trabajo todavía no fue confirmado por el cliente.');
+  return;
+}
 
   quote.status = 'En curso'; state.job.status = 'En curso';
   localStorage.setItem('professionalQuote', JSON.stringify(quote));
