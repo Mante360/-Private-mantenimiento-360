@@ -417,9 +417,55 @@ ${(() => {
 
     <div class="list">
 ${(() => {
-  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
-const jobStatus = localStorage.getItem('jobStatus') || 'Solicitud';
- if(!request || request.status === 'Presupuesto enviado' || ['Confirmado', 'En curso', 'Finalizado'].includes(jobStatus)) return '';
+  const request = JSON.parse(
+    localStorage.getItem('clientRequest') || 'null'
+  );
+
+  const jobStatus =
+    localStorage.getItem('jobStatus') || 'Solicitud';
+
+  if(
+    !request ||
+    request.status === 'Presupuesto enviado' ||
+    ['Confirmado', 'En curso', 'Finalizado'].includes(jobStatus)
+  ){
+    return '';
+  }
+
+  const professionalAccount =
+    localStorage.getItem('professionalAccount') || '';
+
+  const professionalData = professionalsDemo.find(
+    p => p[0] === professionalAccount
+  );
+
+  const savedSpecialties = JSON.parse(
+    localStorage.getItem(
+      'professionalSpecialties_' + professionalAccount
+    ) || 'null'
+  );
+
+  const professionalSpecialties =
+    Array.isArray(savedSpecialties) && savedSpecialties.length
+      ? savedSpecialties
+      : professionalData
+        ? [
+            professionalData[1] === 'Electricista'
+              ? 'Electricidad'
+              : professionalData[1]
+          ]
+        : [];
+
+  const matchesSpecialty = professionalSpecialties.some(
+    specialty =>
+      String(specialty || '').toLowerCase() ===
+      String(request.service || '').toLowerCase()
+  );
+
+  if(!matchesSpecialty){
+    return '';
+  }
+
   return `
     <div class="card pro">
       <div>
