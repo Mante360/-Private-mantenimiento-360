@@ -604,7 +604,7 @@ if(currentQuote && !currentQuote.professional){
  if(
   currentQuote &&
   currentQuote.professional === professionalAccount &&
-  currentQuote.status === 'Confirmado' &&
+['Confirmado', 'En curso'].includes(currentQuote.status) &&
   !professionalJobs.some(item => item.id === currentQuote.id)
 ){
   professionalJobs.push(currentQuote);
