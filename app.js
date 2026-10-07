@@ -1465,7 +1465,7 @@ const rating =
 
 const claimForJob = state.claims.find(claim => {
   if(!q?.id) return false;
-
+if(claim.status === 'Resuelto') return false;
   if(q.warrantyJob){
     return claim.warrantyIssueJobId === q.id &&
            claim.status !== 'Resuelto';
