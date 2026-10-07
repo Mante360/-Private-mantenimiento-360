@@ -1699,6 +1699,7 @@ if(claimJobId){
 
 const existingClaim = claimJob
   ? state.claims.find(claim => {
+    if(state.mode === 'client' && claim.status === 'Resuelto') return false;
     if(claimJob.warrantyJob){
   return (
     claim.warrantyIssueJobId === claimJob.id ||
