@@ -500,10 +500,13 @@ const rawQuote = JSON.parse(
 );
 
 const myQuotes = professionalQuotes.filter(
-  item => item.professional === professionalAccount
+  item => item.professional === professionalAccount &&
+          !item.warrantyJob
 );
+
 if(
   rawQuote &&
+  !rawQuote.warrantyJob &&
   rawQuote.professional === professionalAccount
 ){
   const historyIndex = professionalQuotes.findIndex(
