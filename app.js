@@ -1152,14 +1152,30 @@ filteredPros.sort((a, b) => {
  const pros = professionalsDemo;
 
   const p=pros[state.selectedProfessionalIndex || 0];
+const ratedJobs = JSON.parse(
+  localStorage.getItem('jobHistory') || '[]'
+).filter(item =>
+  item.professional === p[0] &&
+  Number(item.rating?.stars) > 0
+);
 
+const averageRating = ratedJobs.length
+  ? (
+      ratedJobs.reduce(
+        (sum, item) => sum + Number(item.rating.stars),
+        0
+      ) / ratedJobs.length
+    ).toLocaleString('es-AR', {
+      maximumFractionDigits: 1
+    })
+  : 'Sin calificaciones';
   app.innerHTML=layout(`<main class="page"><div class="form">
     ${back('Perfil profesional')}
 
     <div class="card">
       <h2>${p[0]}</h2>
       <p><b>${p[1]}</b></p>
-      <p>⭐ ${p[3]} · ${p[2]} trabajos realizados</p>
+     <p>⭐ ${averageRating} · ${p[2]} trabajos realizados</p>
       <p>✓ Profesional verificado</p>
     </div>
 
