@@ -837,14 +837,15 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
   }
   if(s==='rating'){
     const ratingQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+    const ratingJobId = localStorage.getItem('ratingJobId') || '';
+const isWarrantyRating = JSON.parse(localStorage.getItem('jobHistory') || '[]')
+  .some(item => item.id === ratingJobId && item.warrantyJob === true);
   app.innerHTML=layout(`<main class="page">
-    ${back('Calificar profesional')}
-
+    ${back(isWarrantyRating ? 'Calificar atención de la garantía' : 'Calificar profesional')}
     <div class="card">
-      <h2>⭐ Calificar profesional</h2>
+     <h2>⭐ ${isWarrantyRating ? 'Calificar atención de la garantía' : 'Calificar profesional'}</h2>
      <p><b>Profesional:</b> ${(ratingQuote?.specialty || state.job.service) === 'Plomería' ? 'Diego Fernández' : (ratingQuote?.specialty || state.job.service) === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
-      <p>¿Cómo fue tu experiencia?</p>
-
+     <p>${isWarrantyRating ? '¿Cómo fue la atención del profesional durante la garantía?' : '¿Cómo fue tu experiencia?'}</p>
       <div style="font-size:32px;margin:20px 0">
         <button type="button" onclick="selectRating(1)">⭐</button>
         <button type="button" onclick="selectRating(2)">⭐</button>
@@ -856,7 +857,7 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
       <p id="ratingText">Seleccioná de 1 a 5 estrellas.</p>
 
       <textarea id="ratingComment"
-        placeholder="Contanos cómo fue el trabajo..."
+        placeholder="${isWarrantyRating ? 'Contanos cómo respondió el profesional durante la garantía...' : 'Contanos cómo fue el trabajo...'}"
         style="width:100%;min-height:120px"></textarea>
 
       <button class="btn btn-primary full"
@@ -1517,7 +1518,7 @@ if(claim.status === 'Resuelto') return false;
   <button class="btn btn-primary full"
     type="button"
    onclick="localStorage.setItem('ratingJobId','${q.id || ''}'); go('rating')">
-    ⭐ Calificar profesional
+   ⭐ ${q.warrantyJob ? 'Calificar atención de la garantía' : 'Calificar profesional'}
   </button>
 ` : ''}
 ${state.mode !== 'admin' ? `
@@ -2761,6 +2762,7 @@ const ratingJob = ratingHistory.find(item => item.id === ratingJobId);
   const rating = {
     id: localStorage.getItem('ratingJobId') || '',
     stars: selectedRating,
+    ratingType: ratingJob?.warrantyJob ? 'garantia' : 'trabajo',
     comment: comment,
     professional: ratingJob?.professional || state.job.professional || 'Profesional',
     createdAt: new Date().toISOString()
