@@ -1088,7 +1088,19 @@ const isAvailable =
     const jobHistory = JSON.parse(
   localStorage.getItem('jobHistory') || '[]'
 );
+const averageRatingFor = professionalName => {
+  const rated = jobHistory.filter(item =>
+    item.professional === professionalName &&
+    Number(item.rating?.stars) > 0
+  );
 
+  if (!rated.length) return null;
+
+  return rated.reduce(
+    (sum, item) => sum + Number(item.rating.stars),
+    0
+  ) / rated.length;
+};
 const lastSameService = [...jobHistory]
   .reverse()
   .find(item =>
@@ -1108,9 +1120,8 @@ filteredPros.sort((a, b) => {
   }
 
   // 2. Mejor calificación
-  const ratingA = Number(a[3]) || 0;
-  const ratingB = Number(b[3]) || 0;
-
+ const ratingA = averageRatingFor(a[0]) ?? -1;
+const ratingB = averageRatingFor(b[0]) ?? -1;
   if(ratingB !== ratingA){
     return ratingB - ratingA;
   }
@@ -1139,7 +1150,7 @@ filteredPros.sort((a, b) => {
   JSON.parse(
     localStorage.getItem('professionalSpecialties_' + p[0]) || 'null'
   ) || [p[1]]
-).join(' - ')} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${p[3]} · <b>✓ Verificado</b></div></div>
+).join(' - ')} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${averageRatingFor(p[0])?.toLocaleString('es-AR', { maximumFractionDigits: 1 }) ?? 'Sin calificaciones'} · <b>✓ Verificado</b></div></div>
         <button class="btn btn-outline" onclick="selectPro(${pros.indexOf(p)})">Ver</button>
       </div>`).join('')}</div>
       <button class="btn btn-primary full" type="button" onclick="requestQuotesToTrade()" style="margin-top:20px">
