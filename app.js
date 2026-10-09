@@ -1088,6 +1088,17 @@ const isAvailable =
     const jobHistory = JSON.parse(
   localStorage.getItem('jobHistory') || '[]'
 );
+    const completedJobsFor = professionalName => {
+  return new Set(
+    jobHistory
+      .filter(item =>
+        item.professional === professionalName &&
+        String(item.status || '').toLowerCase() === 'finalizado' &&
+        !item.warrantyJob
+      )
+      .map(item => item.id)
+  ).size;
+};
 const averageRatingFor = professionalName => {
   const rated = jobHistory.filter(item =>
     item.professional === professionalName &&
@@ -1150,7 +1161,7 @@ const ratingB = averageRatingFor(b[0]) ?? -1;
   JSON.parse(
     localStorage.getItem('professionalSpecialties_' + p[0]) || 'null'
   ) || [p[1]]
-).join(' - ')} · ${p[2]} trabajos realizados</div><span class="stars">★</span> ${averageRatingFor(p[0])?.toLocaleString('es-AR', { maximumFractionDigits: 1 }) ?? 'Sin calificaciones'} · <b>✓ Verificado</b></div></div>
+).join(' - ')} · ${completedJobsFor(p[0])} trabajos realizados</div><span class="stars">★</span> ${averageRatingFor(p[0])?.toLocaleString('es-AR', { maximumFractionDigits: 1 }) ?? 'Sin calificaciones'} · <b>✓ Verificado</b></div></div>
         <button class="btn btn-outline" onclick="selectPro(${pros.indexOf(p)})">Ver</button>
       </div>`).join('')}</div>
       <button class="btn btn-primary full" type="button" onclick="requestQuotesToTrade()" style="margin-top:20px">
@@ -1163,6 +1174,15 @@ const ratingB = averageRatingFor(b[0]) ?? -1;
  const pros = professionalsDemo;
 
   const p=pros[state.selectedProfessionalIndex || 0];
+    const completedJobs = new Set(
+  JSON.parse(localStorage.getItem('jobHistory') || '[]')
+    .filter(item =>
+      item.professional === p[0] &&
+      String(item.status || '').toLowerCase() === 'finalizado' &&
+      !item.warrantyJob
+    )
+    .map(item => item.id)
+).size;
 const ratedJobs = JSON.parse(
   localStorage.getItem('jobHistory') || '[]'
 ).filter(item =>
@@ -1186,7 +1206,7 @@ const averageRating = ratedJobs.length
     <div class="card">
       <h2>${p[0]}</h2>
       <p><b>${p[1]}</b></p>
-     <p>⭐ ${averageRating} · ${p[2]} trabajos realizados</p>
+     <p>⭐ ${averageRating} · ${completedJobs} trabajos realizados</p>
       <p>✓ Profesional verificado</p>
     </div>
 
