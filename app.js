@@ -85,6 +85,9 @@ function back(title){
 let historyStack=[];
 
 function go(screen){
+  if (screen === 'request' && state.screen !== 'professional-detail') {
+  state.directRequestProfessional = '';
+}
   if(state.screen!==screen) historyStack.push(state.screen);
   state.screen=screen; render();
 }
@@ -462,9 +465,13 @@ ${(() => {
       String(request.service || '').toLowerCase()
   );
 
-  if(!matchesSpecialty){
-    return '';
-  }
+ if(
+  !matchesSpecialty ||
+  (request.professional &&
+   request.professional !== professionalAccount)
+){
+  return '';
+}
 
   return `
     <div class="card pro">
@@ -1036,8 +1043,16 @@ const isWarrantyRating = JSON.parse(localStorage.getItem('jobHistory') || '[]')
       <div class="field"><label>Localidad</label><input id="loc" placeholder="Ej.: San Isidro, Vicente López"></div>
       <div class="field"><label>Fotos (opcional)</label><div class="upload">📷 Agregar fotos del trabajo</div></div>
       <div class="notice">🔒 Por seguridad, la dirección exacta se comparte después de avanzar con el profesional.</div>
-      <button class="btn btn-primary full" onclick="saveRequest()">Buscar profesionales</button>
+     <button class="btn btn-primary full" onclick="saveRequest()">${state.directRequestProfessional ? 'Enviar solicitud a ' + state.directRequestProfessional : 'Buscar profesionales'}</button>
     </div></main>`,'inicio');
+    if (state.directRequestProfessional && state.job.service) {
+  const serviceSelect = document.getElementById('service');
+
+  if (serviceSelect) {
+    serviceSelect.value = state.job.service;
+    updateClientTaskOptions(state.job.service);
+  }
+}
     return;
   }
   if(s==='professionals'){
@@ -2188,6 +2203,30 @@ if(!alreadyExists){
 } else {
   state.job.service = selectedService;
 }
+  if (state.directRequestProfessional) {
+  const pro = professionalsDemo.find(
+    p => p[0] === state.directRequestProfessional
+  );
+
+  const saved = JSON.parse(
+    localStorage.getItem(
+      'professionalSpecialties_' + state.directRequestProfessional
+    ) || 'null'
+  );
+
+  const specialties = Array.isArray(saved) && saved.length
+    ? saved
+    : (pro
+        ? [pro[1] === 'Electricista' ? 'Electricidad' : pro[1]]
+        : []);
+
+  if (!specialties.some(
+    s => s.toLowerCase() === state.job.service.toLowerCase()
+  )) {
+    alert('El profesional elegido no ofrece esta especialidad.');
+    return;
+  }
+}
   const selectedTask =
   document.getElementById('clientTask')?.value || '';
 
@@ -2246,11 +2285,38 @@ state.job.id = `360-${String(nextJobNumber).padStart(5,'0')}`;
     service: state.job.service,
     task: state.job.task,
     description: state.job.description,
-    locality: state.job.locality,
-    status: 'Buscando profesional'
+locality: state.job.locality,
+professional: state.directRequestProfessional || '',
+status: 'Buscando profesional'
   }));
 localStorage.setItem('jobStatus', 'Solicitud');
-  go('professionals');
+ if (state.directRequestProfessional) {
+  const directRequest = JSON.parse(
+    localStorage.getItem('clientRequest') || '{}'
+  );
+
+  directRequest.status = 'Solicitud enviada';
+
+  localStorage.setItem(
+    'clientRequest',
+    JSON.stringify(directRequest)
+  );
+
+  localStorage.setItem(
+    'professionalRequest',
+    JSON.stringify(directRequest)
+  );
+
+  localStorage.removeItem('professionalQuote');
+
+  state.directRequestProfessional = '';
+
+  alert('Solicitud enviada a ' + directRequest.professional + '.');
+  go('jobs');
+  return;
+}
+
+go('professionals');
 }function requestQuotesToTrade(){
   const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
 
@@ -2276,22 +2342,24 @@ function selectPro(i){
   go('professional-detail');
 }
 function requestProfessionalQuote(){
-  const request = JSON.parse(localStorage.getItem('clientRequest') || '{}');
+  const selected = professionalsDemo[state.selectedProfessionalIndex];
 
-  const quoteRequest = {
-    service: request.service || state.job.service,
-    description: request.description || state.job.description,
-    locality: request.locality || state.job.locality,
-    professional: state.job.professional,
-    status: 'Solicitud enviada'
-  };
+  if(!selected){
+    alert('No se encontró el profesional seleccionado.');
+    return;
+  }
 
-  localStorage.setItem('professionalRequest', JSON.stringify(quoteRequest));
-  localStorage.removeItem('professionalQuote');
-  localStorage.removeItem('professionalRating');
+  state.directRequestProfessional = selected[0];
+  state.job.professional = selected[0];
 
-  alert('Solicitud de presupuesto enviada al profesional.');
-  go('home');
+  if(!state.job.service){
+    state.job.service =
+      selected[1] === 'Electricista'
+        ? 'Electricidad'
+        : selected[1];
+  }
+
+  go('request');
 }
 function acceptQuote(){
   const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
