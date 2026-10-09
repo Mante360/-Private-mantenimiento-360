@@ -2038,7 +2038,10 @@ if(
 ` : ''}
       <div class="kpis"><div class="card kpi"><span>Trabajos</span><strong>${state.mode === 'professional'
   ? JSON.parse(localStorage.getItem('jobHistory') || '[]')
-      .filter(item => item.professional === professionalAccount).length
+     .filter(item =>
+  item.professional === professionalAccount &&
+  !item.warrantyJob
+).length
   : JSON.parse(localStorage.getItem('jobHistory') || '[]').length}</strong></div><div class="card kpi"><span>Mensajes</span><strong>${state.mode === 'professional'
   ? JSON.parse(localStorage.getItem('jobHistory') || '[]')
       .filter(item => item.professional === professionalAccount)
