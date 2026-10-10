@@ -842,7 +842,7 @@ if(!q || q.status !== 'Finalizado') return '';
       <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
 
      ${savedRating
-  ? '<button class="btn btn-primary full" type="button" disabled>✅ Profesional calificado</button>'
+ ? '<div style="padding:14px;text-align:center;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:10px;font-weight:600;">✅ Profesional calificado</div>'
   : '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
 }
     </div>
