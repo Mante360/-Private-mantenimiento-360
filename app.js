@@ -823,21 +823,27 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
       </div>
     ${(() => {
  const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-const savedRating = JSON.parse(localStorage.getItem('professionalRating') || 'null');
-const jobRated = localStorage.getItem('jobRated') === 'true';
 
-if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
+const currentJob = JSON.parse(
+  localStorage.getItem('jobHistory') || '[]'
+).find(item => item.id === q?.id);
 
+const savedRating =
+  currentJob?.rating?.id === q?.id
+    ? currentJob.rating
+    : null;
+
+if(!q || q.status !== 'Finalizado') return '';
   return `
     <div class="card" style="margin-top:20px">
       <h2>🏁 Trabajo finalizado</h2>
-      <p><b>Profesional:</b> ${(q.specialty || state.job.service) === 'Plomería' ? 'Diego Fernández' : (q.specialty || state.job.service) === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
+     <p><b>Profesional:</b> ${q.professional || currentJob?.professional || 'Profesional'}</p>
       <p><b>Servicio:</b> ${q.specialty || 'Electricidad'}</p>
       <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
 
       ${savedRating
   ? '<button class="btn btn-primary full" type="button" disabled>✅ Profesional calificado</button>'
-  : '<button class="btn btn-primary full" type="button" onclick="go(\'rating\')">⭐ Calificar profesional</button>'
+: '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>': '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
 }
     </div>
   `;
@@ -1524,11 +1530,12 @@ const rating =
   ) ||
 
   (
-    !q.warrantyJob &&
-    isCurrentJob
-      ? legacyRating
-      : null
-  );   
+  !q.warrantyJob &&
+  isCurrentJob &&
+  legacyRating?.id === q.id
+    ? legacyRating
+    : null
+);  
 
 const claimForJob = state.claims.find(claim => {
   if(!q?.id) return false;
