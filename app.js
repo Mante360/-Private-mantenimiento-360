@@ -843,7 +843,7 @@ if(!q || q.status !== 'Finalizado') return '';
 
       ${savedRating
   ? '<button class="btn btn-primary full" type="button" disabled>✅ Profesional calificado</button>'
-: '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>': '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
+: '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
 }
     </div>
   `;
