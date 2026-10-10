@@ -841,9 +841,9 @@ if(!q || q.status !== 'Finalizado') return '';
       <p><b>Servicio:</b> ${q.specialty || 'Electricidad'}</p>
       <p><b>Importe:</b> $${Number(q.amount || 0).toLocaleString('es-AR')}</p>
 
-      ${savedRating
+     ${savedRating
   ? '<button class="btn btn-primary full" type="button" disabled>✅ Profesional calificado</button>'
-: '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
+  : '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
 }
     </div>
   `;
