@@ -287,14 +287,14 @@ ${
           <div class="card" style="margin-top:12px">
 
             ${
-              c.status !== 'Resuelto'
+              c.status !== 'Resuelto' && !c.warrantyJobId
                 ? `
                   <button class="btn btn-primary" type="button" onclick="resolveClaim(${index})">
                     ✅ Resolver reclamo
                   </button>
                 `
                 : `
-                  <p><b>✅ Reclamo resuelto</b></p>
+                  <p><b>${c.status === 'Resuelto' ? '✅ Reclamo resuelto' : '🛠️ Corrección autorizada; pendiente de finalizar'}</b></p>
                 `
             }
 
@@ -312,7 +312,7 @@ ${
             ${c.measure ? `<p><b>Medida tomada:</b> ${c.measure}</p>` : ''}
             ${c.resolution ? `<p><b>Resolución:</b> ${c.resolution}</p>` : ''}
 ${c.resolvedAt ? `<p><b>Fecha de resolución:</b> ${new Date(c.resolvedAt).toLocaleDateString('es-AR')}</p>` : ''}
-            ${c.status !== 'Resuelto' ? `
+            ${c.status !== 'Resuelto' && !c.warrantyJobId ? `
             <div class="field" style="margin-top:12px">
   <label>Medida tomada</label>
   <select id="claimMeasure-${index}">
@@ -2598,7 +2598,7 @@ if(claimJob?.warrantyJob){
 }
 function resolveClaim(i){
  const claim = state.claims[i];
-  if(!claim) return;
+  if(!claim || claim.status === 'Resuelto' || claim.warrantyJobId) return;
   const measure = document.getElementById(`claimMeasure-${i}`)?.value || '';
   const resolution = document.getElementById(`claimResolution-${i}`)?.value.trim() || '';
 if(!measure){
@@ -2615,8 +2615,8 @@ if(!resolution){
   if(originalIndex === -1) return;
   state.claims[originalIndex].measure = measure;
  state.claims[originalIndex].resolution = resolution;
-state.claims[originalIndex].resolvedAt = new Date().toISOString();
-  state.claims[originalIndex].status = 'Resuelto';
+state.claims[originalIndex].resolvedAt = measure === 'Corrección en garantía' ? null : new Date().toISOString();
+  state.claims[originalIndex].status = measure === 'Corrección en garantía' ? 'Corrección en garantía' : 'Resuelto';
   if(measure === 'Corrección en garantía' && !state.claims[originalIndex].warrantyJobId){
 
   const history = JSON.parse(
@@ -2740,7 +2740,7 @@ const warrantyJobId =
 }
   localStorage.setItem('claims', JSON.stringify(state.claims));
 
-  alert('Reclamo marcado como resuelto.');
+  alert(measure === 'Corrección en garantía' ? 'Corrección autorizada. El reclamo sigue pendiente hasta finalizar la garantía.' : 'Reclamo marcado como resuelto.');
   go('admin-home');
 }
 function sendProfessionalQuote(){
@@ -2797,72 +2797,70 @@ localStorage.setItem(
   go('professional-home');
 }
 render();
-function startConfirmedJob(){
+function getSelectedConfirmedJob(){
+  const selectedId = String(localStorage.getItem('selectedProfessionalJobId') || '');
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-
- if(!quote || quote.status !== 'Confirmado'){
-  alert('Este trabajo todavía no fue confirmado por el cliente.');
-  return;
+  const job = history.find(item => String(item.id || '') === selectedId) ||
+    (quote && String(quote.id || '') === selectedId ? quote : null);
+  return {job, history};
 }
-
-  quote.status = 'En curso'; state.job.status = 'En curso';
-  localStorage.setItem('professionalQuote', JSON.stringify(quote));
-localStorage.setItem('jobStatus', 'En curso');
+function startConfirmedJob(){
+  const {job, history} = getSelectedConfirmedJob();
+  if(!job || job.status !== 'Confirmado'){
+    alert('Este trabajo todavía no fue confirmado o no está seleccionado.');
+    return;
+  }
+  const account = localStorage.getItem('professionalAccount') || '';
+  if(account && job.professional !== account){
+    alert('Este trabajo pertenece a otro profesional.');
+    return;
+  }
+  const updated = {...job, status:'En curso'};
+  const index = history.findIndex(item => String(item.id) === String(job.id));
+  if(index >= 0) history[index] = updated; else history.push(updated);
+  localStorage.setItem('jobHistory', JSON.stringify(history));
+  localStorage.setItem('professionalQuote', JSON.stringify(updated));
+  state.job.status = 'En curso';
+  localStorage.setItem('jobStatus', 'En curso');
   alert('Trabajo iniciado correctamente.');
   go('professional-confirmed-detail');
 }
-
-
 function finishConfirmedJob(){
-  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-
-  if(!quote){
-    alert('No hay un trabajo en curso.');
+  const {job, history} = getSelectedConfirmedJob();
+  if(!job || job.status !== 'En curso'){
+    alert('Seleccioná un trabajo en curso antes de finalizar.');
     return;
   }
-
-  quote.status = 'Finalizado';
- 
-state.job.status = 'Finalizado';
-localStorage.setItem('jobStatus', 'Finalizado');
-const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
-const professionalName =
-  quote.specialty === 'Plomería'
-    ? 'Diego Fernández'
-    : quote.specialty === 'Refrigeración'
-      ? 'María Romero'
-      : quote.professional || 'Carlos Rodríguez';
-
-quote.professional = professionalName;
-localStorage.setItem('professionalQuote', JSON.stringify(quote));
-const existingIndex = history.findIndex(item =>
-  quote.id
-    ? item.id === quote.id
-    : (
-        item.job === quote.job &&
-        Number(item.amount) === Number(quote.amount) &&
-        (item.location || '') === (quote.location || '')
-      )
-);
-
-if(existingIndex >= 0){
-  history[existingIndex] = {
-    ...history[existingIndex],
-    ...quote,
-  id: quote.id || history[existingIndex].id || state.job.id,
-task: quote.task || state.job.task || history[existingIndex].task || '',
-professional: professionalName
-  };
-}else{
-  history.push({
-    ...quote,
-  id: quote.id || state.job.id,
-professional: professionalName,
-task: quote.task || state.job.task || '',
-finishedAt: new Date().toISOString()
-  });
-}
-localStorage.setItem('jobHistory', JSON.stringify(history));
+  const account = localStorage.getItem('professionalAccount') || '';
+  if(account && job.professional !== account){
+    alert('Este trabajo pertenece a otro profesional.');
+    return;
+  }
+  const now = new Date().toISOString();
+  const updated = {...job, status:'Finalizado', finishedAt:now};
+  const index = history.findIndex(item => String(item.id) === String(job.id));
+  if(index >= 0) history[index] = {...history[index], ...updated};
+  else history.push(updated);
+  localStorage.setItem('jobHistory', JSON.stringify(history));
+  localStorage.setItem('professionalQuote', JSON.stringify(updated));
+  state.job.status = 'Finalizado';
+  localStorage.setItem('jobStatus', 'Finalizado');
+  if(updated.warrantyJob){
+    const claims = JSON.parse(localStorage.getItem('claims') || '[]');
+    let changed = false;
+    for(const claim of claims){
+      if(claim.warrantyJobId === updated.id && claim.status !== 'Resuelto'){
+        claim.status = 'Resuelto';
+        claim.resolvedAt = now;
+        changed = true;
+      }
+    }
+    if(changed){
+      localStorage.setItem('claims', JSON.stringify(claims));
+      state.claims = claims;
+    }
+  }
   alert('Trabajo finalizado correctamente.');
   go('professional-confirmed-detail');
 }
