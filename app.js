@@ -846,6 +846,7 @@ if(!q || q.status !== 'Finalizado' || jobRated || savedRating) return '';
     return;
   }
   if(s==='rating'){
+    selectedRating = 0;
     const ratingQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
     const ratingJobId = localStorage.getItem('ratingJobId') || '';
 const isWarrantyRating = JSON.parse(localStorage.getItem('jobHistory') || '[]')
@@ -856,13 +857,13 @@ const isWarrantyRating = JSON.parse(localStorage.getItem('jobHistory') || '[]')
      <h2>⭐ ${isWarrantyRating ? 'Calificar atención de la garantía' : 'Calificar profesional'}</h2>
      <p><b>Profesional:</b> ${(ratingQuote?.specialty || state.job.service) === 'Plomería' ? 'Diego Fernández' : (ratingQuote?.specialty || state.job.service) === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
      <p>${isWarrantyRating ? '¿Cómo fue la atención del profesional durante la garantía?' : '¿Cómo fue tu experiencia?'}</p>
-      <div style="font-size:32px;margin:20px 0">
-        <button type="button" onclick="selectRating(1)">⭐</button>
-        <button type="button" onclick="selectRating(2)">⭐</button>
-        <button type="button" onclick="selectRating(3)">⭐</button>
-        <button type="button" onclick="selectRating(4)">⭐</button>
-        <button type="button" onclick="selectRating(5)">⭐</button>
-      </div>
+      <div class="rating-stars" style="margin:20px 0">
+  <button type="button" onclick="selectRating(1)">☆</button>
+  <button type="button" onclick="selectRating(2)">☆</button>
+  <button type="button" onclick="selectRating(3)">☆</button>
+  <button type="button" onclick="selectRating(4)">☆</button>
+  <button type="button" onclick="selectRating(5)">☆</button>
+</div>
 
       <p id="ratingText">Seleccioná de 1 a 5 estrellas.</p>
 
@@ -2863,11 +2864,19 @@ let selectedRating = 0;
 function selectRating(value){
   selectedRating = value;
 
-  const text = document.getElementById('ratingText');
-  if(text){
-    text.textContent = 'Seleccionaste ' + value + ' estrella' + (value > 1 ? 's' : '') + '.';
-  }
+  document.querySelectorAll('.rating-stars button')
+    .forEach((button, index) => {
+      const selected = index < value;
 
+      button.textContent = selected ? '★' : '☆';
+      button.classList.toggle('on', selected);
+    });
+
+  const text = document.getElementById('ratingText');
+
+  if(text){
+    text.textContent = `Seleccionaste ${value} de 5 estrellas.`;
+  }
 }
 
 function submitRating(){
