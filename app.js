@@ -855,7 +855,7 @@ const isWarrantyRating = JSON.parse(localStorage.getItem('jobHistory') || '[]')
     ${back(isWarrantyRating ? 'Calificar atención de la garantía' : 'Calificar profesional')}
     <div class="card">
      <h2>⭐ ${isWarrantyRating ? 'Calificar atención de la garantía' : 'Calificar profesional'}</h2>
-     <p><b>Profesional:</b> ${(ratingQuote?.specialty || state.job.service) === 'Plomería' ? 'Diego Fernández' : (ratingQuote?.specialty || state.job.service) === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez'}</p>
+    <p><b>Profesional:</b> ${JSON.parse(localStorage.getItem('jobHistory') || '[]').find(item => item.id === ratingJobId)?.professional || ratingQuote?.professional || state.job.professional || 'Profesional'}</p>
      <p>${isWarrantyRating ? '¿Cómo fue la atención del profesional durante la garantía?' : '¿Cómo fue tu experiencia?'}</p>
       <div class="rating-stars" style="margin:20px 0">
   <button type="button" onclick="selectRating(1)">☆</button>
