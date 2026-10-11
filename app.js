@@ -896,7 +896,8 @@ ${confirmedQuote && confirmedQuote.status === 'Finalizado'
 
         <div class="field">
           <label>Importe</label>
-          <input id="proAmount" type="number" placeholder="Ej.: 85000">
+          <input id="proAmount" type="number" min="1" step="0.01" placeholder="Ej.: 85000">
+          <small>Ingresá el importe sin puntos de miles. Ejemplo: 85000.</small>
         </div>
 
         <div class="field">
@@ -2868,8 +2869,13 @@ function sendProfessionalQuote(){
   const amount=document.getElementById('proAmount').value;
   const text=document.getElementById('proQuoteText').value.trim();
 const warrantyDays = Number(document.getElementById('proWarrantyDays')?.value || 0);
-  if(!amount){
-    alert('Ingresá el importe del presupuesto.');
+  const numericAmount = Number(String(amount).trim().replace(',', '.'));
+  if(!Number.isFinite(numericAmount) || numericAmount <= 0){
+    alert('Ingresá un importe válido mayor que cero. Ejemplo: 85000.');
+    return;
+  }
+  if(!Number.isInteger(warrantyDays) || warrantyDays < 0){
+    alert('La garantía debe ser una cantidad de días válida, igual o mayor que cero.');
     return;
   }
 
@@ -2880,7 +2886,7 @@ const warrantyDays = Number(document.getElementById('proWarrantyDays')?.value ||
 const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
   const quote = {
     id: currentRequest?.id || state.job.id,
- amount: Number(String(amount).replace(/\./g, '').replace(',', '.')),
+ amount: numericAmount,
   text: text,
     warrantyDays: warrantyDays,
  specialty: currentRequest?.service || state.job.service,
