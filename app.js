@@ -2566,6 +2566,16 @@ if(quoteIndex >= 0){
   professionalQuotes.push(q);
 }
 
+// Una propuesta queda sin seleccionar solamente cuando se confirma otra.
+// No se deduce ni se comunica la razón de la decisión del cliente.
+professionalQuotes.forEach(item => {
+  if(item.id === q.id && !item.warrantyJob &&
+      item.professional !== q.professional &&
+      ['Esperando respuesta del cliente', 'Aceptado por el cliente'].includes(item.status)){
+    item.status = 'Presupuesto no seleccionado';
+  }
+});
+
 localStorage.setItem(
   'professionalQuotes',
   JSON.stringify(professionalQuotes)
