@@ -823,12 +823,14 @@ const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'nu
 
 const selectedId = String(selectedProfessionalJobId || '');
 
+const savedProfessionalJob = history.find(item => String(item?.id || '') === selectedId) || null;
+const matchingCurrentQuote = currentQuote && String(currentQuote.id) === selectedId ? currentQuote : null;
+// Para trabajos finalizados, jobHistory tiene la calificación actualizada.
+// Para trabajos activos conservamos primero el presupuesto/estado actual.
 const confirmedQuote =
-  (currentQuote && String(currentQuote.id) === selectedId
-    ? currentQuote
-    : null) ||
-  history.find(item => String(item?.id || '') === selectedId) ||
-  null;
+  savedProfessionalJob?.status === 'Finalizado'
+    ? savedProfessionalJob
+    : matchingCurrentQuote || savedProfessionalJob || null;
 if(confirmedQuote){
   localStorage.setItem('chatJob', JSON.stringify(confirmedQuote));
 }
