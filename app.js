@@ -66,13 +66,13 @@ function layout(content, active='inicio', titleBrand=true){
   return `<div class="shell">
     <header class="topbar">
      <div class="brand"><b>360°</b> Mantenimiento</div>
-      <div class="userdot">👤</div>
+      <div class="userdot">${state.mode === 'admin' ? '🛡️ Administración' : state.mode === 'professional' ? '🧰 Profesional' : '👤 Cliente'}</div>
     </header>
     ${content}
  
  <nav class="bottomnav">
-  <button class="${active==='inicio'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-home' : 'home')">⌂<br>Inicio</button>
-  <button class="${active==='trabajos'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-confirmed' : 'jobs')">🧰<br>Trabajos</button>
+  <button class="${active==='inicio'?'active':''}" onclick="go(state.mode === 'admin' ? 'admin-home' : state.mode === 'professional' ? 'professional-home' : 'home')">⌂<br>Inicio</button>
+  <button class="${active==='trabajos'?'active':''}" onclick="go(state.mode === 'admin' ? 'admin-jobs' : state.mode === 'professional' ? 'professional-confirmed' : 'jobs')">🧰<br>Trabajos</button>
  ${state.mode !== 'admin' ? `<button class="${active==='mensajes'?'active':''}" onclick="go('messages')">💬<br>Mensajes</button>` : ''}
   <button class="${active==='perfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
 </nav>
@@ -139,7 +139,7 @@ function escapeAdminHistory(value){
 function rootWarrantyId(value){
   return String(value || '').replace(/-[A-Z]+$/i, '');
 }
-function renderAdminWarrantyHistory(claims){
+function renderAdminWarrantyHistory(claims, includeAll = false){
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   const grouped = new Map();
   history.forEach(job => {
@@ -150,9 +150,9 @@ function renderAdminWarrantyHistory(claims){
     grouped.get(root).push(job);
   });
   const chains = [...grouped.entries()]
-    .filter(([,jobs]) => jobs.some(j => j.warrantyJob || rootWarrantyId(j.id) !== String(j.id)))
+    .filter(([,jobs]) => includeAll || jobs.some(j => j.warrantyJob || rootWarrantyId(j.id) !== String(j.id)))
     .sort(([a],[b]) => b.localeCompare(a,'es',{numeric:true}));
-  if(!chains.length) return '<p>Todavía no hay intervenciones en garantía.</p>';
+  if(!chains.length) return includeAll ? '<p>No hay trabajos registrados.</p>' : '<p>Todavía no hay intervenciones en garantía.</p>';
   return chains.map(([root,jobs]) => {
     const records = jobs.slice().sort((a,b) =>
       String(a.id) === root ? -1 : String(b.id) === root ? 1 :
@@ -336,6 +336,7 @@ ${
 
 <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
       <h3>⚠️ Pendientes: ${state.claims.filter(c => c.status !== 'Resuelto').length} | ✅ Resueltos: ${state.claims.filter(c => c.status === 'Resuelto').length}</h3>
+      <p>Seleccioná un reclamo para abrir su expediente y consultar su resolución.</p>
 
 ${
   state.claims.length
@@ -347,7 +348,8 @@ ${
           return numB - numA;
         })
         .map(({ c, index }) => `
-          <div class="card" style="margin-top:12px">
+          <details class="card" style="margin-top:12px">
+            <summary style="cursor:pointer;font-weight:700;padding:4px 0">📋 Ver expediente del reclamo · ${escapeAdminHistory(c.id || 'Sin ID')} · ${escapeAdminHistory(c.status || 'Sin estado')}</summary>
 
             ${
               c.status !== 'Resuelto' && !c.warrantyJobId
@@ -404,7 +406,7 @@ ${c.id ? `
     💬 Ver chat del trabajo
   </button>
 ` : ''}
-          </div>
+          </details>
         `).join('')
     : '<p>No hay reclamos registrados.</p>'
 }
@@ -413,6 +415,24 @@ ${c.id ? `
 
   return;
 }
+
+ if(s==='admin-jobs'){
+   if(state.mode !== 'admin'){go('jobs');return;}
+   const adminHistory = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+   const originals = adminHistory.filter(item => item && item.id && !item.warrantyJob);
+   const warranties = adminHistory.filter(item => item && item.id && item.warrantyJob);
+   app.innerHTML=layout(`<main class="page">
+     ${back('Trabajos de Administración')}
+     <div class="card">
+       <h2>🛡️ Trabajos registrados</h2>
+       <p><b>Cuenta:</b> Administrador · Vista de consulta</p>
+       <p><b>Trabajos originales:</b> ${originals.length} · <b>Intervenciones en garantía:</b> ${warranties.length}</p>
+       <p>Abrí cada trabajo para ver su estado, importes, garantías y calificaciones.</p>
+       ${renderAdminWarrantyHistory(state.claims, true)}
+     </div>
+   </main>`,'trabajos');
+   return;
+ }
   if(s==='professional-home'){
     const professionalAccount = localStorage.getItem('professionalAccount') || 'Profesional';
   app.innerHTML=layout(`<main class="page">
@@ -1893,6 +1913,33 @@ ${existingClaim.resolvedAt ? `<p><b>Fecha de resolución:</b> ${new Date(existin
     return;
   }
   
+
+  if(s==='profile' && state.mode==='admin'){
+    const jobs = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+    const originals = jobs.filter(item => item && item.id && !item.warrantyJob);
+    const warranties = jobs.filter(item => item && item.id && item.warrantyJob);
+    const countRatings = items => items.filter(item =>
+      item.rating && Number(item.rating.stars) >= 1 &&
+      Number(item.rating.stars) <= 5 &&
+      (!item.rating.id || String(item.rating.id) === String(item.id))
+    ).length;
+    app.innerHTML=layout(`<main class="page">
+      ${back('Perfil de Administración')}
+      <div class="card">
+        <h2>🛡️ Cuenta de Administrador</h2>
+        <p><b>Modo activo:</b> Administrador</p>
+        <p>Este perfil permite consultar los trabajos y garantías, revisar reclamos y aprobar especialidades. No representa la cuenta de un cliente ni de un profesional.</p>
+        <div class="kpis">
+          <div class="card kpi"><span>Trabajos originales</span><strong>${originals.length}</strong></div>
+          <div class="card kpi"><span>Garantías</span><strong>${warranties.length}</strong></div>
+          <div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div>
+          <div class="card kpi"><span>Calificaciones registradas</span><strong>${countRatings(jobs)}</strong></div>
+        </div>
+        <button class="btn btn-outline full" type="button" style="margin-top:12px" onclick="state.mode=null; go('role')">Cambiar tipo de cuenta</button>
+      </div>
+    </main>`,'perfil');
+    return;
+  }
   if(s==='profile'){
     const professionalAccount =
   localStorage.getItem('professionalAccount') || '';
