@@ -923,6 +923,7 @@ if(confirmedQuote){
       <p><b>Importe:</b> ${confirmedQuote?.warrantyJob ? 'Sin cargo' : '$' + (confirmedQuote ? Number(confirmedQuote.amount || 0).toLocaleString('es-AR') : '0')}</p>
       <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
       ${confirmedQuote?.status === 'Finalizado' ? `<p><b>Calificación:</b> ${validIndividualJobRating(confirmedQuote) ? Number(validIndividualJobRating(confirmedQuote).stars) + ' de 5 estrellas' : 'Pendiente'}</p>` : ''}
+      ${confirmedQuote?.status === 'Finalizado' && validIndividualJobRating(confirmedQuote)?.comment ? `<p><b>Comentario del cliente:</b> ${escapeAdminHistory(validIndividualJobRating(confirmedQuote).comment)}</p>` : ''}
       ${Number(confirmedQuote?.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(confirmedQuote.warrantyDays)} días</p>` : ''}
 <p><b>Estado:</b> ${
   confirmedQuote && confirmedQuote.status === 'Finalizado'
