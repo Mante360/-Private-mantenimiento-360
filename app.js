@@ -147,11 +147,9 @@ function openCurrentJob(){
   } else {
     const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
 
-    if(q && (q.status === 'Esperando respuesta del cliente' || q.status === 'Aceptado por el cliente')){
-      go('quote-received');
-    } else {
-      go('contracted');
-    }
+    if(q?.status === 'Aceptado por el cliente') go('payment');
+    else if(q?.status === 'Esperando respuesta del cliente') go('jobs');
+    else go('contracted');
   }
 }
  
@@ -1524,54 +1522,58 @@ ${clientHistoryItem?.finishedAt && Number(clientHistoryItem?.warrantyDays || con
   )
 );
    const pendingRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
-const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada' && !q;
-   const hasReceivedQuote = q && q.status === 'Esperando respuesta del cliente';
+const hasPendingRequest = pendingRequest && ['Solicitud enviada','Presupuesto enviado'].includes(pendingRequest.status) && !['Aceptado por el cliente','Confirmado','En curso','Finalizado'].includes(q?.status);
+   const offersToCompare = getQuotesToCompare();
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
 
     <div class="list">
       <h3>🟢 Trabajos activos</h3>
 
-    ${hasReceivedQuote ? `
-<div class="card pro">
-  <div>
-    <b>${pendingRequest?.service || q.specialty || state.job.service}</b>
-    <div class="notice" style="margin:4px 0">
-      Presupuesto recibido
-    </div>
-    <div class="money">${money(q.amount || 0)}</div>
-    <p>${q.text || ''}</p>
-  </div>
-  <button class="btn btn-primary" type="button" onclick="go('quote-received')">
-    Ver presupuesto
-  </button>
-</div>
-` : hasPendingRequest ? ` 
-<div class="card pro">
-  <div>
-    <b>${pendingRequest.service}</b>
-    <div class="notice" style="margin:4px 0">
-      Solicitud enviada · Esperando presupuestos
-    </div>
-    <p>${pendingRequest.description}</p>
-    <p>${pendingRequest.locality}</p>
-  </div>
-</div>
-`: q && !finalizado ? `
-      <div class="card pro"
-         onclick="go('contracted')"
-         style="cursor:pointer">
-           <div>
-            <b>${q?.specialty || pendingRequest?.service || state.job.service}</b>
-            <div class="notice" style="margin:4px 0">
-              ${q?.professional || (q?.specialty === 'Plomería' ? 'Diego Fernández' : q?.specialty === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')} · ${q?.location || pendingRequest?.locality || state.job.locality}
-            </div>
+    ${offersToCompare.length ? `
+      <div class="card" style="margin-bottom:14px">
+        <h3>💰 Presupuestos recibidos (${offersToCompare.length})</h3>
+        <p>Compará las propuestas. No necesitás rechazar una para ver otra.</p>
+        <div class="actions" style="flex-wrap:wrap">
+          <button type="button" class="btn ${(state.quoteSort || 'rating') === 'rating' ? 'btn-primary' : 'btn-outline'}" onclick="state.quoteSort='rating';render()">⭐ Calificación</button>
+          <button type="button" class="btn ${state.quoteSort === 'price' ? 'btn-primary' : 'btn-outline'}" onclick="state.quoteSort='price';render()">💲 Menor precio</button>
+          <button type="button" class="btn ${state.quoteSort === 'experience' ? 'btn-primary' : 'btn-outline'}" onclick="state.quoteSort='experience';render()">🧰 Experiencia</button>
+        </div>
+      </div>
+      ${offersToCompare.map((offer,index) => `
+        <div class="card pro" style="margin-bottom:10px">
+          <div style="flex:1;min-width:0">
+            <h3>${escapeAdminHistory(offer.professional)}</h3>
+            <p>⭐ ${Number(offer.displayRating).toLocaleString('es-AR',{maximumFractionDigits:1})} · ${offer.displayJobs} trabajos (datos de prueba o historial)</p>
+            <p><b>Garantía:</b> ${Number(offer.warrantyDays || 0) > 0 ? Number(offer.warrantyDays)+' días' : 'No ofrecida'}</p>
+            <div class="money">${money(Number(offer.amount))}</div>
+            <button class="btn btn-primary" type="button" onclick="openQuoteByIndex(${index})">Ver presupuesto</button>
           </div>
-          <button class="btn btn-primary" onclick="event.stopPropagation(); openCurrentJob()">Ver trabajo</button></div>
-      
-      ` : `
-        <div class="notice">No tenés trabajos activos.</div>
-      `}
+        </div>`).join('')}
+    ` : hasPendingRequest ? `
+      <div class="card pro">
+        <div>
+          <b>${escapeAdminHistory(pendingRequest.service || '')}</b>
+          <p>Solicitud enviada · Esperando presupuestos</p>
+          <p>${escapeAdminHistory(pendingRequest.description || '')}</p>
+          <p>${escapeAdminHistory(pendingRequest.locality || '')}</p>
+        </div>
+      </div>
+    ` : q && !finalizado ? `
+      <div class="card pro">
+        <div>
+          <b>${escapeAdminHistory(q?.specialty || state.job.service || '')}</b>
+          <p><b>${escapeAdminHistory(q?.professional || '')}</b> · ${escapeAdminHistory(q?.location || '')}</p>
+          <p><b>Estado:</b> ${escapeAdminHistory(q?.status || '')}</p>
+          <div class="money">${money(Number(q?.amount || 0))}</div>
+          <button class="btn btn-primary" type="button" onclick="openCurrentJob()">
+            ${q.status === 'Aceptado por el cliente' ? 'Continuar contratación' : 'Ver trabajo'}
+          </button>
+        </div>
+      </div>
+    ` : `
+      <div class="notice">No tenés trabajos activos.</div>
+    `}
 
       <h3 style="margin-top:24px">✅ Historial de trabajos finalizados</h3>
 
