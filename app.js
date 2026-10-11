@@ -1390,8 +1390,12 @@ return;
 }
   if(s==='payment'){
     const paymentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+    if(!paymentQuote || paymentQuote.status !== 'Aceptado por el cliente'){
+      go('jobs');
+      return;
+    }
     app.innerHTML=layout(`<main class="page"><div class="form">${back('Confirmar pago')}
-      <div class="card"><div>Presupuesto aprobado</div><div><b>Trabajo #:</b> ${paymentQuote?.id || state.job.id}</div><div class="money">${money(state.job.amount)}</div><small>Servicio + materiales según presupuesto</small></div>
+      <div class="card"><div>Presupuesto aprobado</div><div><b>Trabajo #:</b> ${paymentQuote?.id || state.job.id}</div><div class="money">${money(paymentQuote?.amount != null ? Number(paymentQuote.amount) : state.job.amount)}</div><small>Servicio + materiales según presupuesto</small></div>
       <div class="card" style="margin-top:14px"><label class="payopt">💳 Mercado Pago <input type="radio" name="pay" checked></label>
       <label class="payopt">🏦 Transferencia bancaria <input type="radio" name="pay"></label></div>
       <button class="btn btn-primary full" style="margin-top:20px" onclick="confirmPayment()">Pagar y contratar</button>
@@ -1473,33 +1477,6 @@ ${clientHistoryItem?.finishedAt && Number(clientHistoryItem?.warrantyDays || con
 const hasPendingRequest = pendingRequest && pendingRequest.status === 'Solicitud enviada' && !q;
    const hasReceivedQuote = q && q.status === 'Esperando respuesta del cliente';
 const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
-   let historyChanged = false;
-
-if(q && q.status === 'Finalizado'){
-  const currentProfessional =
-    q.specialty === 'Plomería'
-      ? 'Diego Fernández'
-      : q.specialty === 'Refrigeración'
-        ? 'María Romero'
-        : q.professional || 'Carlos Rodríguez';
-
-  history.forEach(item => {
-    if(
-      item.job === q.job &&
-      Number(item.amount) === Number(q.amount) &&
-      (item.location || '') === (q.location || '') &&
-      item.professional !== currentProfessional
-    ){
-      item.professional = currentProfessional;
-      historyChanged = true;
-    }
-  
-});
-
-if(historyChanged){
-  localStorage.setItem('jobHistory', JSON.stringify(history));
-}
-  }
   app.innerHTML=layout(`<main class="page">${back('Mis trabajos')}
 
     <div class="list">
@@ -2564,7 +2541,13 @@ function rejectQuote(){
   go('home');
 }
 function confirmPayment(){
-  state.job.status='Confirmado';localStorage.setItem('jobStatus', 'Confirmado');const q = JSON.parse(localStorage.getItem('professionalQuote') || '{}');
+  const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  if(!q || !q.id || q.status !== 'Aceptado por el cliente'){
+    alert('Para contratar, primero necesitás aceptar un presupuesto válido.');
+    go('jobs');
+    return;
+  }
+  state.job.status='Confirmado';localStorage.setItem('jobStatus', 'Confirmado');
   state.job.id = q.id || state.job.id;
 q.status = 'Confirmado';
 localStorage.setItem('professionalQuote', JSON.stringify(q));
