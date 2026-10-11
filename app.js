@@ -130,6 +130,65 @@ function filterProfessionalCards(value){
         : 'none';
   });
 }
+
+function escapeAdminHistory(value){
+  return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[char]));
+}
+function rootWarrantyId(value){
+  return String(value || '').replace(/-[A-Z]+$/i, '');
+}
+function renderAdminWarrantyHistory(claims){
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const grouped = new Map();
+  history.forEach(job => {
+    if(!job || !job.id) return;
+    const root = rootWarrantyId(job.originJobId || job.id);
+    if(!root) return;
+    if(!grouped.has(root)) grouped.set(root, []);
+    grouped.get(root).push(job);
+  });
+  const chains = [...grouped.entries()]
+    .filter(([,jobs]) => jobs.some(j => j.warrantyJob || rootWarrantyId(j.id) !== String(j.id)))
+    .sort(([a],[b]) => b.localeCompare(a,'es',{numeric:true}));
+  if(!chains.length) return '<p>Todavía no hay intervenciones en garantía.</p>';
+  return chains.map(([root,jobs]) => {
+    const records = jobs.slice().sort((a,b) =>
+      String(a.id) === root ? -1 : String(b.id) === root ? 1 :
+      String(a.id).localeCompare(String(b.id),'es',{numeric:true})
+    );
+    const related = (claims || []).filter(c =>
+      rootWarrantyId(c.originJobId || c.id) === root ||
+      rootWarrantyId(c.warrantyJobId) === root
+    );
+    const jobLines = records.map(job => {
+      const warranty = !!job.warrantyJob || String(job.id) !== root;
+      const stars = Number(job.rating?.stars);
+      return '<div style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px">' +
+        '<b>'+(warranty?'🛡️ Garantía':'🧰 Trabajo original')+' #'+escapeAdminHistory(job.id)+'</b>' +
+        '<p><b>Profesional:</b> '+escapeAdminHistory(job.professional || 'Sin asignar')+'</p>' +
+        '<p><b>Estado:</b> '+escapeAdminHistory(job.status || 'Sin estado')+'</p>' +
+        '<p><b>Importe:</b> '+(warranty?'Sin cargo':'$'+Number(job.amount || 0).toLocaleString('es-AR'))+'</p>' +
+        (job.finishedAt && !Number.isNaN(new Date(job.finishedAt).getTime()) ?
+          '<p><b>Finalizado:</b> '+new Date(job.finishedAt).toLocaleDateString('es-AR')+'</p>' : '') +
+        (stars >= 1 && stars <= 5 ?
+          '<p><b>Calificación:</b> '+stars+' de 5 estrellas'+(warranty?' (garantía)':'')+'</p>' +
+          (job.rating.comment ? '<p><b>Comentario:</b> '+escapeAdminHistory(job.rating.comment)+'</p>' : '') : '') +
+        '</div>';
+    }).join('');
+    const claimLines = related.map(c =>
+      '<p style="margin:8px 0"><b>Reclamo '+escapeAdminHistory(c.id)+':</b> '+
+      escapeAdminHistory(c.status || 'Sin estado')+
+      (c.warrantyJobId ? ' · Intervención '+escapeAdminHistory(c.warrantyJobId) : '')+'</p>'
+    ).join('');
+    return '<details class="card" style="margin-top:12px">' +
+      '<summary style="cursor:pointer;font-weight:700">Trabajo '+escapeAdminHistory(root)+
+      ' · '+records.filter(j => String(j.id) !== root).length+' garantía(s) · '+related.length+' reclamo(s)</summary>' +
+      jobLines+claimLines+'</details>';
+  }).join('');
+}
+
 function render(){
   const s=state.screen;
   if(s==='splash'){
@@ -244,6 +303,9 @@ window.rejectSpecialty = function(index){
     <div class="card">
       <h2>🛡️ Panel de Administración</h2>
       <p>Gestión de reclamos de Mantenimiento 360°.</p>
+<h3 style="margin-top:24px">🛡️ Historial de trabajos y garantías</h3>
+<p>Abrí un trabajo para consultar el original, garantías, reclamos y calificaciones.</p>
+${renderAdminWarrantyHistory(state.claims)}
 <h3 style="margin-top:24px">🧰 Especialidades pendientes de aprobación</h3>
 
 ${
@@ -843,7 +905,7 @@ if(!q || q.status !== 'Finalizado') return '';
 
      ${savedRating
  ? '<div style="padding:14px;text-align:center;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:10px;font-weight:600;">✅ Profesional calificado</div>'
-  : '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
+  : '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ ' + (currentJob?.warrantyJob || q.warrantyJob ? 'Calificar atención de la garantía' : 'Calificar profesional') + '</button>'
 }
     </div>
   `;
