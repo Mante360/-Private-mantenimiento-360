@@ -164,7 +164,8 @@ function renderAdminWarrantyHistory(claims){
     );
     const jobLines = records.map(job => {
       const warranty = !!job.warrantyJob || String(job.id) !== root;
-      const stars = Number(job.rating?.stars);
+      const matchesRating = job.rating && (String(job.rating.id || '') === String(job.id) || (!warranty && !job.rating.id));
+      const stars = matchesRating ? Number(job.rating.stars) : 0;
       return '<div style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px">' +
         '<b>'+(warranty?'🛡️ Garantía':'🧰 Trabajo original')+' #'+escapeAdminHistory(job.id)+'</b>' +
         '<p><b>Profesional:</b> '+escapeAdminHistory(job.professional || 'Sin asignar')+'</p>' +
@@ -2744,6 +2745,7 @@ const warrantyJobId =
     status: 'Confirmado',
 
     warrantyJob: true,
+    rating: null, // Una nueva garantía no hereda la calificación del trabajo anterior.
    originJobId: originalJobId,
     warrantyDays: 0,
     finishedAt: null
