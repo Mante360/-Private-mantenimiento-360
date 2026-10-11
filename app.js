@@ -2565,6 +2565,8 @@ localStorage.setItem(
   go('contracted');
 }
 function sendMsg(){
+  // Administración únicamente consulta conversaciones asociadas a reclamos.
+  if(state.mode === 'admin') return;
   const inp = document.getElementById('msg');
   if(!inp || !inp.value.trim()) return;
 
