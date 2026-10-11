@@ -66,13 +66,13 @@ function layout(content, active='inicio', titleBrand=true){
   return `<div class="shell">
     <header class="topbar">
      <div class="brand"><b>360°</b> Mantenimiento</div>
-      <div class="userdot">👤</div>
+      <div class="userdot">${state.mode === 'admin' ? '🛡️ Administración' : state.mode === 'professional' ? '🧰 Profesional' : '👤 Cliente'}</div>
     </header>
     ${content}
  
  <nav class="bottomnav">
-  <button class="${active==='inicio'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-home' : 'home')">⌂<br>Inicio</button>
-  <button class="${active==='trabajos'?'active':''}" onclick="go(state.mode === 'professional' ? 'professional-confirmed' : 'jobs')">🧰<br>Trabajos</button>
+  <button class="${active==='inicio'?'active':''}" onclick="go(state.mode === 'admin' ? 'admin-home' : state.mode === 'professional' ? 'professional-home' : 'home')">⌂<br>Inicio</button>
+  <button class="${active==='trabajos'?'active':''}" onclick="go(state.mode === 'admin' ? 'admin-jobs' : state.mode === 'professional' ? 'professional-confirmed' : 'jobs')">🧰<br>Trabajos</button>
  ${state.mode !== 'admin' ? `<button class="${active==='mensajes'?'active':''}" onclick="go('messages')">💬<br>Mensajes</button>` : ''}
   <button class="${active==='perfil'?'active':''}" onclick="go('profile')">👤<br>Perfil</button>
 </nav>
@@ -130,6 +130,91 @@ function filterProfessionalCards(value){
         : 'none';
   });
 }
+
+function escapeAdminHistory(value){
+  return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[char]));
+}
+function rootWarrantyId(value){
+  return String(value || '').replace(/-[A-Z]+$/i, '');
+}
+function renderAdminWarrantyHistory(claims, includeAll = false){
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const grouped = new Map();
+  history.forEach(job => {
+    if(!job || !job.id) return;
+    const root = rootWarrantyId(job.originJobId || job.id);
+    if(!root) return;
+    if(!grouped.has(root)) grouped.set(root, []);
+    grouped.get(root).push(job);
+  });
+  const chains = [...grouped.entries()]
+    .filter(([,jobs]) => includeAll || jobs.some(j => j.warrantyJob || rootWarrantyId(j.id) !== String(j.id)))
+    .sort(([a],[b]) => b.localeCompare(a,'es',{numeric:true}));
+  if(!chains.length) return includeAll ? '<p>No hay trabajos registrados.</p>' : '<p>Todavía no hay intervenciones en garantía.</p>';
+  return chains.map(([root,jobs]) => {
+    const records = jobs.slice().sort((a,b) =>
+      String(a.id) === root ? -1 : String(b.id) === root ? 1 :
+      String(a.id).localeCompare(String(b.id),'es',{numeric:true})
+    );
+    const related = (claims || []).filter(c =>
+      rootWarrantyId(c.originJobId || c.id) === root ||
+      rootWarrantyId(c.warrantyJobId) === root
+    );
+    const jobLines = records.map(job => {
+      const warranty = !!job.warrantyJob || String(job.id) !== root;
+      const matchesRating = job.rating && (String(job.rating.id || '') === String(job.id) || (!warranty && !job.rating.id));
+      const stars = matchesRating ? Number(job.rating.stars) : 0;
+      return '<div style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px">' +
+        '<b>'+(warranty?'🛡️ Garantía':'🧰 Trabajo original')+' #'+escapeAdminHistory(job.id)+'</b>' +
+        '<p><b>Profesional:</b> '+escapeAdminHistory(job.professional || 'Sin asignar')+'</p>' +
+        '<p><b>Estado:</b> '+escapeAdminHistory(job.status || 'Sin estado')+'</p>' +
+        '<p><b>Importe:</b> '+(warranty?'Sin cargo':'$'+Number(job.amount || 0).toLocaleString('es-AR'))+'</p>' +
+        (job.finishedAt && !Number.isNaN(new Date(job.finishedAt).getTime()) ?
+          '<p><b>Finalizado:</b> '+new Date(job.finishedAt).toLocaleDateString('es-AR')+'</p>' : '') +
+        (stars >= 1 && stars <= 5 ?
+          '<p><b>Calificación:</b> '+stars+' de 5 estrellas'+(warranty?' (garantía)':'')+'</p>' +
+          (job.rating.comment ? '<p><b>Comentario:</b> '+escapeAdminHistory(job.rating.comment)+'</p>' : '') : '') +
+        '</div>';
+    }).join('');
+    const claimLines = related.map(c =>
+      '<p style="margin:8px 0"><b>Reclamo '+escapeAdminHistory(c.id)+':</b> '+
+      escapeAdminHistory(c.status || 'Sin estado')+
+      (c.warrantyJobId ? ' · Intervención '+escapeAdminHistory(c.warrantyJobId) : '')+'</p>'
+    ).join('');
+    return '<details class="card" style="margin-top:12px">' +
+      '<summary style="cursor:pointer;font-weight:700">Trabajo '+escapeAdminHistory(root)+
+      ' · '+records.filter(j => String(j.id) !== root).length+' garantía(s) · '+related.length+' reclamo(s)</summary>' +
+      jobLines+claimLines+'</details>';
+  }).join('');
+}
+
+
+// Calificaciones independientes: una garantía no modifica las estrellas del trabajo original.
+function validIndividualJobRating(job){
+  if(!job || !job.rating) return null;
+  const stars = Number(job.rating.stars);
+  if(!(stars >= 1 && stars <= 5)) return null;
+  if(job.warrantyJob && String(job.rating.id || '') !== String(job.id || '')) return null;
+  if(job.rating.id && String(job.rating.id) !== String(job.id || '')) return null;
+  return job.rating;
+}
+function professionalRatingSummary(professional){
+  const jobs = JSON.parse(localStorage.getItem('jobHistory') || '[]')
+    .filter(job => job && job.professional === professional);
+  const getAvg = records => {
+    const rated = records.map(validIndividualJobRating).filter(Boolean);
+    if(!rated.length) return {average:'-', count:0};
+    const avg = rated.reduce((total,r) => total + Number(r.stars), 0) / rated.length;
+    return {average:avg.toLocaleString('es-AR',{maximumFractionDigits:1}), count:rated.length};
+  };
+  const originals = jobs.filter(job => !job.warrantyJob);
+  const warranties = jobs.filter(job => !!job.warrantyJob);
+  return {originals:originals.length, warranties:warranties.length,
+    originalRatings:getAvg(originals), warrantyRatings:getAvg(warranties)};
+}
+
 function render(){
   const s=state.screen;
   if(s==='splash'){
@@ -244,6 +329,9 @@ window.rejectSpecialty = function(index){
     <div class="card">
       <h2>🛡️ Panel de Administración</h2>
       <p>Gestión de reclamos de Mantenimiento 360°.</p>
+<h3 style="margin-top:24px">🛡️ Historial de trabajos y garantías</h3>
+<p>Abrí un trabajo para consultar el original, garantías, reclamos y calificaciones.</p>
+${renderAdminWarrantyHistory(state.claims)}
 <h3 style="margin-top:24px">🧰 Especialidades pendientes de aprobación</h3>
 
 ${
@@ -273,6 +361,7 @@ ${
 
 <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
       <h3>⚠️ Pendientes: ${state.claims.filter(c => c.status !== 'Resuelto').length} | ✅ Resueltos: ${state.claims.filter(c => c.status === 'Resuelto').length}</h3>
+      <p>Seleccioná un reclamo para abrir su expediente y consultar su resolución.</p>
 
 ${
   state.claims.length
@@ -284,7 +373,8 @@ ${
           return numB - numA;
         })
         .map(({ c, index }) => `
-          <div class="card" style="margin-top:12px">
+          <details class="card" style="margin-top:12px">
+            <summary style="cursor:pointer;font-weight:700;padding:4px 0">📋 Ver expediente del reclamo · ${escapeAdminHistory(c.id || 'Sin ID')} · ${escapeAdminHistory(c.status || 'Sin estado')}</summary>
 
             ${
               c.status !== 'Resuelto' && !c.warrantyJobId
@@ -341,7 +431,7 @@ ${c.id ? `
     💬 Ver chat del trabajo
   </button>
 ` : ''}
-          </div>
+          </details>
         `).join('')
     : '<p>No hay reclamos registrados.</p>'
 }
@@ -350,6 +440,24 @@ ${c.id ? `
 
   return;
 }
+
+ if(s==='admin-jobs'){
+   if(state.mode !== 'admin'){go('jobs');return;}
+   const adminHistory = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+   const originals = adminHistory.filter(item => item && item.id && !item.warrantyJob);
+   const warranties = adminHistory.filter(item => item && item.id && item.warrantyJob);
+   app.innerHTML=layout(`<main class="page">
+     ${back('Trabajos de Administración')}
+     <div class="card">
+       <h2>🛡️ Trabajos registrados</h2>
+       <p><b>Cuenta:</b> Administrador · Vista de consulta</p>
+       <p><b>Trabajos originales:</b> ${originals.length} · <b>Intervenciones en garantía:</b> ${warranties.length}</p>
+       <p>Abrí cada trabajo para ver su estado, importes, garantías y calificaciones.</p>
+       ${renderAdminWarrantyHistory(state.claims, true)}
+     </div>
+   </main>`,'trabajos');
+   return;
+ }
   if(s==='professional-home'){
     const professionalAccount = localStorage.getItem('professionalAccount') || 'Profesional';
   app.innerHTML=layout(`<main class="page">
@@ -652,7 +760,7 @@ const finishedProfessionalJobs = professionalJobs.filter(
               <b>${j.specialty || state.job.service}</b>
               <p>📍 ${j.location || state.job.locality}</p>
               <p>${j.job || state.job.description}</p>
-              <p><b>Importe:</b> $${Number(j.amount || 0).toLocaleString('es-AR')}</p>
+              <p><b>Importe:</b> ${j.warrantyJob ? 'Sin cargo' : '$' + Number(j.amount || 0).toLocaleString('es-AR')}</p>
               <p><b>Estado:</b> ${
                 j.status === 'Finalizado'
                   ? '🏁 Finalizado'
@@ -683,18 +791,21 @@ ${
             style="cursor:pointer;width:100%;text-align:left;margin-top:10px"
           >
             <p><b>Trabajo #:</b> ${j.id || 'Sin ID'}</p>
+            <p><b>Tipo:</b> ${j.warrantyJob ? '🛡️ Corrección en garantía · Trabajo original: ' + (j.originJobId || 'No informado') : '🧰 Trabajo original'}</p>
             <b>${j.specialty || 'Servicio'}</b>
 
             ${j.task ? `<p><b>Trabajo específico:</b> ${j.task}</p>` : ''}
 
             <p>📍 ${j.location || ''}</p>
             <p>${j.job || ''}</p>
-            <p><b>Importe:</b> $${Number(j.amount || 0).toLocaleString('es-AR')}</p>
+            <p><b>Importe:</b> ${j.warrantyJob ? 'Sin cargo' : '$' + Number(j.amount || 0).toLocaleString('es-AR')}</p>
             ${j.text ? `<p><b>Detalle:</b> ${j.text}</p>` : ''}
             ${j.finishedAt ? `<p><b>Finalizado:</b> ${new Date(j.finishedAt).toLocaleDateString('es-AR')}</p>` : ''}
             ${Number(j.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(j.warrantyDays)} días</p>` : ''}
 ${j.finishedAt && Number(j.warrantyDays || 0) > 0 ? `<p><b>Garantía hasta:</b> ${new Date(new Date(j.finishedAt).getTime() + Number(j.warrantyDays) * 86400000).toLocaleDateString('es-AR')}</p>` : ''}
 ${j.finishedAt && Number(j.warrantyDays || 0) > 0 ? `<p><b>Estado de garantía:</b> ${Date.now() <= new Date(j.finishedAt).getTime() + Number(j.warrantyDays) * 86400000 ? '🟢 En garantía' : '⚪ Garantía vencida'}</p>` : ''}
+            <p><b>Calificación:</b> ${validIndividualJobRating(j) ? Number(validIndividualJobRating(j).stars) + ' de 5 estrellas' : 'Pendiente'}</p>
+            ${validIndividualJobRating(j)?.comment ? `<p><b>Comentario:</b> ${escapeAdminHistory(validIndividualJobRating(j).comment)}</p>` : ''}
             <p><b>Estado:</b> 🏁 Finalizado</p>
           </button>
         `)
@@ -712,12 +823,14 @@ const currentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'nu
 
 const selectedId = String(selectedProfessionalJobId || '');
 
+const savedProfessionalJob = history.find(item => String(item?.id || '') === selectedId) || null;
+const matchingCurrentQuote = currentQuote && String(currentQuote.id) === selectedId ? currentQuote : null;
+// Para trabajos finalizados, jobHistory tiene la calificación actualizada.
+// Para trabajos activos conservamos primero el presupuesto/estado actual.
 const confirmedQuote =
-  (currentQuote && String(currentQuote.id) === selectedId
-    ? currentQuote
-    : null) ||
-  history.find(item => String(item?.id || '') === selectedId) ||
-  null;
+  savedProfessionalJob?.status === 'Finalizado'
+    ? savedProfessionalJob
+    : matchingCurrentQuote || savedProfessionalJob || null;
 if(confirmedQuote){
   localStorage.setItem('chatJob', JSON.stringify(confirmedQuote));
 }
@@ -727,12 +840,14 @@ if(confirmedQuote){
     <div class="card">
       <h2>🧰 ${confirmedQuote?.status === 'Finalizado' ? 'Trabajo finalizado' : confirmedQuote?.status === 'En curso' ? 'Trabajo en curso' : 'Trabajo confirmado'}</h2>
       <p><b>Trabajo #:</b> ${confirmedQuote?.id || state.job.id}</p>
+      <p><b>Tipo:</b> ${confirmedQuote?.warrantyJob ? '🛡️ Corrección en garantía · Trabajo original: ' + (confirmedQuote.originJobId || 'No informado') : '🧰 Trabajo original'}</p>
       <p><b>Servicio:</b> ${confirmedQuote ? confirmedQuote.specialty : 'Electricidad'}</p>
       <p><b>Localidad:</b> ${confirmedQuote ? confirmedQuote.location : 'San Isidro'}</p>
       ${(confirmedQuote?.task || state.job.task) ? `<p><b>Trabajo específico:</b> ${confirmedQuote?.task || state.job.task}</p>` : ''}
       <p><b>Trabajo:</b> ${confirmedQuote ? confirmedQuote.job : 'Revisión de instalación eléctrica'}</p>
-      <p><b>Importe:</b> $${confirmedQuote ? Number(confirmedQuote.amount).toLocaleString('es-AR') : '0'}</p>
+      <p><b>Importe:</b> ${confirmedQuote?.warrantyJob ? 'Sin cargo' : '$' + (confirmedQuote ? Number(confirmedQuote.amount || 0).toLocaleString('es-AR') : '0')}</p>
       <p><b>Detalle:</b> ${confirmedQuote ? confirmedQuote.text : 'Sin detalle'}</p>
+      ${confirmedQuote?.status === 'Finalizado' ? `<p><b>Calificación:</b> ${validIndividualJobRating(confirmedQuote) ? Number(validIndividualJobRating(confirmedQuote).stars) + ' de 5 estrellas' : 'Pendiente'}</p>` : ''}
       ${Number(confirmedQuote?.warrantyDays || 0) > 0 ? `<p><b>Garantía:</b> ${Number(confirmedQuote.warrantyDays)} días</p>` : ''}
 <p><b>Estado:</b> ${
   confirmedQuote && confirmedQuote.status === 'Finalizado'
@@ -843,7 +958,7 @@ if(!q || q.status !== 'Finalizado') return '';
 
      ${savedRating
  ? '<div style="padding:14px;text-align:center;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:10px;font-weight:600;">✅ Profesional calificado</div>'
-  : '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ Calificar profesional</button>'
+  : '<button class="btn btn-primary full" type="button" onclick="localStorage.setItem(\'ratingJobId\', \'' + q.id + '\'); go(\'rating\')">⭐ ' + (currentJob?.warrantyJob || q.warrantyJob ? 'Calificar atención de la garantía' : 'Calificar profesional') + '</button>'
 }
     </div>
   `;
@@ -1830,6 +1945,33 @@ ${existingClaim.resolvedAt ? `<p><b>Fecha de resolución:</b> ${new Date(existin
     return;
   }
   
+
+  if(s==='profile' && state.mode==='admin'){
+    const jobs = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+    const originals = jobs.filter(item => item && item.id && !item.warrantyJob);
+    const warranties = jobs.filter(item => item && item.id && item.warrantyJob);
+    const countRatings = items => items.filter(item =>
+      item.rating && Number(item.rating.stars) >= 1 &&
+      Number(item.rating.stars) <= 5 &&
+      (!item.rating.id || String(item.rating.id) === String(item.id))
+    ).length;
+    app.innerHTML=layout(`<main class="page">
+      ${back('Perfil de Administración')}
+      <div class="card">
+        <h2>🛡️ Cuenta de Administrador</h2>
+        <p><b>Modo activo:</b> Administrador</p>
+        <p>Este perfil permite consultar los trabajos y garantías, revisar reclamos y aprobar especialidades. No representa la cuenta de un cliente ni de un profesional.</p>
+        <div class="kpis">
+          <div class="card kpi"><span>Trabajos originales</span><strong>${originals.length}</strong></div>
+          <div class="card kpi"><span>Garantías</span><strong>${warranties.length}</strong></div>
+          <div class="card kpi"><span>Reclamos</span><strong>${state.claims.length}</strong></div>
+          <div class="card kpi"><span>Calificaciones registradas</span><strong>${countRatings(jobs)}</strong></div>
+        </div>
+        <button class="btn btn-outline full" type="button" style="margin-top:12px" onclick="state.mode=null; go('role')">Cambiar tipo de cuenta</button>
+      </div>
+    </main>`,'perfil');
+    return;
+  }
   if(s==='profile'){
     const professionalAccount =
   localStorage.getItem('professionalAccount') || '';
@@ -2096,24 +2238,17 @@ if(
       }, 0)
   : state.messages.length}</strong></div><div class="card kpi"><span>Reclamos</span><strong>${state.mode === 'professional'
   ? state.claims.filter(claim => claim.professional === professionalAccount).length
-  : state.claims.length}</strong></div><div class="card kpi"><span>Calificación</span><strong>${state.mode === 'professional' ? (() => {const account = localStorage.getItem('professionalAccount') || '';
-const ratedJobs = JSON.parse(localStorage.getItem('jobHistory') || '[]')
-  .filter(item =>
-    item.professional === account &&
-    Number(item.rating?.stars) > 0
-  );
-
-if(!ratedJobs.length) return '-';
-
-const average = ratedJobs.reduce(
-  (sum, item) => sum + Number(item.rating.stars),
-  0
-) / ratedJobs.length;
-
-return average.toLocaleString('es-AR', {
-  maximumFractionDigits: 1
-});
-})() : (JSON.parse(localStorage.getItem('jobRating') || 'null')?.stars || JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-')}</strong></div></div></div></main>`,'perfil');
+  : state.claims.length}</strong></div><div class="card kpi"><span>${state.mode === 'professional' ? 'Calificación trabajos' : 'Calificación'}</span><strong>${state.mode === 'professional' ? professionalRatingSummary(professionalAccount).originalRatings.average : (JSON.parse(localStorage.getItem('jobRating') || 'null')?.stars || JSON.parse(localStorage.getItem('professionalRating') || 'null')?.stars || '-')}</strong></div></div>
+      ${state.mode === 'professional' ? `
+        <div class="card" style="margin-top:12px">
+          <h3>🛡️ Garantías y calificaciones</h3>
+          <p><b>Intervenciones en garantía:</b> ${professionalRatingSummary(professionalAccount).warranties}</p>
+          <p><b>Calificación de trabajos originales:</b> ${professionalRatingSummary(professionalAccount).originalRatings.average} de 5 (${professionalRatingSummary(professionalAccount).originalRatings.count} ${professionalRatingSummary(professionalAccount).originalRatings.count === 1 ? 'evaluación' : 'evaluaciones'})</p>
+          <p><b>Calificación de atención en garantías:</b> ${professionalRatingSummary(professionalAccount).warrantyRatings.average} de 5 (${professionalRatingSummary(professionalAccount).warrantyRatings.count} ${professionalRatingSummary(professionalAccount).warrantyRatings.count === 1 ? 'evaluación' : 'evaluaciones'})</p>
+          <p class="notice">Las calificaciones de garantías se muestran por separado y no modifican el promedio de trabajos originales.</p>
+        </div>
+      ` : ''}
+    </div></main>`,'perfil');
  
     
     return;
@@ -2455,6 +2590,8 @@ localStorage.setItem(
   go('contracted');
 }
 function sendMsg(){
+  // Administración únicamente consulta conversaciones asociadas a reclamos.
+  if(state.mode === 'admin') return;
   const inp = document.getElementById('msg');
   if(!inp || !inp.value.trim()) return;
 
@@ -2682,6 +2819,7 @@ const warrantyJobId =
     status: 'Confirmado',
 
     warrantyJob: true,
+    rating: null, // Una nueva garantía no hereda la calificación del trabajo anterior.
    originJobId: originalJobId,
     warrantyDays: 0,
     finishedAt: null
