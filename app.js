@@ -2243,8 +2243,8 @@ if(
         <div class="card" style="margin-top:12px">
           <h3>🛡️ Garantías y calificaciones</h3>
           <p><b>Intervenciones en garantía:</b> ${professionalRatingSummary(professionalAccount).warranties}</p>
-          <p><b>Calificación de trabajos originales:</b> ${professionalRatingSummary(professionalAccount).originalRatings.average} de 5 (${professionalRatingSummary(professionalAccount).originalRatings.count} evaluaciones)</p>
-          <p><b>Calificación de atención en garantías:</b> ${professionalRatingSummary(professionalAccount).warrantyRatings.average} de 5 (${professionalRatingSummary(professionalAccount).warrantyRatings.count} evaluaciones)</p>
+          <p><b>Calificación de trabajos originales:</b> ${professionalRatingSummary(professionalAccount).originalRatings.average} de 5 (${professionalRatingSummary(professionalAccount).originalRatings.count} ${professionalRatingSummary(professionalAccount).originalRatings.count === 1 ? 'evaluación' : 'evaluaciones'})</p>
+          <p><b>Calificación de atención en garantías:</b> ${professionalRatingSummary(professionalAccount).warrantyRatings.average} de 5 (${professionalRatingSummary(professionalAccount).warrantyRatings.count} ${professionalRatingSummary(professionalAccount).warrantyRatings.count === 1 ? 'evaluación' : 'evaluaciones'})</p>
           <p class="notice">Las calificaciones de garantías se muestran por separado y no modifican el promedio de trabajos originales.</p>
         </div>
       ` : ''}
