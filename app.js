@@ -62,6 +62,56 @@ migrateMissingJobIds();
 const app = document.getElementById('app');
 const money = n => n == null ? 'Presupuesto pendiente' : '$ ' + n.toLocaleString('es-AR');
 
+
+function getCurrentRequestQuotes(){
+  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+  if(!request?.id) return [];
+  const quotes = JSON.parse(localStorage.getItem('professionalQuotes') || '[]')
+    .filter(item => item && item.id === request.id && !item.warrantyJob);
+  const single = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  if(single?.id === request.id && single.professional && !single.warrantyJob &&
+      !quotes.some(item => item.professional === single.professional))
+    quotes.push(single);
+  return quotes;
+}
+function saveQuoteInHistory(quote){
+  const quotes = JSON.parse(localStorage.getItem('professionalQuotes') || '[]');
+  const index = quotes.findIndex(item => item.id === quote.id && item.professional === quote.professional);
+  if(index === -1) quotes.push(quote); else quotes[index] = quote;
+  localStorage.setItem('professionalQuotes',JSON.stringify(quotes));
+}
+function getQuotesToCompare(){
+  const quotes = getCurrentRequestQuotes().filter(item => item.status === 'Esperando respuesta del cliente');
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const stats = name => {
+    const profile = professionalsDemo.find(p => p[0] === name);
+    const completed = history.filter(j => j.professional === name && j.status === 'Finalizado' && !j.warrantyJob);
+    const rated = completed.filter(j => Number(j.rating?.stars) > 0);
+    return {
+      rating: rated.length ? rated.reduce((sum,j)=>sum+Number(j.rating.stars),0)/rated.length : Number(profile?.[3] || 0),
+      jobs: Math.max(completed.length,Number(profile?.[2] || 0))
+    };
+  };
+  const sort = state.quoteSort || 'rating';
+  quotes.sort((a,b) => {
+    if(sort === 'price') return Number(a.amount) - Number(b.amount) || stats(b.professional).rating - stats(a.professional).rating;
+    if(sort === 'experience') return stats(b.professional).jobs - stats(a.professional).jobs || stats(b.professional).rating - stats(a.professional).rating;
+    return stats(b.professional).rating - stats(a.professional).rating || stats(b.professional).jobs - stats(a.professional).jobs;
+  });
+  return quotes.map(q => ({...q, displayRating:stats(q.professional).rating,displayJobs:stats(q.professional).jobs}));
+}
+function quoteForClientAction(){
+  const chosenName = localStorage.getItem('selectedQuoteProfessional');
+  const chosen = getCurrentRequestQuotes().find(q => q.professional === chosenName && q.status === 'Esperando respuesta del cliente');
+  return chosen || null;
+}
+function openQuoteByIndex(index){
+  const quote = getQuotesToCompare()[index];
+  if(!quote) return;
+  localStorage.setItem('selectedQuoteProfessional',quote.professional);
+  go('quote-received');
+}
+
 function layout(content, active='inicio', titleBrand=true){
   return `<div class="shell">
     <header class="topbar">
@@ -537,7 +587,7 @@ ${(() => {
 
   if(
     !request ||
-    request.status === 'Presupuesto enviado' ||
+    ['Presupuesto aceptado','Confirmado','En curso','Finalizado'].includes(request.status) ||
     ['Confirmado', 'En curso', 'Finalizado'].includes(jobStatus)
   ){
     return '';
@@ -573,8 +623,9 @@ ${(() => {
       String(request.service || '').toLowerCase()
   );
 
+ const alreadyQuoted = getCurrentRequestQuotes().some(q => q.professional === professionalAccount);
  if(
-  !matchesSpecialty ||
+  !matchesSpecialty || alreadyQuoted ||
   (request.professional &&
    request.professional !== professionalAccount)
 ){
@@ -1363,32 +1414,30 @@ const averageRating = ratedJobs.length
 }
   
   if(s==='quote-received'){
-  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
-  app.innerHTML = layout(`<main class="page">
-    ${back('Presupuesto recibido')}
-
-    <div class="card">
-      <h2>Presupuesto recibido</h2>
-      <p><b>Trabajo #:</b> ${quote?.id || request?.id || state.job.id}</p>
-     <p><b>Servicio:</b> ${request?.service || state.job.service || quote?.specialty}</p> 
-      <p><b>Profesional:</b> ${quote?.professional || (request?.service === 'Plomería' ? 'Diego Fernández' : request?.service === 'Refrigeración' ? 'María Romero' : 'Carlos Rodríguez')}</p>
-      <p><b>Localidad:</b> ${quote?.location || state.job.locality}</p>
-      ${(request?.task || state.job.task) ? `<p><b>Trabajo específico:</b> ${request?.task || state.job.task}</p>` : ''}
-      <p><b>Trabajo:</b> ${quote?.job || state.job.description}</p>
-      <div class="money">${money(quote?.amount || 0)}</div>
-     <p>${quote?.text || 'Presupuesto enviado por el profesional.'}</p>
-     <p><b>Garantía del trabajo:</b> ${Number(quote?.warrantyDays || 0) > 0 ? Number(quote.warrantyDays) + ' días' : 'Sin garantía ofrecida'}</p>
-    </div>
-
-    <div class="actions">
-      <button class="btn btn-primary" onclick="acceptQuote()">Aceptar presupuesto</button>
-      <button class="btn btn-outline" onclick="rejectQuote()">Rechazar</button>
-</div>
-</main>`, 'trabajos');
-
-return;
-}
+    const quote = quoteForClientAction();
+    const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+    if(!quote){go('jobs');return;}
+    app.innerHTML = layout(`<main class="page">
+      ${back('Detalle del presupuesto')}
+      <div class="card">
+        <h2>Presupuesto de ${quote.professional}</h2>
+        <p><b>Trabajo #:</b> ${quote.id}</p>
+        <p><b>Servicio:</b> ${request?.service || quote.specialty || ''}</p>
+        <p><b>Localidad:</b> ${quote.location || ''}</p>
+        ${quote.task ? `<p><b>Trabajo específico:</b> ${quote.task}</p>` : ''}
+        <p><b>Trabajo:</b> ${quote.job || ''}</p>
+        <div class="money">${money(Number(quote.amount))}</div>
+        <p><b>Detalle:</b> ${quote.text || 'Sin detalle'}</p>
+        <p><b>Garantía:</b> ${Number(quote.warrantyDays || 0) > 0 ? Number(quote.warrantyDays) + ' días' : 'No ofrecida'}</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="acceptQuote()">Aceptar presupuesto</button>
+        <button class="btn btn-outline" onclick="go('jobs')">Ver otros presupuestos</button>
+      </div>
+      <button class="btn btn-outline full" style="margin-top:10px" onclick="rejectQuote()">Rechazar este presupuesto</button>
+    </main>`,'trabajos');
+    return;
+  }
   if(s==='payment'){
     const paymentQuote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
     if(!paymentQuote || paymentQuote.status !== 'Aceptado por el cliente'){
@@ -2483,63 +2532,46 @@ function requestProfessionalQuote(){
   go('request');
 }
 function acceptQuote(){
-  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-
+  const quote = quoteForClientAction();
   if(!quote){
-    alert('No se encontró el presupuesto.');
+    alert('Elegí un presupuesto disponible para continuar.');
+    go('jobs');
     return;
   }
-
   quote.status = 'Aceptado por el cliente';
-  localStorage.setItem('professionalQuote', JSON.stringify(quote));
-
+  saveQuoteInHistory(quote);
+  localStorage.setItem('professionalQuote',JSON.stringify(quote));
+  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+  if(request?.id === quote.id){
+    request.status = 'Presupuesto aceptado';
+    localStorage.setItem('clientRequest',JSON.stringify(request));
+  }
+  state.job.id = quote.id;
   state.job.amount = Number(quote.amount);
   state.job.status = 'Presupuesto aceptado';
-
   go('payment');
 }
 function rejectQuote(){
-  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
-
+  const quote = quoteForClientAction();
   if(!quote){
     alert('No se encontró el presupuesto.');
+    go('jobs');
     return;
   }
-
   quote.status = 'Rechazado por el cliente';
-
-  const professionalQuotes = JSON.parse(
-    localStorage.getItem('professionalQuotes') || '[]'
-  );
-
-  const quoteIndex = professionalQuotes.findIndex(
-    item => item.id === quote.id && item.professional === quote.professional
-  );
-
-  if(quoteIndex >= 0){
-    professionalQuotes[quoteIndex] = quote;
-  }else{
-    professionalQuotes.push(quote);
+  saveQuoteInHistory(quote);
+  const single = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  if(single?.id === quote.id && single.professional === quote.professional){
+    localStorage.removeItem('professionalQuote');
   }
-
-  localStorage.setItem(
-    'professionalQuotes',
-    JSON.stringify(professionalQuotes)
-  );
-
-  const request = JSON.parse(
-    localStorage.getItem('clientRequest') || 'null'
-  );
-
-  if(request){
-    request.status = 'Solicitud enviada';
-    localStorage.setItem('clientRequest', JSON.stringify(request));
+  localStorage.removeItem('selectedQuoteProfessional');
+  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+  if(request?.id === quote.id){
+    request.status = getCurrentRequestQuotes().some(q => q.status === 'Esperando respuesta del cliente') ? 'Presupuesto enviado' : 'Solicitud enviada';
+    localStorage.setItem('clientRequest',JSON.stringify(request));
   }
-
-  localStorage.removeItem('professionalQuote');
-
-  alert('Presupuesto rechazado. Podés continuar buscando otro profesional.');
-  go('home');
+  alert('Presupuesto rechazado.');
+  go('jobs');
 }
 function confirmPayment(){
   const q = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
@@ -2894,6 +2926,17 @@ const warrantyDays = Number(document.getElementById('proWarrantyDays')?.value ||
     return;
   }
 const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+  const account = localStorage.getItem('professionalAccount') || state.job.professional;
+  if(!currentRequest?.id || ['Presupuesto aceptado','Confirmado','En curso','Finalizado'].includes(currentRequest.status)){
+    alert('La solicitud ya no está disponible para nuevos presupuestos.');
+    go('professional-requests');
+    return;
+  }
+  if(getCurrentRequestQuotes().some(item => item.professional === account)){
+    alert('Ya enviaste un presupuesto para esta solicitud.');
+    go('professional-quotes');
+    return;
+  }
   const quote = {
     id: currentRequest?.id || state.job.id,
  amount: numericAmount,
@@ -2907,7 +2950,8 @@ const currentRequest = JSON.parse(localStorage.getItem('clientRequest') || 'null
   status: 'Esperando respuesta del cliente'
 };
 
-localStorage.setItem('professionalQuote', JSON.stringify(quote));
+// Las propuestas se guardan individualmente. professionalQuote se reserva para la contratada.
+  saveQuoteInHistory(quote);
   const professionalQuotes = JSON.parse(
   localStorage.getItem('professionalQuotes') || '[]'
 );
