@@ -115,6 +115,27 @@ function openQuoteByIndex(index){
   go('quote-received');
 }
 
+function professionalActiveJobSummary(professional){
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const quote = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  const jobsById = new Map();
+  for(const job of history){
+    if(job?.id && job.professional === professional &&
+       ['Confirmado','En curso'].includes(job.status))
+      jobsById.set(String(job.id),job);
+  }
+  // El presupuesto confirmado puede no estar guardado aún en jobHistory.
+  // Contamos cada trabajo una sola vez y excluimos los finalizados.
+  if(quote?.id && quote.professional === professional &&
+     ['Confirmado','En curso'].includes(quote.status) &&
+     !history.some(job => String(job?.id) === String(quote.id) && job.status === 'Finalizado'))
+    jobsById.set(String(quote.id),quote);
+  const jobs = [...jobsById.values()];
+  const confirmed = jobs.filter(job => job.status === 'Confirmado').length;
+  const inProgress = jobs.filter(job => job.status === 'En curso').length;
+  return {total:confirmed+inProgress,confirmed,inProgress};
+}
+
 function layout(content, active='inicio', titleBrand=true){
   return `<div class="shell">
     <header class="topbar">
@@ -511,6 +532,7 @@ ${c.id ? `
  }
   if(s==='professional-home'){
     const professionalAccount = localStorage.getItem('professionalAccount') || 'Profesional';
+    const activeSummary = professionalActiveJobSummary(professionalAccount);
   app.innerHTML=layout(`<main class="page">
     <section class="hero">
       <div>
@@ -554,7 +576,8 @@ ${(() => {
 })()}
       <button class="card specialty" type="button" onclick="go('professional-confirmed')" style="cursor:pointer;width:100%;text-align:left">
   <div class="icon">🧰</div>
-  <b>Trabajos confirmados</b>
+  <b>Trabajos confirmados (${activeSummary.total})</b>
+  <div class="notice" style="margin-top:5px">Confirmados: ${activeSummary.confirmed} · En curso: ${activeSummary.inProgress}</div>
 </button>
 
      
