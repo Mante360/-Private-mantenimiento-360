@@ -71,6 +71,19 @@
     localStorage.setItem('m360_demo_preview_initialized', '1');
   }
 
+  // Solo cargar ejemplos cuando este navegador ya fue inicializado con los datos DEMO.
+  // No sobrescribir conversaciones existentes.
+  if (localStorage.getItem('m360_demo_preview_initialized') === '1') {
+    const demoChatKey = 'messages_360-00171-A';
+    if (localStorage.getItem(demoChatKey) === null) {
+      localStorage.setItem(demoChatKey, JSON.stringify([
+        { from: 'client', text: 'DEMO · La primera corrección volvió a presentar el problema.' },
+        { from: 'professional', text: 'DEMO · Recibí el aviso. Voy a revisar el equipo nuevamente.' },
+        { from: 'client', text: 'DEMO · Gracias. Quedo a la espera de la nueva intervención.' }
+      ]));
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     const banner = document.createElement('div');
     banner.textContent = 'ENTORNO DE PRUEBA · Datos ficticios (no son trabajos reales)';
