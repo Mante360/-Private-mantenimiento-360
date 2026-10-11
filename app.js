@@ -81,6 +81,9 @@ function saveQuoteInHistory(quote){
   localStorage.setItem('professionalQuotes',JSON.stringify(quotes));
 }
 function getQuotesToCompare(){
+  const selected = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
+  if(selected?.id === request?.id && ['Aceptado por el cliente','Confirmado','En curso','Finalizado'].includes(selected.status)) return [];
   const quotes = getCurrentRequestQuotes().filter(item => item.status === 'Esperando respuesta del cliente');
   const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
   const stats = name => {
@@ -2535,6 +2538,12 @@ function requestProfessionalQuote(){
 }
 function acceptQuote(){
   const quote = quoteForClientAction();
+  const active = JSON.parse(localStorage.getItem('professionalQuote') || 'null');
+  if(active && active.id === quote?.id && ['Aceptado por el cliente','Confirmado','En curso','Finalizado'].includes(active.status)){
+    alert('Ya seleccionaste un presupuesto para esta solicitud.');
+    go('jobs');
+    return;
+  }
   if(!quote){
     alert('Elegí un presupuesto disponible para continuar.');
     go('jobs');
