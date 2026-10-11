@@ -945,7 +945,7 @@ const currentJob = JSON.parse(
 ).find(item => item.id === q?.id);
 
 const savedRating =
-  currentJob?.rating?.id === q?.id
+  q && currentJob && currentJob.rating?.id === q.id
     ? currentJob.rating
     : null;
 
