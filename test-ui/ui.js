@@ -160,6 +160,8 @@
       }
       el('approveSelected').disabled=!labProfessional||
         labProfessional.verification_status!=='pending'||!labCategoryId;
+      el('resetProfessionalForm').hidden=!labProfessional||
+        String(labProfessional.id)!=='4';
     }catch(error) { target.textContent=error.message;el('approveSelected').disabled=true; }
   }
   async function prepareRefrigeration() {
@@ -189,6 +191,36 @@
     }catch(error){feedback(error.message,true);button.disabled=false;}
   }
 
+
+  async function resetProfessionalPassword(event) {
+    event.preventDefault();
+    if (!profile || profile.role !== 'admin' ||
+        !labProfessional || String(labProfessional.id) !== '4') return;
+    const adminPassword = el('adminConfirmPassword').value;
+    const newPassword = el('newProfessionalPassword').value;
+    if (!confirm('¿Cambiar la contraseña de Sebastián Salva (ID 4)? La aprobación seguirá intacta.')) return;
+    const button = el('resetProfessionalButton');
+    button.disabled = true;
+    try {
+      const result=await api('POST','/api/admin/professionals/4/reset-test-password',{
+        adminPassword,newPassword
+      });
+      feedback('Contraseña nueva guardada. Ahora podés ingresar como Sebastián Salva.');
+      el('adminTarget').textContent='Clave renovada para '+result.name+
+        ' (ID '+result.professionalId+'). Correo: '+result.email+
+        '\\nLa aprobación de Refrigeración se mantiene.';
+    }catch(error){
+      const message=String(error.message||'');
+      feedback(message.includes('HTTP 403')
+        ? 'No pudimos validar la contraseña de Administración de Pruebas.'
+        : message,true);
+    }finally{
+      el('adminConfirmPassword').value='';
+      el('newProfessionalPassword').value='';
+      button.disabled=false;
+    }
+  }
+
   el('roleClient').addEventListener('click',()=>select('client'));
   el('rolePro').addEventListener('click',()=>select('professional'));
   el('showRegister').addEventListener('click',()=>view('register'));
@@ -199,9 +231,13 @@
   el('showPending').addEventListener('click',loadProfessionals);
   el('prepareRefrigeration').addEventListener('click',prepareRefrigeration);
   el('approveSelected').addEventListener('click',approveSelected);
+  el('resetProfessionalForm').addEventListener('submit',resetProfessionalPassword);
   el('logout').addEventListener('click',()=>{
     token='';profile=null;labProfessional=null;labCategoryId=null;
     el('adminSection').hidden=true;
+    el('resetProfessionalForm').hidden=true;
+    el('adminConfirmPassword').value='';
+    el('newProfessionalPassword').value='';
     sessionStorage.removeItem(tokenKey);
     render();
     feedback('Sesión de prueba cerrada.');

@@ -70,6 +70,15 @@
             <button type="button" id="showPending" class="secondary">Ver profesional ID 4</button>
             <div id="adminTarget" class="jobspanel">Esperando consulta.</div>
             <button type="button" id="approveSelected" class="primary" disabled>Aprobar profesional ID 4 para la prueba</button>
+            <form id="resetProfessionalForm" class="reset-form" autocomplete="off" hidden>
+              <h3>Recuperar acceso de Sebastián Salva (ID 4)</h3>
+              <p class="hint">Se conserva su aprobación y especialidad. Usá únicamente claves creadas para este laboratorio.</p>
+              <label for="adminConfirmPassword">Tu contraseña de Administración de Pruebas</label>
+              <input id="adminConfirmPassword" type="password" autocomplete="off" minlength="1" maxlength="128" required>
+              <label for="newProfessionalPassword">Nueva contraseña del profesional (12 caracteres o más)</label>
+              <input id="newProfessionalPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+              <button id="resetProfessionalButton" class="secondary" type="submit">Cambiar contraseña de Sebastián (ID 4)</button>
+            </form>
           </section>
           <div class="actions">
             <button type="button" id="refreshJobs" class="secondary">Consultar mis solicitudes</button>
