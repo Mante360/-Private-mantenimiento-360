@@ -141,61 +141,93 @@
       el('jobsPanel').textContent=err.message;
     }
   }
+  let labProfessionals = [];
+  let labCategories = [];
+  function selectedProfessional() {
+    return labProfessionals.find(p => String(p.id) === el('adminProfessionalSelect').value) || null;
+  }
+  function updateAdminSelection() {
+    labProfessional = selectedProfessional();
+    labCategoryId = Number(el('adminSpecialtySelect').value) || null;
+    const target = el('adminTarget');
+    target.textContent = labProfessional
+      ? 'Profesional: ' + labProfessional.name + ' | ID: ' + labProfessional.id +
+        '\\nEstado: ' + labProfessional.verification_status
+      : 'Elegí un profesional pendiente para aprobar.';
+    el('approveSelected').disabled = !labProfessional ||
+      labProfessional.verification_status !== 'pending' || !labCategoryId;
+    // Password recovery remains strictly restricted to the original ID 4.
+    el('resetProfessionalForm').hidden = !labProfessionals.some(p => String(p.id) === '4');
+  }
   async function loadProfessionals() {
     const target = el('adminTarget');
-    target.textContent = 'Buscando profesional de prueba ID 4...';
+    target.textContent = 'Consultando cuentas de prueba...';
+    el('approveSelected').disabled = true;
     try {
-      const [pros,categories]=await Promise.all([
-        api('GET','/api/admin/professionals'),
-        api('GET','/api/admin/specialties')
+      const [pros, categories] = await Promise.all([
+        api('GET', '/api/admin/professionals'),
+        api('GET', '/api/admin/specialties')
       ]);
-      labCategoryId = Number(categories.find(c=>c.name==='Refrigeración')?.id)||null;
-      labProfessional = pros.find(p=>String(p.id)==='4') || null;
-      if(!labProfessional) {
-        target.textContent='No encontramos la cuenta profesional ID 4. No se realizó ninguna aprobación.';
-      } else {
-        target.textContent='Profesional: '+labProfessional.name+' | ID: '+labProfessional.id+
-          '\nEstado: '+labProfessional.verification_status+
-          '\nEspecialidad: '+(labCategoryId ? 'Refrigeración preparada' : 'Falta preparar Refrigeración');
-      }
-      el('approveSelected').disabled=!labProfessional||
-        labProfessional.verification_status!=='pending'||!labCategoryId;
-      el('resetProfessionalForm').hidden=!labProfessional||
-        String(labProfessional.id)!=='4';
-    }catch(error) { target.textContent=error.message;el('approveSelected').disabled=true; }
+      labProfessionals = pros;
+      labCategories = categories;
+      const previousPro = el('adminProfessionalSelect').value;
+      const previousSpecialty = el('adminSpecialtySelect').value;
+      const pending = pros.filter(p => p.verification_status === 'pending');
+      const proSelect = el('adminProfessionalSelect');
+      proSelect.replaceChildren(new Option('Seleccionar profesional', ''));
+      pending.forEach(p => proSelect.add(new Option(p.name + ' (ID ' + p.id + ')', String(p.id))));
+      if (pending.some(p => String(p.id) === previousPro)) proSelect.value = previousPro;
+      const specialtySelect = el('adminSpecialtySelect');
+      specialtySelect.replaceChildren(new Option('Seleccionar especialidad', ''));
+      categories.forEach(c => specialtySelect.add(new Option(c.name, String(c.id))));
+      if (categories.some(c => String(c.id) === previousSpecialty)) specialtySelect.value = previousSpecialty;
+      target.textContent = pending.length
+        ? 'Profesionales pendientes: ' + pending.length + '. Seleccioná uno y elegí su especialidad.'
+        : 'No hay profesionales pendientes de aprobación.';
+      updateAdminSelection();
+    } catch(error) {
+      target.textContent = error.message;
+      el('approveSelected').disabled = true;
+    }
   }
   async function prepareRefrigeration() {
-    const button=el('prepareRefrigeration');
-    button.disabled=true;
+    const button = el('prepareRefrigeration');
+    button.disabled = true;
     try {
-      const result=await api('POST','/api/admin/specialties',{
-        name:'Refrigeración',services:['Reparación','Mantenimiento preventivo']
+      const result = await api('POST', '/api/admin/specialties', {
+        name: 'Refrigeración', services: ['Reparación', 'Mantenimiento preventivo']
       });
-      labCategoryId=Number(result.id);
       feedback('Rubro ficticio Refrigeración preparado.');
       await loadProfessionals();
-    }catch(error){feedback(error.message,true);}
-    finally{button.disabled=false;}
+      el('adminSpecialtySelect').value = String(result.id);
+      updateAdminSelection();
+    } catch(error) { feedback(error.message, true); }
+    finally { button.disabled = false; }
   }
   async function approveSelected() {
-    if(!labProfessional||String(labProfessional.id)!=='4'||!labCategoryId) return;
-    if(!confirm('¿Aprobar para PRUEBAS a '+labProfessional.name+' (ID 4) en Refrigeración?')) return;
-    const button=el('approveSelected');
-    button.disabled=true;
+    updateAdminSelection();
+    const person = labProfessional;
+    const specialtyId = labCategoryId;
+    if (!person || person.verification_status !== 'pending' || !specialtyId) return;
+    if (!confirm('¿Aprobar para PRUEBAS a ' + person.name + ' (ID ' + person.id + ')?')) return;
+    const button = el('approveSelected');
+    button.disabled = true;
     try {
-      const result=await api('POST','/api/admin/professionals/4/approve',{
-        specialtyId:labCategoryId
-      });
-      feedback('Profesional ID 4 aprobado solamente para el laboratorio: '+result.specialty+'.');
+      const result = await api('POST', '/api/admin/professionals/' +
+        encodeURIComponent(String(person.id)) + '/approve', { specialtyId });
+      feedback('Profesional ' + result.name + ' (ID ' + result.professionalId +
+        ') aprobado solamente para el laboratorio: ' + result.specialty + '.');
       await loadProfessionals();
-    }catch(error){feedback(error.message,true);button.disabled=false;}
+    } catch(error) {
+      feedback(error.message, true);
+      button.disabled = false;
+    }
   }
-
 
   async function resetProfessionalPassword(event) {
     event.preventDefault();
     if (!profile || profile.role !== 'admin' ||
-        !labProfessional || String(labProfessional.id) !== '4') return;
+        !labProfessionals.some(p => String(p.id) === '4')) return;
     const adminPassword = el('adminConfirmPassword').value;
     const newPassword = el('newProfessionalPassword').value;
     if (!confirm('¿Cambiar la contraseña de Sebastián Salva (ID 4)? La aprobación seguirá intacta.')) return;
@@ -229,6 +261,8 @@
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
   el('showPending').addEventListener('click',loadProfessionals);
+  el('adminProfessionalSelect').addEventListener('change',updateAdminSelection);
+  el('adminSpecialtySelect').addEventListener('change',updateAdminSelection);
   el('prepareRefrigeration').addEventListener('click',prepareRefrigeration);
   el('approveSelected').addEventListener('click',approveSelected);
   el('resetProfessionalForm').addEventListener('submit',resetProfessionalPassword);
