@@ -199,6 +199,76 @@ try {
   assert.equal(audit[0].total,1,'Auditoria de resolucion');
   tests++;
 
+  // La autorización real no depende del rol mostrado en la interfaz:
+  // estos endpoints comprueban el rol ADMIN en cada llamada.
+  expectStatus(await get('/api/admin/professionals'),401,
+    'Sin sesión no consulta aspirantes');
+  expectStatus(await get('/api/admin/professionals',userA.token),403,
+    'Cliente no consulta profesionales por Administración');
+  expectStatus(await get('/api/admin/professionals',pro.token),403,
+    'Profesional no consulta aspirantes');
+  expectStatus(await post('/api/admin/specialties',{
+    name:'Refrigeración',services:['Reparación']
+  },userA.token),403,'Cliente no crea categoría desde Administración');
+
+  const pendingLab = expectStatus(await post('/api/auth/register',{
+    name:'Profesional ID Lab',email:'admin-pending@test.invalid',
+    password,role:'professional'
+  }),201,'Crear aspirante pendiente para prueba');
+  const pendingLabId=Number(pendingLab.user.id);
+  expectStatus(await post('/api/admin/professionals/'+pendingLabId+'/approve',{
+    specialtyId:Number(refrigeration.id)
+  },pendingLab.token),403,'Profesional no puede aprobarse a sí mismo');
+  expectStatus(await post('/api/admin/professionals/'+pendingLabId+'/approve',{
+    specialtyId:Number(refrigeration.id)
+  },userA.token),403,'Cliente no puede aprobar al profesional');
+
+  const cat=expectStatus(await post('/api/admin/specialties',{
+    name:'Refrigeración',services:['Reparación','Mantenimiento preventivo']
+  },admin.token),201,'Administración crea el rubro y servicios del laboratorio');
+  const categories=expectStatus(await get('/api/admin/specialties',admin.token),200,
+    'Administrador consulta especialidades');
+  assert.ok(categories.some(s=>s.name==='Refrigeración' && s.services.length===2));
+  tests++;
+  const pendingList=expectStatus(await get('/api/admin/professionals',admin.token),200,
+    'Administrador consulta los aspirantes');
+  assert.ok(pendingList.some(p=>String(p.id)===String(pendingLabId) && p.verification_status==='pending'));
+  tests++;
+  expectStatus(await post('/api/admin/professionals/'+pendingLabId+'/approve',{
+    specialtyId:999999999
+  },admin.token),400,'Categoría inexistente no permite aprobar');
+  expectStatus(await post('/api/admin/professionals/'+pendingLabId+'/approve',{
+    specialtyId:Number(cat.id)
+  },admin.token),200,'Administrador aprueba aspirante');
+  expectStatus(await post('/api/admin/professionals/'+pendingLabId+'/approve',{
+    specialtyId:Number(cat.id)
+  },admin.token),409,'Aprobación duplicada rechazada');
+
+  const profAfter=await query(
+    'SELECT verification_status,available FROM professional_profiles WHERE user_id=$1',
+    [pendingLabId]);
+  assert.equal(profAfter[0].verification_status,'approved');
+  assert.equal(profAfter[0].available,true);
+  tests+=2;
+  const servicesAfter=await query(
+    'SELECT service_id FROM professional_services WHERE professional_id=$1',
+    [pendingLabId]);
+  assert.ok(servicesAfter.length>=2,'Servicios dados de alta para aprobado');
+  tests++;
+  const auditing=await query(
+    "SELECT count(*)::integer AS total FROM audit_events WHERE action='lab_professional_approved' AND resource_id=$1",
+    [String(pendingLabId)]);
+  assert.equal(auditing[0].total,1);
+  tests++;
+  const testJob=expectStatus(await post('/api/jobs',{
+    specialtyId:Number(cat.id),description:'Revisión de refrigeración de prueba',
+    locality:'Beccar'
+  },userB.token),201,'Cliente crea solicitud del rubro aprobado');
+  const approvedFeed=expectStatus(await get('/api/jobs',pendingLab.token),200,
+    'Profesional aprobado consulta sus solicitudes');
+  assert.ok(approvedFeed.some(j=>String(j.id)===String(testJob.id)));
+  tests++;
+
   await query("UPDATE users SET status='suspended' WHERE id=$1",[pro.user.id]);
   expectStatus(await get('/api/jobs',pro.token),403,'Usuario suspendido no tiene acceso');
 

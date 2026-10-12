@@ -5,6 +5,8 @@
   let choice = 'client';
   let token = sessionStorage.getItem(tokenKey) || '';
   let profile = null;
+  let labCategoryId=null;
+  let labProfessional=null;
 
   function feedback(message, failed = false) {
     const node = el('feedback');
@@ -60,10 +62,14 @@
     el('profileName').textContent = profile.name || '—';
     el('profileRole').textContent = profile.role === 'professional' ? 'Profesional' : profile.role === 'client' ? 'Cliente' : 'Administrador';
     el('profileId').textContent = String(profile.id || '—');
-    el('roleNotice').textContent = profile.role === 'professional'
+    el('roleNotice').textContent = profile.role === 'admin'
+      ? 'Administración de laboratorio: sólo aprobación ficticia, sin documentos personales.'
+      : profile.role === 'professional'
       ? 'Las cuentas profesionales nuevas requieren aprobación de Administración antes de recibir solicitudes. No hay datos reales.'
       : 'Tu cuenta ficticia ya puede iniciar sesión. Las solicitudes serán exclusivamente de prueba.';
     el('jobsPanel').textContent = '';
+    el('adminSection').hidden = profile.role !== 'admin';
+    if(profile.role === 'admin') void loadProfessionals();
   }
   async function activate(data) {
     token = data.token;
@@ -135,6 +141,54 @@
       el('jobsPanel').textContent=err.message;
     }
   }
+  async function loadProfessionals() {
+    const target = el('adminTarget');
+    target.textContent = 'Buscando profesional de prueba ID 4...';
+    try {
+      const [pros,categories]=await Promise.all([
+        api('GET','/api/admin/professionals'),
+        api('GET','/api/admin/specialties')
+      ]);
+      labCategoryId = Number(categories.find(c=>c.name==='Refrigeración')?.id)||null;
+      labProfessional = pros.find(p=>String(p.id)==='4') || null;
+      if(!labProfessional) {
+        target.textContent='No encontramos la cuenta profesional ID 4. No se realizó ninguna aprobación.';
+      } else {
+        target.textContent='Profesional: '+labProfessional.name+' | ID: '+labProfessional.id+
+          '\nEstado: '+labProfessional.verification_status+
+          '\nEspecialidad: '+(labCategoryId ? 'Refrigeración preparada' : 'Falta preparar Refrigeración');
+      }
+      el('approveSelected').disabled=!labProfessional||
+        labProfessional.verification_status!=='pending'||!labCategoryId;
+    }catch(error) { target.textContent=error.message;el('approveSelected').disabled=true; }
+  }
+  async function prepareRefrigeration() {
+    const button=el('prepareRefrigeration');
+    button.disabled=true;
+    try {
+      const result=await api('POST','/api/admin/specialties',{
+        name:'Refrigeración',services:['Reparación','Mantenimiento preventivo']
+      });
+      labCategoryId=Number(result.id);
+      feedback('Rubro ficticio Refrigeración preparado.');
+      await loadProfessionals();
+    }catch(error){feedback(error.message,true);}
+    finally{button.disabled=false;}
+  }
+  async function approveSelected() {
+    if(!labProfessional||String(labProfessional.id)!=='4'||!labCategoryId) return;
+    if(!confirm('¿Aprobar para PRUEBAS a '+labProfessional.name+' (ID 4) en Refrigeración?')) return;
+    const button=el('approveSelected');
+    button.disabled=true;
+    try {
+      const result=await api('POST','/api/admin/professionals/4/approve',{
+        specialtyId:labCategoryId
+      });
+      feedback('Profesional ID 4 aprobado solamente para el laboratorio: '+result.specialty+'.');
+      await loadProfessionals();
+    }catch(error){feedback(error.message,true);button.disabled=false;}
+  }
+
   el('roleClient').addEventListener('click',()=>select('client'));
   el('rolePro').addEventListener('click',()=>select('professional'));
   el('showRegister').addEventListener('click',()=>view('register'));
@@ -142,8 +196,12 @@
   el('registerForm').addEventListener('submit',handleRegistration);
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
+  el('showPending').addEventListener('click',loadProfessionals);
+  el('prepareRefrigeration').addEventListener('click',prepareRefrigeration);
+  el('approveSelected').addEventListener('click',approveSelected);
   el('logout').addEventListener('click',()=>{
-    token='';profile=null;
+    token='';profile=null;labProfessional=null;labCategoryId=null;
+    el('adminSection').hidden=true;
     sessionStorage.removeItem(tokenKey);
     render();
     feedback('Sesión de prueba cerrada.');

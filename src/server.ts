@@ -8,6 +8,8 @@ import { quotesRouter } from './routes/quotes.js';
 import { claimsRouter } from './routes/claims.js';
 import { pool } from './db.js';
 import { bootstrapTestSchemaIfRequested } from './test-db-bootstrap.js';
+import { seedLabAdminIfRequested } from './test-admin-seed.js';
+import { adminRouter } from './routes/admin.js';
 
 checkJwtConfiguration(); // Fail closed on weak/missing secret.
 const app = express();
@@ -62,6 +64,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/jobs', quotesRouter);
 app.use('/api/claims', claimsRouter);
+app.use('/api/admin', adminRouter);
 
 app.use((
   error: unknown,
@@ -75,6 +78,7 @@ app.use((
 });
 
 await bootstrapTestSchemaIfRequested();
+await seedLabAdminIfRequested();
 
 app.listen(port, '0.0.0.0', () => {
   console.log('Mantenimiento 360 development API listening on ' + port);

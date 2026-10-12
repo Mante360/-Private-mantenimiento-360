@@ -8,6 +8,7 @@ on:
       - ".github/workflows/verificar-backend-desarrollo.yml"
       - "database/**"
       - "test/**"
+      - "test-ui/**"
       - "src/**"
       - "package.json"
       - "tsconfig.json"

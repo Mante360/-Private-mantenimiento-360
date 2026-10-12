@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { setTimeout as pause } from 'node:timers/promises';
 import pg from 'pg';
+import argon2 from 'argon2';
 
 const rootDatabase = process.env.DATABASE_URL;
 if (!rootDatabase) throw new Error('Fixture DATABASE_URL required');
@@ -18,10 +19,11 @@ try {
 }
 
 let checks=0;
-async function spawnApi(databaseUrl,expectAvailable=true) {
+async function spawnApi(databaseUrl,expectAvailable=true,adminPassword='') {
   const env={
     ...process.env,DATABASE_URL:databaseUrl,
     TEST_SCHEMA_SETUP:'INSTALL_TEST_SCHEMA_20261012',
+    LAB_ADMIN_SETUP_PASSWORD:adminPassword,
     PORT:'45679',
   };
   const proc=spawn(process.execPath,['dist/server.js'],{env,stdio:['ignore','pipe','pipe']});
@@ -50,7 +52,8 @@ async function spawnApi(databaseUrl,expectAvailable=true) {
   }
 }
 
-await spawnApi(connectionString);
+const firstPass='Admin-Only-Test-2026-Password!';
+await spawnApi(connectionString,true,firstPass);
 const testClient=new pg.Client({ connectionString });
 await testClient.connect();
 try {
@@ -58,16 +61,26 @@ try {
     "SELECT count(*)::integer AS n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'");
   assert.equal(result.rows[0].n,21);checks++;
   await testClient.query("INSERT INTO specialties(name) VALUES('Categoria conservada')");checks++;
+  const admin=await testClient.query(
+    "SELECT role,password_hash FROM users WHERE email='administracion-lab360@test.invalid'");
+  assert.equal(admin.rowCount,1);checks++;
+  assert.equal(admin.rows[0].role,'admin');checks++;
+  assert.ok(await argon2.verify(admin.rows[0].password_hash,firstPass));checks++;
 }finally{
   await testClient.end();
 }
 
-await spawnApi(connectionString);
+await spawnApi(connectionString,true,'Another-Admin-Test-2026-Password');
 const verifyClient=new pg.Client({connectionString});
 await verifyClient.connect();
 try{
   const r=await verifyClient.query("SELECT count(*)::integer AS n FROM specialties WHERE name='Categoria conservada'");
   assert.equal(r.rows[0].n,1,'A second start must preserve existing records');checks++;
+  const admins=await verifyClient.query(
+    "SELECT password_hash FROM users WHERE email='administracion-lab360@test.invalid'");
+  assert.equal(admins.rowCount,1);checks++;
+  assert.ok(await argon2.verify(admins.rows[0].password_hash,firstPass),
+    'Second seed cannot replace admin password');checks++;
 }finally{
   await verifyClient.end();
 }
