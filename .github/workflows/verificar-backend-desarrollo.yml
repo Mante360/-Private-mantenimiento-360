@@ -54,3 +54,5 @@ jobs:
         run: node test/schema.smoke.mjs
       - name: Probar aislamiento entre cliente, profesional y administracion
         run: node test/backend-api.integration.mjs
+      - name: Probar presupuestos y contratacion unica
+        run: node test/quotes.integration.mjs

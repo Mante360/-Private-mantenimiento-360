@@ -4,6 +4,7 @@ import 'dotenv/config';
 import { checkJwtConfiguration } from './auth.js';
 import { authRouter } from './routes/auth.js';
 import { jobsRouter } from './routes/jobs.js';
+import { quotesRouter } from './routes/quotes.js';
 import { claimsRouter } from './routes/claims.js';
 import { pool } from './db.js';
 
@@ -44,6 +45,7 @@ app.get('/health', async (_req, res, next) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/jobs', jobsRouter);
+app.use('/api/jobs', quotesRouter);
 app.use('/api/claims', claimsRouter);
 
 app.use((
