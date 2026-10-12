@@ -6,6 +6,8 @@ on:
       - desarrollo-base-datos-seguridad-20261011
     paths:
       - ".github/workflows/verificar-backend-desarrollo.yml"
+      - "database/**"
+      - "test/**"
       - "src/**"
       - "package.json"
       - "tsconfig.json"
@@ -15,9 +17,26 @@ permissions:
   contents: read
 
 jobs:
-  compilar-backend:
+  compilar-y-probar:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test360
+          POSTGRES_PASSWORD: only-fixture-password-360
+          POSTGRES_DB: mantenimiento360_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test360 -d mantenimiento360_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento360_test
+      JWT_SECRET: github-actions-test-secret-only-0123456789abcdefghijklmnop
+      FRONTEND_ORIGIN: http://localhost:45678
+      PORT: "45678"
     steps:
       - name: Obtener codigo
         uses: actions/checkout@v4
@@ -29,5 +48,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Compilar TypeScript en modo estricto
         run: npm run build
-      - name: Comprobar que la compilacion genero el servidor
+      - name: Verificar archivos compilados
         run: test -f dist/server.js && test -f dist/security.js && test -f dist/routes/jobs.js
+      - name: Validar esquema PostgreSQL aislado
+        run: node test/schema.smoke.mjs
