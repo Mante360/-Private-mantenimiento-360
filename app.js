@@ -85,23 +85,21 @@ function getQuotesToCompare(){
   const request = JSON.parse(localStorage.getItem('clientRequest') || 'null');
   if(selected?.id === request?.id && ['Aceptado por el cliente','Confirmado','En curso','Finalizado'].includes(selected.status)) return [];
   const quotes = getCurrentRequestQuotes().filter(item => item.status === 'Esperando respuesta del cliente');
-  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
-  const stats = name => {
-    const profile = professionalsDemo.find(p => p[0] === name);
-    const completed = history.filter(j => j.professional === name && j.status === 'Finalizado' && !j.warrantyJob);
-    const rated = completed.filter(j => Number(j.rating?.stars) > 0);
-    return {
-      rating: rated.length ? rated.reduce((sum,j)=>sum+Number(j.rating.stars),0)/rated.length : Number(profile?.[3] || 0),
-      jobs: Math.max(completed.length,Number(profile?.[2] || 0))
-    };
-  };
+  const statsByName = new Map(quotes.map(q => [q.professional, professionalPublicStats(q.professional)]));
+  const stats = name => statsByName.get(name);
+  const rating = name => stats(name).rating ?? -1;
   const sort = state.quoteSort || 'rating';
   quotes.sort((a,b) => {
-    if(sort === 'price') return Number(a.amount) - Number(b.amount) || stats(b.professional).rating - stats(a.professional).rating;
-    if(sort === 'experience') return stats(b.professional).jobs - stats(a.professional).jobs || stats(b.professional).rating - stats(a.professional).rating;
-    return stats(b.professional).rating - stats(a.professional).rating || stats(b.professional).jobs - stats(a.professional).jobs;
+    if(sort === 'price') return Number(a.amount) - Number(b.amount) || rating(b.professional) - rating(a.professional);
+    if(sort === 'experience') return stats(b.professional).jobs - stats(a.professional).jobs || rating(b.professional) - rating(a.professional);
+    return rating(b.professional) - rating(a.professional) || stats(b.professional).jobs - stats(a.professional).jobs;
   });
-  return quotes.map(q => ({...q, displayRating:stats(q.professional).rating,displayJobs:stats(q.professional).jobs}));
+  return quotes.map(q => ({
+    ...q,
+    displayRating: stats(q.professional).rating,
+    displayJobs: stats(q.professional).jobs,
+    displayRatingCount: stats(q.professional).ratingCount
+  }));
 }
 function quoteForClientAction(){
   const chosenName = localStorage.getItem('selectedQuoteProfessional');
@@ -271,6 +269,29 @@ function validIndividualJobRating(job){
   if(job.warrantyJob && String(job.rating.id || '') !== String(job.id || '')) return null;
   if(job.rating.id && String(job.rating.id) !== String(job.id || '')) return null;
   return job.rating;
+}
+// Datos públicos: únicamente trabajos originales finalizados; las garantías no afectan las estrellas.
+function professionalPublicStats(professionalName){
+  const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+  const completedById = new Map();
+  for(const job of history){
+    if(job?.id && job.professional === professionalName &&
+       String(job.status || '').toLowerCase() === 'finalizado' &&
+       !job.warrantyJob &&
+       rootWarrantyId(job.id) === String(job.id) &&
+       (!job.originJobId || String(job.originJobId) === String(job.id))){
+      completedById.set(String(job.id), job);
+    }
+  }
+  const completed = [...completedById.values()];
+  const rated = completed.map(validIndividualJobRating).filter(Boolean);
+  return {
+    jobs: completed.length,
+    rating: rated.length
+      ? rated.reduce((sum, rating) => sum + Number(rating.stars), 0) / rated.length
+      : null,
+    ratingCount: rated.length
+  };
 }
 function professionalRatingSummary(professional){
   const jobs = JSON.parse(localStorage.getItem('jobHistory') || '[]')
@@ -1299,33 +1320,9 @@ const isAvailable =
       String(state.job.service).toLowerCase()
   );
 });
-    const jobHistory = JSON.parse(
-  localStorage.getItem('jobHistory') || '[]'
-);
-    const completedJobsFor = professionalName => {
-  return new Set(
-    jobHistory
-      .filter(item =>
-        item.professional === professionalName &&
-        String(item.status || '').toLowerCase() === 'finalizado' &&
-        !item.warrantyJob
-      )
-      .map(item => item.id)
-  ).size;
-};
-const averageRatingFor = professionalName => {
-  const rated = jobHistory.filter(item =>
-    item.professional === professionalName &&
-    Number(item.rating?.stars) > 0
-  );
-
-  if (!rated.length) return null;
-
-  return rated.reduce(
-    (sum, item) => sum + Number(item.rating.stars),
-    0
-  ) / rated.length;
-};
+    const jobHistory = JSON.parse(localStorage.getItem('jobHistory') || '[]');
+    const statsByName = new Map(filteredPros.map(p => [p[0], professionalPublicStats(p[0])]));
+    const publicStatsFor = name => statsByName.get(name);
 const lastSameService = [...jobHistory]
   .reverse()
   .find(item =>
@@ -1345,15 +1342,15 @@ filteredPros.sort((a, b) => {
   }
 
   // 2. Mejor calificación
- const ratingA = averageRatingFor(a[0]) ?? -1;
-const ratingB = averageRatingFor(b[0]) ?? -1;
+ const ratingA = publicStatsFor(a[0]).rating ?? -1;
+const ratingB = publicStatsFor(b[0]).rating ?? -1;
   if(ratingB !== ratingA){
     return ratingB - ratingA;
   }
 
   // 3. Mayor cantidad de trabajos realizados
-  const jobsA = Number(a[2]) || 0;
-  const jobsB = Number(b[2]) || 0;
+  const jobsA = publicStatsFor(a[0]).jobs;
+  const jobsB = publicStatsFor(b[0]).jobs;
 
   if(jobsB !== jobsA){
     return jobsB - jobsA;
@@ -1375,7 +1372,7 @@ const ratingB = averageRatingFor(b[0]) ?? -1;
   JSON.parse(
     localStorage.getItem('professionalSpecialties_' + p[0]) || 'null'
   ) || [p[1]]
-).join(' - ')} · ${completedJobsFor(p[0])} trabajos realizados</div><span class="stars">★</span> ${averageRatingFor(p[0])?.toLocaleString('es-AR', { maximumFractionDigits: 1 }) ?? 'Sin calificaciones'} · <b>✓ Verificado</b></div></div>
+).join(' - ')} · ${publicStatsFor(p[0]).jobs} trabajos realizados</div><span class="stars">★</span> ${publicStatsFor(p[0]).rating?.toLocaleString('es-AR', { maximumFractionDigits: 1 }) ?? 'Sin calificaciones'} · <b>✓ Verificado</b></div></div>
         <button class="btn btn-outline" onclick="selectPro(${pros.indexOf(p)})">Ver</button>
       </div>`).join('')}</div>
       <button class="btn btn-primary full" type="button" onclick="requestQuotesToTrade()" style="margin-top:20px">
@@ -1388,32 +1385,9 @@ const ratingB = averageRatingFor(b[0]) ?? -1;
  const pros = professionalsDemo;
 
   const p=pros[state.selectedProfessionalIndex || 0];
-    const completedJobs = new Set(
-  JSON.parse(localStorage.getItem('jobHistory') || '[]')
-    .filter(item =>
-      item.professional === p[0] &&
-      String(item.status || '').toLowerCase() === 'finalizado' &&
-      !item.warrantyJob
-    )
-    .map(item => item.id)
-).size;
-const ratedJobs = JSON.parse(
-  localStorage.getItem('jobHistory') || '[]'
-).filter(item =>
-  item.professional === p[0] &&
-  Number(item.rating?.stars) > 0
-);
-
-const averageRating = ratedJobs.length
-  ? (
-      ratedJobs.reduce(
-        (sum, item) => sum + Number(item.rating.stars),
-        0
-      ) / ratedJobs.length
-    ).toLocaleString('es-AR', {
-      maximumFractionDigits: 1
-    })
-  : 'Sin calificaciones';
+    const publicStats = professionalPublicStats(p[0]);
+    const completedJobs = publicStats.jobs;
+    const averageRating = publicStats.rating?.toLocaleString('es-AR',{maximumFractionDigits:1}) ?? 'Sin calificaciones';
   app.innerHTML=layout(`<main class="page"><div class="form">
     ${back('Perfil profesional')}
 
@@ -1571,7 +1545,7 @@ const history = JSON.parse(localStorage.getItem('jobHistory') || '[]');
         <div class="card pro" style="margin-bottom:10px">
           <div style="flex:1;min-width:0">
             <h3>${escapeAdminHistory(offer.professional)}</h3>
-            <p>⭐ ${Number(offer.displayRating).toLocaleString('es-AR',{maximumFractionDigits:1})} · ${offer.displayJobs} trabajos (datos de prueba o historial)</p>
+            <p>⭐ ${offer.displayRating == null ? 'Sin calificaciones' : Number(offer.displayRating).toLocaleString('es-AR',{maximumFractionDigits:1})} · ${offer.displayJobs} trabajos realizados · ${offer.displayRatingCount} ${offer.displayRatingCount === 1 ? 'evaluación' : 'evaluaciones'}</p>
             <p><b>Garantía:</b> ${Number(offer.warrantyDays || 0) > 0 ? Number(offer.warrantyDays)+' días' : 'No ofrecida'}</p>
             <div class="money">${money(Number(offer.amount))}</div>
             <button class="btn btn-primary" type="button" onclick="openQuoteByIndex(${index})">Ver presupuesto</button>
