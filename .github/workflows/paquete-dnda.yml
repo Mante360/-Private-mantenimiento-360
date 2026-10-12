@@ -1,0 +1,57 @@
+name: Paquete de codigo oficial para DNDA
+
+on:
+  push:
+    branches: [deposito-dnda-version-oficial-20261012]
+    paths: [".github/workflows/paquete-dnda.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  empaquetar-fuente:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener version oficial inmutable
+        uses: actions/checkout@v4
+        with:
+          ref: fcd2ebac6317ecf00c3418838e134e178c1564cf
+          path: fuente_oficial
+          persist-credentials: false
+      - name: Empaquetar exactamente el codigo de la version oficial
+        shell: bash
+        run: |
+          set -euo pipefail
+          COMMIT="fcd2ebac6317ecf00c3418838e134e178c1564cf"
+          SNAP="MANTENIMIENTO_360_FUENTE_OFICIAL_20261012"
+          test "$(git -C fuente_oficial rev-parse HEAD)" = "$COMMIT"
+          git -C fuente_oficial ls-files --error-unmatch app.js index.html styles.css schema.sql package.json
+          git -C fuente_oficial archive --format=zip --prefix="$SNAP/" \
+            --output="$GITHUB_WORKSPACE/$SNAP.zip" HEAD
+          test -s "$SNAP.zip"
+          unzip -Z1 "$SNAP.zip" | grep -Fx "$SNAP/app.js"
+          unzip -Z1 "$SNAP.zip" | grep -Fx "$SNAP/index.html"
+          unzip -Z1 "$SNAP.zip" | grep -Fx "$SNAP/styles.css"
+          cat > IDENTIFICACION_DEL_CODIGO.txt <<EOF
+          OBRA: MANTENIMIENTO 360°
+          VERSION DEPOSITO: Version oficial publicada, codigo de corte 12/10/2026
+          REPOSITORIO ORIGINAL: Mante360/-Private-mantenimiento-360
+          COMMIT ORIGINAL: $COMMIT
+          CONTENIDO: Archivos fuente versionados del commit indicado.
+          NO INCLUYE: historial del navegador ni datos privados de usuarios.
+          NOTA: No incluye desarrollo posterior en ramas de pruebas.
+          EOF
+          sha256sum "$SNAP.zip" > CODIGO_FUENTE_SHA256.txt
+          cat CODIGO_FUENTE_SHA256.txt
+      - name: Adjuntar codigo fuente verificable
+        uses: actions/upload-artifact@v4
+        with:
+          name: MANTENIMIENTO360-FUENTE-OFICIAL-DNDA-20261012
+          path: |
+            MANTENIMIENTO_360_FUENTE_OFICIAL_20261012.zip
+            IDENTIFICACION_DEL_CODIGO.txt
+            CODIGO_FUENTE_SHA256.txt
+          retention-days: 90
+          if-no-files-found: error
