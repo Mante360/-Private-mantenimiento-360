@@ -1,29 +1,146 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db.js';
+import { requireAuth, requireRole } from '../security.js';
 
 export const jobsRouter = Router();
+jobsRouter.use(requireAuth);
 
 const createSchema = z.object({
-  clientId: z.number().int().positive(),
-  service: z.string().min(2).max(100),
-  description: z.string().min(3).max(2000),
-  locality: z.string().min(2).max(120),
-});
+  specialtyId: z.number().int().positive(),
+  serviceId: z.number().int().positive().nullable().optional(),
+  description: z.string().trim().min(3).max(3000),
+  locality: z.string().trim().min(2).max(120),
+}).strict();
 
-jobsRouter.post('/', async (req, res) => {
+// Deliberately excludes client_id, exact_address, personal data and all quotes.
+const publicJobFields = `j.id,j.public_code,j.specialty_id,j.service_id,
+  j.description,j.locality,j.status,j.created_at,j.updated_at`;
+
+jobsRouter.post('/', requireRole('client'), async (req, res, next) => {
   const parsed = createSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'invalid_input' });
+  if (!parsed.success) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
   const d = parsed.data;
-  const result = await pool.query(
-    `insert into jobs (client_id,service,description,locality,status)
-     values ($1,$2,$3,$4,'requested') returning *`,
-    [d.clientId,d.service,d.description,d.locality]
-  );
-  res.status(201).json(result.rows[0]);
+  try {
+    const result = await pool.query(
+      `INSERT INTO jobs(client_id,specialty_id,service_id,description,locality,status)
+       SELECT $1,s.id,ss.id,$4,$5,'requested'
+       FROM specialties s
+       LEFT JOIN specialty_services ss
+         ON ss.id=$3 AND ss.specialty_id=s.id AND ss.active
+       WHERE s.id=$2 AND s.active AND ($3::bigint IS NULL OR ss.id IS NOT NULL)
+       RETURNING id,public_code,specialty_id,service_id,description,locality,status,created_at`,
+      [req.authUser!.id,d.specialtyId,d.serviceId ?? null,d.description,d.locality]
+    );
+    if (!result.rows[0]) {
+      res.status(400).json({ error: 'invalid_specialty_or_service' });
+      return;
+    }
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    next(error);
+  }
 });
 
-jobsRouter.get('/', async (_req, res) => {
-  const result = await pool.query('select * from jobs order by created_at desc limit 100');
-  res.json(result.rows);
+// Client: only own jobs. Professional: approved matching open jobs, no address.
+// Blocked professionals cannot see the open request feed.
+jobsRouter.get('/', async (req, res, next) => {
+  const account = req.authUser!;
+  try {
+    if (account.role === 'client') {
+      const result = await pool.query(
+        `SELECT ${publicJobFields} FROM jobs j
+         WHERE j.client_id=$1 ORDER BY j.created_at DESC LIMIT 100`,
+        [account.id]
+      );
+      res.json(result.rows);
+      return;
+    }
+    if (account.role === 'professional') {
+      const result = await pool.query(
+        `SELECT ${publicJobFields} FROM jobs j
+         JOIN professional_profiles pp ON pp.user_id=$1
+           AND pp.verification_status='approved' AND pp.available=true
+         JOIN professional_specialties ps
+           ON ps.professional_id=$1 AND ps.specialty_id=j.specialty_id
+         WHERE j.status IN ('requested','quoted')
+           AND (j.service_id IS NULL OR EXISTS(
+             SELECT 1 FROM professional_services pts
+             WHERE pts.professional_id=$1 AND pts.service_id=j.service_id
+           ))
+           AND NOT EXISTS(
+             SELECT 1 FROM professional_restrictions pr
+             WHERE pr.professional_id=$1 AND pr.lifted_at IS NULL
+           )
+           AND NOT EXISTS(
+             SELECT 1 FROM job_quotes q
+             WHERE q.job_id=j.id AND q.professional_id=$1
+           )
+         ORDER BY j.created_at DESC LIMIT 100`,
+        [account.id]
+      );
+      res.json(result.rows);
+      return;
+    }
+    const result = await pool.query(
+      `SELECT ${publicJobFields} FROM jobs j
+       ORDER BY j.created_at DESC LIMIT 100`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Accepted contracts visible to the chosen professional only.
+jobsRouter.get('/mine', requireRole('professional'), async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT ${publicJobFields},jq.amount,jq.warranty_days,
+         jc.confirmed_at FROM jobs j
+       JOIN job_contracts jc ON jc.job_id=j.id
+       JOIN job_quotes jq ON jq.id=jc.quote_id AND jq.job_id=j.id
+       WHERE jq.professional_id=$1
+       ORDER BY jc.confirmed_at DESC LIMIT 100`,
+      [req.authUser!.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// No exact_address: address sharing requires separate consent-aware API.
+jobsRouter.get('/:id', async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  if (!id.success) {
+    res.status(400).json({ error: 'invalid_job_id' });
+    return;
+  }
+  const account = req.authUser!;
+  try {
+    const result = await pool.query(
+      `SELECT ${publicJobFields}
+       FROM jobs j WHERE j.id=$1 AND (
+         ($2='client' AND j.client_id=$3)
+         OR ($2='professional' AND EXISTS(
+           SELECT 1 FROM job_contracts jc JOIN job_quotes jq
+             ON jq.id=jc.quote_id AND jq.job_id=j.id
+           WHERE jc.job_id=j.id AND jq.professional_id=$3
+         ))
+         OR ($2='admin')
+       )`,
+      [id.data,account.role,account.id]
+    );
+    if (!result.rows[0]) {
+      res.status(404).json({ error: 'job_not_found' });
+      return;
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    next(error);
+  }
 });
