@@ -52,3 +52,5 @@ jobs:
         run: test -f dist/server.js && test -f dist/security.js && test -f dist/routes/jobs.js
       - name: Validar esquema PostgreSQL aislado
         run: node test/schema.smoke.mjs
+      - name: Probar aislamiento entre cliente, profesional y administracion
+        run: node test/backend-api.integration.mjs

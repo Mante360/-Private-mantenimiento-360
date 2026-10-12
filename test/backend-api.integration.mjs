@@ -1,0 +1,196 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { setTimeout as pause } from 'node:timers/promises';
+import pg from 'pg';
+import argon2 from 'argon2';
+
+const host = 'http://127.0.0.1:45678';
+const connection = new pg.Client({ connectionString: process.env.DATABASE_URL });
+const api = spawn(process.execPath, ['dist/server.js'], {
+  env: process.env,
+  stdio: ['ignore', 'pipe', 'pipe'],
+});
+let appErrors = '';
+api.stderr.on('data', chunk => { appErrors += String(chunk).slice(0, 1000); });
+let tests = 0;
+
+async function request(method, path, token = null, body = undefined) {
+  const headers = { 'content-type': 'application/json' };
+  if (token) headers.authorization = 'Bearer ' + token;
+  const response = await fetch(host + path, {
+    method, headers, body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  let data;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  return { status: response.status, data };
+}
+function expectStatus(result, status, context) {
+  assert.equal(result.status, status, context + ': ' + JSON.stringify(result.data));
+  tests++;
+  return result.data;
+}
+async function post(path, body, token) {
+  return request('POST', path, token, body);
+}
+async function get(path, token) {
+  return request('GET', path, token);
+}
+async function query(sql, params = []) {
+  return (await connection.query(sql, params)).rows;
+}
+
+try {
+  await connection.connect();
+  let ready = false;
+  for (let i = 0; i < 60; i++) {
+    if (api.exitCode !== null) throw new Error('Server terminated: ' + appErrors);
+    try {
+      const response = await fetch(host + '/health');
+      if (response.ok) { ready = true; break; }
+    } catch {}
+    await pause(150);
+  }
+  assert.ok(ready, 'API must listen and connect to the isolated PostgreSQL fixture');
+
+  expectStatus(await get('/api/jobs'), 401, 'Sin token');
+  expectStatus(await get('/api/claims'), 401, 'Reclamos sin token');
+  expectStatus(await get('/api/jobs', 'token.alterado.x'), 401, 'Token invalido');
+
+  const password = 'Solo-Pruebas-2026-ABC!'; // No real credential.
+  expectStatus(await post('/api/auth/register', {
+    name: 'Administrador Falso', email: 'evil@test.invalid', password, role: 'admin',
+  }), 400, 'No autogenerar administrador');
+  expectStatus(await post('/api/auth/register', {
+    name: 'Clave Corta', email: 'short@test.invalid', password: 'short', role: 'client',
+  }), 400, 'Clave demasiado corta');
+
+  const userA = expectStatus(await post('/api/auth/register', {
+    name: 'Cliente Uno', email: 'uno@test.invalid', password, role: 'client',
+  }), 201, 'Crear Cliente Uno');
+  const userB = expectStatus(await post('/api/auth/register', {
+    name: 'Cliente Dos', email: 'dos@test.invalid', password, role: 'client',
+  }), 201, 'Crear Cliente Dos');
+  const pro = expectStatus(await post('/api/auth/register', {
+    name: 'Profesional Uno', email: 'pro@test.invalid', password, role: 'professional',
+  }), 201, 'Crear profesional sin verificar');
+  assert.ok(userA.token && userB.token && pro.token);
+  tests++;
+
+  const wrongPassword = await post('/api/auth/login', { email: 'uno@test.invalid', password: 'incorrecta' });
+  expectStatus(wrongPassword, 401, 'Clave incorrecta');
+  expectStatus(await post('/api/auth/login', { email: 'uno@test.invalid', password }), 200, 'Inicio de sesion');
+  const me = expectStatus(await get('/api/auth/me', userA.token), 200, 'Identidad propia');
+  assert.equal(me.user.role, 'client');
+  tests++;
+
+  const [refrigeration] = await query(
+    "INSERT INTO specialties(name) VALUES('Refrigeracion') RETURNING id");
+  const [electricity] = await query(
+    "INSERT INTO specialties(name) VALUES('Electricidad') RETURNING id");
+  const [repair] = await query(
+    "INSERT INTO specialty_services(specialty_id,name) VALUES($1,'Reparacion') RETURNING id",
+    [refrigeration.id]
+  );
+
+  expectStatus(await post('/api/jobs', {
+    specialtyId: Number(refrigeration.id), serviceId: Number(repair.id),
+    description: 'Quiero atribuir a otro usuario', locality: 'San Isidro',
+    clientId: userB.user.id,
+  }, userA.token), 400, 'Cliente no puede falsificar propietario');
+
+  const jobA = expectStatus(await post('/api/jobs', {
+    specialtyId: Number(refrigeration.id), serviceId: Number(repair.id),
+    description: 'Reparacion de heladera', locality: 'San Isidro',
+  }, userA.token), 201, 'Solicitud del Cliente Uno');
+  const jobB = expectStatus(await post('/api/jobs', {
+    specialtyId: Number(electricity.id),
+    description: 'Sin luz en el tablero', locality: 'Olivos',
+  }, userB.token), 201, 'Solicitud del Cliente Dos');
+
+  const listA = expectStatus(await get('/api/jobs', userA.token), 200, 'Lista privada de A');
+  const listB = expectStatus(await get('/api/jobs', userB.token), 200, 'Lista privada de B');
+  assert.ok(listA.some(x => String(x.id) === String(jobA.id)));
+  assert.ok(listB.some(x => String(x.id) === String(jobB.id)));
+  assert.ok(!listA.some(x => String(x.id) === String(jobB.id)));
+  assert.ok(!listB.some(x => String(x.id) === String(jobA.id)));
+  tests++;
+  expectStatus(await get('/api/jobs/' + jobA.id, userB.token), 404, 'B no abre A');
+  expectStatus(await get('/api/jobs/' + jobB.id, userA.token), 404, 'A no abre B');
+
+  const proUnverified = expectStatus(await get('/api/jobs', pro.token), 200, 'Pro no verificado');
+  assert.deepEqual(proUnverified, []);
+  tests++;
+  expectStatus(await post('/api/jobs', {
+    specialtyId: Number(refrigeration.id),
+    description: 'No autorizado', locality: 'Olivos',
+  }, pro.token), 403, 'Pro no puede crear trabajo como cliente');
+  expectStatus(await get('/api/jobs/' + jobA.id, pro.token), 404, 'Pro no ve privado sin contrato');
+
+  await query("UPDATE professional_profiles SET verification_status='approved',available=true WHERE user_id=$1",
+    [pro.user.id]);
+  await query("INSERT INTO professional_specialties(professional_id,specialty_id) VALUES($1,$2)",
+    [pro.user.id,refrigeration.id]);
+  await query("INSERT INTO professional_services(professional_id,specialty_id,service_id) VALUES($1,$2,$3)",
+    [pro.user.id,refrigeration.id,repair.id]);
+  const proFeed = expectStatus(await get('/api/jobs', pro.token), 200, 'Solicitudes por especialidad');
+  assert.ok(proFeed.some(x => String(x.id) === String(jobA.id)));
+  assert.ok(!proFeed.some(x => String(x.id) === String(jobB.id)));
+  assert.ok(!proFeed.some(x => 'exact_address' in x || 'client_id' in x));
+  tests++;
+
+  const [quote] = await query(
+    "INSERT INTO job_quotes(job_id,professional_id,amount,description,warranty_days,status) VALUES($1,$2,85000,'Reparacion con garantia',30,'accepted') RETURNING id",
+    [jobA.id,pro.user.id]);
+  await query("INSERT INTO job_contracts(job_id,quote_id) VALUES($1,$2)",[jobA.id,quote.id]);
+  await query("UPDATE jobs SET status='completed',completed_at=now() WHERE id=$1",[jobA.id]);
+  const proJobs = expectStatus(await get('/api/jobs/mine', pro.token), 200, 'Trabajos adjudicados');
+  assert.ok(proJobs.some(x => String(x.id) === String(jobA.id)));
+  assert.ok(!proJobs.some(x => String(x.id) === String(jobB.id)));
+  tests++;
+  expectStatus(await get('/api/jobs/' + jobA.id, pro.token), 200, 'Pro contratado ve detalle');
+
+  expectStatus(await post('/api/claims', {
+    jobId: Number(jobA.id), reason: 'Reclamo', description: 'No es mi trabajo',
+  }, userB.token), 404, 'B no reclama trabajo de A');
+  expectStatus(await post('/api/claims', {
+    jobId: Number(jobB.id), reason: 'Reclamo', description: 'Todavia no esta terminado',
+  }, userB.token), 404, 'No reclamar trabajo sin finalizar');
+  const claim = expectStatus(await post('/api/claims', {
+    jobId: Number(jobA.id), reason: 'Garantia', description: 'El problema sigue',
+  }, userA.token), 201, 'Reclamo valido de A');
+
+  const aClaims = expectStatus(await get('/api/claims', userA.token), 200, 'Reclamos A');
+  const bClaims = expectStatus(await get('/api/claims', userB.token), 200, 'Reclamos B');
+  const pClaims = expectStatus(await get('/api/claims', pro.token), 200, 'Reclamos P');
+  assert.equal(aClaims.length,1);
+  assert.equal(bClaims.length,0);
+  assert.equal(pClaims.length,1);
+  tests++;
+  expectStatus(await request('PATCH','/api/claims/' + claim.id + '/resolve',
+    pro.token, { resolutionNote: 'Quiero cerrar un reclamo ajeno' }),403,'Pro no resuelve reclamos');
+  expectStatus(await request('PATCH','/api/claims/' + claim.id + '/resolve',
+    userA.token, { resolutionNote: 'Quiero cerrarlo yo' }),403,'Cliente no resuelve reclamos');
+
+  const adminPasswordHash = await argon2.hash(password, { type: argon2.argon2id });
+  await query("INSERT INTO users(name,email,password_hash,role) VALUES('Administrador Prueba','admin@test.invalid',$1,'admin')",
+    [adminPasswordHash]);
+  const admin = expectStatus(await post('/api/auth/login', {
+    email:'admin@test.invalid', password,
+  }),200,'Acceso de admin preparado por sistema');
+  expectStatus(await request('PATCH','/api/claims/' + claim.id + '/resolve',admin.token,
+    { resolutionNote:'Se coordino visita correctiva.' }),200,'Admin resuelve y documenta');
+  expectStatus(await request('PATCH','/api/claims/' + claim.id + '/resolve',admin.token,
+    { resolutionNote:'Intento repetido' }),409,'No resolver dos veces');
+  const audit = await query("SELECT count(*)::integer AS total FROM audit_events WHERE action='claim_resolved'");
+  assert.equal(audit[0].total,1,'Auditoria de resolucion');
+  tests++;
+
+  await query("UPDATE users SET status='suspended' WHERE id=$1",[pro.user.id]);
+  expectStatus(await get('/api/jobs',pro.token),403,'Usuario suspendido no tiene acceso');
+
+  console.log('OK: ' + tests + ' validaciones de cuentas separadas, permisos, rubros, datos privados y reclamos');
+} finally {
+  api.kill('SIGTERM');
+  await connection.end().catch(() => {});
+}
