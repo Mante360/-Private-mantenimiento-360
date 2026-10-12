@@ -20,9 +20,9 @@ try {
   assert.equal(views, 1, 'Vista de codigos de garantia');
 
   const [{ total: indices }] = await run(
-    \`SELECT count(*)::integer AS total FROM pg_indexes WHERE schemaname='public'
+    `SELECT count(*)::integer AS total FROM pg_indexes WHERE schemaname='public'
       AND indexname IN ('only_one_accepted_quote_idx','ratings_original_unique',
-                        'ratings_warranty_unique','professional_restriction_active')\`
+                        'ratings_warranty_unique','professional_restriction_active')`
   );
   assert.equal(indices, 4, 'Indices unicos importantes');
 
