@@ -7,6 +7,8 @@ export const adminRouter = Router();
 adminRouter.use(requireAuth, requireRole('admin'));
 
 const ADMIN_LAB_DB = 'mantenimiento_360_db_pruebas_20261012';
+const isLabDatabase = (name: string) => name === ADMIN_LAB_DB ||
+  (process.env.CI === 'true' && name === 'mantenimiento360_test');
 const idParam = (input: unknown) => z.coerce.number().int().positive().safeParse(input);
 const catalogInput = z.object({
   name: z.string().trim().min(3).max(100),
@@ -51,7 +53,7 @@ adminRouter.post('/specialties', async (req, res, next) => {
   try {
     await db.query('BEGIN');
     const identity=await db.query('SELECT current_database() AS name');
-    if(identity.rows[0]?.name!==ADMIN_LAB_DB) {
+    if(!isLabDatabase(identity.rows[0]?.name)) {
       await db.query('ROLLBACK');
       res.status(403).json({error:'test_database_only'});return;
     }
@@ -93,7 +95,7 @@ adminRouter.post('/professionals/:id/approve', async(req,res,next)=>{
   try {
     await db.query('BEGIN');
     const identity=await db.query('SELECT current_database() AS name');
-    if(identity.rows[0]?.name!==ADMIN_LAB_DB){
+    if(!isLabDatabase(identity.rows[0]?.name)){
       await db.query('ROLLBACK'); res.status(403).json({error:'test_database_only'});return;
     }
     const person=await db.query(
