@@ -30,9 +30,11 @@ app.use((_req, res, next) => {
 });
 app.use(express.json({ limit: '256kb' }));
 
-app.get('/', (_req, res) => res.sendFile(process.cwd() + '/index.html'));
-app.get('/styles.css', (_req, res) => res.sendFile(process.cwd() + '/styles.css'));
-app.get('/app.js', (_req, res) => res.sendFile(process.cwd() + '/app.js'));
+// Development backend is API only. Do not serve the official prototype UI
+// from a separate test origin or create misleading browser-local data.
+app.get('/', (_req, res) => {
+  res.json({ service: 'mantenimiento-360-api-pruebas', status: 'development_only' });
+});
 
 app.get('/health', async (_req, res, next) => {
   try {
