@@ -84,6 +84,33 @@
               <button id="resetProfessionalButton" class="secondary" type="submit">Cambiar contraseña de Sebastián (ID 4)</button>
             </form>
           </section>
+          
+<section id="clientRequestSection" class="admin-section" hidden>
+  <h3>Crear solicitud ficticia</h3>
+  <p class="hint">Solo datos de prueba. No ingreses direcciones ni datos personales reales.</p>
+
+  <form id="labRequestForm">
+    <label for="requestSpecialty">Especialidad</label>
+    <select id="requestSpecialty" required>
+      <option value="">Seleccionar especialidad</option>
+    </select>
+
+    <label for="requestDescription">Descripción del trabajo</label>
+    <textarea id="requestDescription" minlength="3" maxlength="3000" required
+      placeholder="Ejemplo: Aire acondicionado de prueba que no enfría"></textarea>
+
+    <label for="requestLocality">Localidad ficticia</label>
+    <input id="requestLocality" minlength="2" maxlength="120" required
+      placeholder="Ejemplo: Localidad de Prueba">
+
+    <button type="submit" id="createRequestButton" class="primary">
+      Crear solicitud de prueba
+    </button>
+  </form>
+
+  <p id="requestResult" class="feedback" role="status" aria-live="polite"></p>
+</section>
+
           <div class="actions">
             <button type="button" id="refreshJobs" class="secondary">Consultar mis solicitudes</button>
             <button type="button" id="logout" class="secondary">Cerrar sesión</button>
