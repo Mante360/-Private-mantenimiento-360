@@ -37,6 +37,18 @@ app.get('/', (_req, res) => {
   res.json({ service: 'mantenimiento-360-api-pruebas', status: 'development_only' });
 });
 
+// Separate test-only registration console, not the official client app.
+// Same-origin requests; never embed API credentials in static files.
+const serveLab = (filename: string): express.RequestHandler => (_req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  res.setHeader('Content-Security-Policy',
+    "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+  res.sendFile(process.cwd() + '/test-ui/' + filename);
+};
+app.get('/pruebas', serveLab('index.html'));
+app.get('/pruebas/ui.css', serveLab('ui.css'));
+app.get('/pruebas/ui.js', serveLab('ui.js'));
+
 app.get('/health', async (_req, res, next) => {
   try {
     await pool.query('SELECT 1 AS ok');

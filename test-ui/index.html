@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Laboratorio de cuentas · Mantenimiento 360°</title>
+  <link rel="stylesheet" href="/pruebas/ui.css">
+  <script src="/pruebas/ui.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="intro">
+      <div class="brand"><span class="brandlogo">360°</span><span>MANTENIMIENTO 360°</span></div>
+      <div class="eyebrow">LABORATORIO DE DESARROLLO · VERSIÓN DE PRUEBAS</div>
+      <h1>Probemos las cuentas de forma segura.</h1>
+      <p>Este sitio usa únicamente la base PostgreSQL de pruebas. No contiene los trabajos, garantías ni reclamos de la aplicación oficial.</p>
+    </header>
+    <section class="layout">
+      <div class="panel">
+        <h2>1. Elegí el tipo de cuenta</h2>
+        <div class="roles" aria-label="Elegir función">
+          <button type="button" id="roleClient" class="role active" aria-pressed="true">
+            <strong>Cliente</strong><small>Solicita trabajos</small>
+          </button>
+          <button type="button" id="rolePro" class="role" aria-pressed="false">
+            <strong>Profesional</strong><small>Ofrece servicios</small>
+          </button>
+        </div>
+        <div class="switcher">
+          <button type="button" class="link active" id="showRegister">Crear cuenta ficticia</button>
+          <button type="button" class="link" id="showLogin">Ingresar a cuenta existente</button>
+        </div>
+        <form id="registerForm" autocomplete="off">
+          <h3 id="registerHeading">Registrar cliente de prueba</h3>
+          <label for="regName">Nombre ficticio</label>
+          <input id="regName" autocomplete="off" placeholder="Ejemplo: Cliente de Prueba" minlength="2" maxlength="120" required>
+          <label for="regEmail">Correo ficticio</label>
+          <input id="regEmail" type="email" autocomplete="off" placeholder="cliente360@test.invalid" required>
+          <label for="regPassword">Contraseña de prueba (mínimo 12 caracteres)</label>
+          <input id="regPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          <p class="hint">Usá un correo inventado con terminación <code>@test.invalid</code> y una contraseña exclusiva para pruebas. No emplees contraseñas reales.</p>
+          <button class="primary" type="submit" id="registerButton">Crear cuenta de prueba</button>
+        </form>
+        <form id="loginForm" autocomplete="off" hidden>
+          <h3>Ingresar a la cuenta de prueba</h3>
+          <label for="loginEmail">Correo ficticio registrado</label>
+          <input id="loginEmail" type="email" autocomplete="off" required>
+          <label for="loginPassword">Contraseña de esa cuenta</label>
+          <input id="loginPassword" type="password" autocomplete="off" required>
+          <button class="primary" type="submit" id="loginButton">Ingresar</button>
+        </form>
+        <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      </div>
+      <div class="panel results">
+        <h2>2. Comprobá el acceso</h2>
+        <div id="guest" class="empty"><span class="circle">🔒</span><strong>Todavía no hay una sesión activa.</strong><p>Registrá un cliente ficticio o ingresá con una cuenta de prueba existente.</p></div>
+        <div id="signedIn" hidden>
+          <div class="statusbar"><span class="dot"></span><strong>Sesión de prueba iniciada</strong></div>
+          <dl>
+            <div><dt>Nombre</dt><dd id="profileName">—</dd></div>
+            <div><dt>Tipo de cuenta</dt><dd id="profileRole">—</dd></div>
+            <div><dt>Identificador</dt><dd id="profileId">—</dd></div>
+          </dl>
+          <p id="roleNotice" class="hint"></p>
+          <div class="actions">
+            <button type="button" id="refreshJobs" class="secondary">Consultar mis solicitudes</button>
+            <button type="button" id="logout" class="secondary">Cerrar sesión</button>
+          </div>
+          <div id="jobsPanel" class="jobspanel"></div>
+        </div>
+        <hr>
+        <h3>Importante</h3>
+        <p class="hint">Las cuentas profesionales empiezan <strong>pendientes de aprobación</strong>, tal como exige la seguridad del proyecto. En esta primera prueba verificaremos el registro y el inicio de sesión; después habilitaremos las especialidades y la aprobación por Administración.</p>
+      </div>
+    </section>
+    <footer>Área experimental independiente · No se admiten clientes, direcciones ni pagos reales.</footer>
+  </main>
+</body>
+</html>

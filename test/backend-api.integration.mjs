@@ -53,6 +53,19 @@ try {
   }
   assert.ok(ready, 'API must listen and connect to the isolated PostgreSQL fixture');
 
+  const labResponse = await fetch(host + '/pruebas');
+  assert.equal(labResponse.status, 200, 'El laboratorio debe abrir');
+  assert.match(labResponse.headers.get('content-security-policy') || '',
+    /connect-src 'self'/, 'El laboratorio solo puede usar su propio backend');
+  assert.match(await labResponse.text(), /Crear cuenta ficticia/,
+    'El formulario de prueba debe estar disponible');
+  tests += 3;
+  const scriptResponse = await fetch(host + '/pruebas/ui.js');
+  assert.equal(scriptResponse.status, 200, 'Script del formulario disponible');
+  assert.match(await scriptResponse.text(), /\/api\/auth\/register/,
+    'Formulario registra usando la API real');
+  tests += 2;
+
   expectStatus(await get('/api/jobs'), 401, 'Sin token');
   expectStatus(await get('/api/claims'), 401, 'Reclamos sin token');
   expectStatus(await get('/api/jobs', 'token.alterado.x'), 401, 'Token invalido');
