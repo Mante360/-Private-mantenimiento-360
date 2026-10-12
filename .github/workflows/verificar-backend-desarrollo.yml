@@ -1,0 +1,33 @@
+name: Verificar backend de desarrollo
+
+on:
+  push:
+    branches:
+      - desarrollo-base-datos-seguridad-20261011
+    paths:
+      - ".github/workflows/verificar-backend-desarrollo.yml"
+      - "src/**"
+      - "package.json"
+      - "tsconfig.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compilar-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Compilar TypeScript en modo estricto
+        run: npm run build
+      - name: Comprobar que la compilacion genero el servidor
+        run: test -f dist/server.js && test -f dist/security.js && test -f dist/routes/jobs.js
