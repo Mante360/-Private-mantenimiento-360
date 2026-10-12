@@ -50,6 +50,8 @@ jobs:
         run: npm run build
       - name: Verificar archivos compilados
         run: test -f dist/server.js && test -f dist/security.js && test -f dist/routes/jobs.js
+      - name: Probar instalacion controlada en otra base temporal
+        run: node test/bootstrap-schema.integration.mjs
       - name: Validar esquema PostgreSQL aislado
         run: node test/schema.smoke.mjs
       - name: Probar aislamiento entre cliente, profesional y administracion

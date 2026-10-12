@@ -7,6 +7,7 @@ import { jobsRouter } from './routes/jobs.js';
 import { quotesRouter } from './routes/quotes.js';
 import { claimsRouter } from './routes/claims.js';
 import { pool } from './db.js';
+import { bootstrapTestSchemaIfRequested } from './test-db-bootstrap.js';
 
 checkJwtConfiguration(); // Fail closed on weak/missing secret.
 const app = express();
@@ -60,6 +61,8 @@ app.use((
   console.error('API request failed', error);
   res.status(500).json({ error: 'internal_server_error' });
 });
+
+await bootstrapTestSchemaIfRequested();
 
 app.listen(port, '0.0.0.0', () => {
   console.log('Mantenimiento 360 development API listening on ' + port);
