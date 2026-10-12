@@ -85,11 +85,11 @@ try {
   tests++;
 
   const [refrigeration] = await query(
-    "INSERT INTO specialties(name) VALUES('Refrigeracion') RETURNING id");
+    "INSERT INTO specialties(name) VALUES('Refrigeracion') ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id");
   const [electricity] = await query(
     "INSERT INTO specialties(name) VALUES('Electricidad') RETURNING id");
   const [repair] = await query(
-    "INSERT INTO specialty_services(specialty_id,name) VALUES($1,'Reparacion') RETURNING id",
+    "INSERT INTO specialty_services(specialty_id,name) VALUES($1,'Reparacion') ON CONFLICT(specialty_id,name) DO UPDATE SET name=EXCLUDED.name RETURNING id",
     [refrigeration.id]
   );
 
