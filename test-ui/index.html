@@ -65,11 +65,15 @@
           <p id="roleNotice" class="hint"></p>
           <section id="adminSection" class="admin-section" hidden>
             <h3>Administración · entorno de pruebas</h3>
-            <p class="hint">Esta aprobación es ficticia: no verifica DNI ni identidad real. Vamos a usar únicamente al profesional ID 4.</p>
+            <p class="hint">Esta aprobación es sólo para pruebas: no verifica DNI ni identidad real. Elegí un profesional pendiente y su especialidad.</p>
             <button type="button" id="prepareRefrigeration" class="secondary">Preparar Refrigeración y Reparación</button>
-            <button type="button" id="showPending" class="secondary">Ver profesional ID 4</button>
+            <button type="button" id="showPending" class="secondary">Actualizar profesionales</button>
+            <label for="adminProfessionalSelect">Profesional pendiente</label>
+            <select id="adminProfessionalSelect"><option value="">Seleccionar profesional</option></select>
+            <label for="adminSpecialtySelect">Especialidad para aprobar</label>
+            <select id="adminSpecialtySelect"><option value="">Seleccionar especialidad</option></select>
             <div id="adminTarget" class="jobspanel">Esperando consulta.</div>
-            <button type="button" id="approveSelected" class="primary" disabled>Aprobar profesional ID 4 para la prueba</button>
+            <button type="button" id="approveSelected" class="primary" disabled>Aprobar profesional seleccionado para la prueba</button>
             <form id="resetProfessionalForm" class="reset-form" autocomplete="off" hidden>
               <h3>Recuperar acceso de Sebastián Salva (ID 4)</h3>
               <p class="hint">Se conserva su aprobación y especialidad. Usá únicamente claves creadas para este laboratorio.</p>
