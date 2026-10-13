@@ -214,6 +214,22 @@ if (profile.role === 'client') void loadClientSpecialties();
         '\nGarantía acordada: ' + job.warranty_days + ' días' +
         (job.quote_description ? '\nPresupuesto: ' + job.quote_description : '');
     }
+    const startButton = el('startJobButton');
+    startButton.hidden = !(profile?.role === 'professional' && job.status === 'confirmed');
+    startButton.disabled = false;
+    startButton.onclick = async () => {
+      if (!confirm('¿Iniciar el trabajo ' + job.public_code + '?')) return;
+      startButton.disabled = true;
+      try {
+        await api('POST', '/api/jobs/' + encodeURIComponent(String(job.id)) + '/start');
+        await loadContracts();
+        await openJob({...job, status:'in_progress'});
+        el('quoteFeedback').textContent = 'Trabajo iniciado correctamente. Estado: en ejecución.';
+      } catch (error) {
+        el('quoteFeedback').textContent = 'No se pudo iniciar el trabajo: ' + error.message;
+        startButton.disabled = false;
+      }
+    };
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
     await loadJobQuotes(job);
