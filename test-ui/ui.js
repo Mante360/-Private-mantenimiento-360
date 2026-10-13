@@ -321,7 +321,21 @@ if (profile.role === 'client') void loadClientSpecialties();
         completeButton.disabled = false;
       }
     };
-    el('clientCompletionNotice').hidden = job.status !== 'completed';
+    el('clientCompletionNotice').hidden = true;
+    if (job.status === 'completed' && profile?.role === 'client') {
+      const noticeJobId = job.id;
+      void api('GET', '/api/jobs/' + encodeURIComponent(String(job.id)) + '/review')
+        .then(review => {
+          if (openedJob?.id !== noticeJobId) return;
+          el('clientCompletionNotice').hidden = false;
+          el('clientCompletionNotice').textContent = review
+            ? 'Conformidad del cliente registrada. El trabajo original está finalizado; podés consultar sus reclamos y garantías en el historial. No se procesó ningún pago.'
+            : 'El profesional informó que terminó el trabajo. Queda pendiente la revisión y conformidad del cliente. No se procesó ningún pago.';
+        })
+        .catch(() => {
+          if (openedJob?.id === noticeJobId) el('clientCompletionNotice').hidden = true;
+        });
+    }
     el('clientReviewSection').hidden = !(profile?.role === 'client' && job.status === 'completed');
     el('clientReviewForm').hidden = true;
     el('clientClaimForm').hidden = true;
