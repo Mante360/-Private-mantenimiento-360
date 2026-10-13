@@ -114,12 +114,51 @@ claimsRouter.get('/:id/updates', async (req, res, next) => {
     const events = await pool.query(
       `SELECT a.action,a.metadata->>'description' AS description,a.created_at
        FROM audit_events a WHERE a.resource_type='claim' AND a.resource_id=$1
-         AND a.action='claim_professional_response'
+         AND a.action IN ('claim_professional_response','claim_technical_review_requested')
        ORDER BY a.created_at ASC,a.id ASC LIMIT 100`,
       [String(id.data)]
     );
     res.json(events.rows);
   } catch (error) { next(error); }
+});
+
+const requestReviewSchema = z.object({
+  note: z.string().trim().min(10).max(3000),
+}).strict();
+
+// Administration requests a diagnosis without deciding warranty coverage.
+// Keeping the claim in_review preserves the block on new quotes.
+claimsRouter.post('/:id/request-technical-review', requireRole('admin'), async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  const parsed = requestReviewSchema.safeParse(req.body);
+  if (!id.success || !parsed.success) {
+    res.status(400).json({error:'invalid_input'}); return;
+  }
+  let db;
+  try {
+    db = await pool.connect();
+    await db.query('BEGIN');
+    const result = await db.query(
+      `UPDATE claims SET status='in_review'
+       WHERE id=$1 AND status IN ('open','in_review')
+       RETURNING id,job_id,status`,
+      [id.data]
+    );
+    if (!result.rows[0]) {
+      await db.query('ROLLBACK');
+      res.status(409).json({error:'claim_not_open'}); return;
+    }
+    await db.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       VALUES($1,'claim_technical_review_requested','claim',$2,$3::jsonb)`,
+      [req.authUser!.id,String(id.data),JSON.stringify({description:parsed.data.note,jobId:result.rows[0].job_id})]
+    );
+    await db.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (error) {
+    if (db) await db.query('ROLLBACK').catch(() => undefined);
+    next(error);
+  } finally {db?.release();}
 });
 
 const resolveSchema = z.object({
