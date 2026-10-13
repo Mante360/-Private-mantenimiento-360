@@ -88,10 +88,6 @@ jobsRouter.get('/', async (req, res, next) => {
              WHERE pr.professional_id=$1 AND pr.lifted_at IS NULL
            )
            AND NOT EXISTS(
-             SELECT 1 FROM claims c
-             WHERE c.professional_id=$1 AND c.status IN ('open','in_review')
-           )
-           AND NOT EXISTS(
              SELECT 1 FROM job_quotes q
              WHERE q.job_id=j.id AND q.professional_id=$1
            )
