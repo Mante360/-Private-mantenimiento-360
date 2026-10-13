@@ -206,7 +206,7 @@ if (profile.role === 'client') void loadClientSpecialties();
   const statusLabels = {
     requested: 'Solicitado', quoted: 'Presupuestado',
     confirmed: 'Contratado', in_progress: 'En ejecución',
-    completed: 'Terminado', cancelled: 'Cancelado',
+    completed: 'Finalización informada · pendiente de revisión', cancelled: 'Cancelado',
     accepted: 'Aceptado'
   };
   const statusLabel = (status) => statusLabels[status] || status;
@@ -239,7 +239,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
       '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
     el('quoteFeedback').textContent = '';
-    if (profile?.role === 'professional' && ['confirmed','in_progress'].includes(job.status)) {
+    if (profile?.role === 'professional' && ['confirmed','in_progress','completed'].includes(job.status)) {
       el('jobDetailText').textContent += '\nImporte acordado (ARS): ' + job.amount +
         '\nGarantía acordada: ' + job.warranty_days + ' días' +
         (job.quote_description ? '\nPresupuesto: ' + job.quote_description : '');
@@ -260,6 +260,23 @@ if (profile.role === 'client') void loadClientSpecialties();
         startButton.disabled = false;
       }
     };
+    const completeButton = el('completeJobButton');
+    completeButton.hidden = !(profile?.role === 'professional' && job.status === 'in_progress');
+    completeButton.disabled = false;
+    completeButton.onclick = async () => {
+      if (!confirm('¿Informar que terminaste el trabajo ' + job.public_code + '? El cliente todavía debe revisarlo.')) return;
+      completeButton.disabled = true;
+      try {
+        await api('POST', '/api/jobs/' + encodeURIComponent(String(job.id)) + '/report-completed');
+        await loadContracts();
+        await openJob({...job, status:'completed'});
+        el('quoteFeedback').textContent = 'Finalización informada. Pendiente de revisión del cliente; no se realizó ningún pago.';
+      } catch (error) {
+        el('quoteFeedback').textContent = 'No se pudo informar la finalización: ' + error.message;
+        completeButton.disabled = false;
+      }
+    };
+    el('clientCompletionNotice').hidden = job.status !== 'completed';
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
     await loadJobQuotes(job);
