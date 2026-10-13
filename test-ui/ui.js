@@ -65,10 +65,12 @@
     el('roleNotice').textContent = profile.role === 'admin'
       ? 'Administración de laboratorio: sólo aprobación ficticia, sin documentos personales.'
       : profile.role === 'professional'
-      ? 'Las cuentas profesionales nuevas requieren aprobación de Administración antes de recibir solicitudes. No hay datos reales.'
+      ? 'Cuenta profesional de laboratorio. Consultá solicitudes disponibles y tus trabajos contratados. No hay datos reales.'
       : 'Tu cuenta ficticia ya puede iniciar sesión. Las solicitudes serán exclusivamente de prueba.';
     el('jobsPanel').textContent = '';
     el('adminSection').hidden = profile.role !== 'admin';
+    el('contractsSection').hidden = profile.role !== 'professional';
+    if (profile.role === 'professional') void loadContracts();
     
 el('clientRequestSection').hidden = profile.role !== 'client';
 if (profile.role === 'client') void loadClientSpecialties();
@@ -168,6 +170,38 @@ if (profile.role === 'client') void loadClientSpecialties();
     } catch(error) { panel.textContent = error.message; }
   }
 
+  // Only the authenticated professional's accepted contracts come from /api/jobs/mine.
+  async function loadContracts() {
+    if (profile?.role !== 'professional') return;
+    const panel = el('contractsPanel');
+    panel.replaceChildren();
+    panel.textContent = 'Consultando trabajos contratados...';
+    try {
+      const contracts = await api('GET', '/api/jobs/mine');
+      panel.replaceChildren();
+      if (!contracts.length) {
+        panel.textContent = 'Todavía no tenés trabajos contratados.';
+        return;
+      }
+      for (const job of contracts) {
+        const line = document.createElement('div');
+        line.className = 'jobspanel';
+        const summary = document.createElement('p');
+        summary.textContent = job.public_code + ' · ' + job.locality +
+          ' · ' + job.status + ' · ARS ' + job.amount;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'secondary';
+        button.textContent = 'Ver trabajo contratado';
+        button.addEventListener('click', () => void openJob(job));
+        line.append(summary, button);
+        panel.append(line);
+      }
+    } catch (error) {
+      panel.textContent = 'No se pudieron consultar los trabajos: ' + error.message;
+    }
+  }
+
   async function openJob(job) {
     openedJob = job;
     el('jobDetailPanel').hidden = false;
@@ -175,6 +209,11 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
       '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
     el('quoteFeedback').textContent = '';
+    if (profile?.role === 'professional' && job.status === 'confirmed') {
+      el('jobDetailText').textContent += '\nImporte acordado (ARS): ' + job.amount +
+        '\nGarantía acordada: ' + job.warranty_days + ' días' +
+        (job.quote_description ? '\nPresupuesto: ' + job.quote_description : '');
+    }
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
     await loadJobQuotes(job);
@@ -422,6 +461,7 @@ async function createLabRequest(event) {
   el('registerForm').addEventListener('submit',handleRegistration);
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
+  el('refreshContracts').addEventListener('click',loadContracts);
   
 el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
