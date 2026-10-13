@@ -120,6 +120,8 @@ quotesRouter.get('/mine/quotes', requireRole('professional'), async (req,res,nex
               q.amount,q.description,q.warranty_days,q.status,q.submitted_at
        FROM job_quotes q JOIN jobs j ON j.id=q.job_id
        WHERE q.professional_id=$1
+         AND q.status='submitted'
+         AND j.status IN ('requested','quoted')
        ORDER BY q.submitted_at DESC,q.id DESC LIMIT 100`,
       [req.authUser!.id]
     );
