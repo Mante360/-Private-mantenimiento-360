@@ -69,6 +69,10 @@
       : 'Tu cuenta ficticia ya puede iniciar sesión. Las solicitudes serán exclusivamente de prueba.';
     el('jobsPanel').textContent = '';
     el('adminSection').hidden = profile.role !== 'admin';
+    
+el('clientRequestSection').hidden = profile.role !== 'client';
+if (profile.role === 'client') void loadClientSpecialties();
+
     if(profile.role === 'admin') void loadProfessionals();
   }
   async function activate(data) {
@@ -136,11 +140,67 @@
       el('jobsPanel').textContent=jobs.length
         ? 'Solicitudes de prueba disponibles: ' + jobs.length + '\n' +
           jobs.map(j=>'• '+j.public_code+' · '+j.locality+' · '+j.status).join('\n')
-        : 'No hay solicitudes visibles para esta cuenta. Si es profesional, la aprobación de Administración es obligatoria.';
+        : 
+profile?.role === 'professional'
+  ? 'No hay solicitudes abiertas para tu especialidad en este momento.'
+  : 'Todavía no hay solicitudes de prueba para mostrar.'
+;
     }catch(err){
       el('jobsPanel').textContent=err.message;
     }
   }
+  
+async function loadClientSpecialties() {
+  const select = el('requestSpecialty');
+  select.replaceChildren(new Option('Seleccionar especialidad', ''));
+
+  try {
+    const categories = await api('GET', '/api/jobs/specialties');
+    categories.forEach(c => {
+      select.add(new Option(c.name, String(c.id)));
+    });
+  } catch (error) {
+    el('requestResult').textContent =
+      'No se pudieron cargar especialidades: ' + error.message;
+  }
+}
+
+async function createLabRequest(event) {
+  event.preventDefault();
+
+  if (!profile || profile.role !== 'client') return;
+
+  const specialtyId = Number(el('requestSpecialty').value);
+  const description = el('requestDescription').value.trim();
+  const locality = el('requestLocality').value.trim();
+
+  if (!specialtyId || description.length < 3 || locality.length < 2) return;
+
+  const button = el('createRequestButton');
+  button.disabled = true;
+
+  try {
+    const job = await api('POST', '/api/jobs', {
+      specialtyId,
+      description,
+      locality
+    });
+
+    el('requestResult').textContent =
+      'Solicitud de prueba creada: ' + job.public_code;
+
+    el('requestDescription').value = '';
+    el('requestLocality').value = '';
+
+    await refreshJobs();
+  } catch (error) {
+    el('requestResult').textContent =
+      'No se pudo crear la solicitud: ' + error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
   let labProfessionals = [];
   let labCategories = [];
   function selectedProfessional() {
@@ -260,6 +320,9 @@
   el('registerForm').addEventListener('submit',handleRegistration);
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
+  
+el('labRequestForm').addEventListener('submit',createLabRequest);
+
   el('showPending').addEventListener('click',loadProfessionals);
   el('adminProfessionalSelect').addEventListener('change',updateAdminSelection);
   el('adminSpecialtySelect').addEventListener('change',updateAdminSelection);
