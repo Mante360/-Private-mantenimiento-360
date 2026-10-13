@@ -327,6 +327,8 @@ if (profile.role === 'client') void loadClientSpecialties();
       const body = document.createElement('p');
       body.textContent = update.description || '';
       body.style.margin = '7px 0 0';
+      if(update.action === 'claim_warranty_authorized') heading.textContent='ADMINISTRACIÓN · Garantía autorizada';
+      if(update.action === 'warranty_client_confirmed') heading.textContent='CLIENTE · Corrección confirmada';
       entry.append(heading,body);
       container.append(entry);
     }
@@ -357,6 +359,37 @@ if (profile.role === 'client') void loadClientSpecialties();
           const responses = await api('GET', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/updates');
           renderClaimUpdates(updates, responses);
         } catch (err) { updates.textContent = 'No se pudo consultar el descargo: ' + err.message; }
+        try {
+          const warranties = await api('GET','/api/claims/'+claim.id+'/warranty');
+          for(const visit of warranties){
+            const summary=document.createElement('p');
+            summary.textContent='Garantía '+visit.code+' · '+visit.status+'\\n'+visit.description+
+              (visit.resolution_note?'\\nCorrección informada: '+visit.resolution_note:'');
+            item.append(summary);
+            if(profile.role==='professional' && visit.status==='requested'){
+              const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Informar corrección realizada';
+              btn.onclick=async()=>{
+                const note=prompt('Describí la corrección realizada (mínimo 10 caracteres):');
+                if(note===null)return;
+                if(note.trim().length<10){alert('Escribí al menos 10 caracteres.');return;}
+                btn.disabled=true;
+                try{await api('POST','/api/claims/'+claim.id+'/warranty/'+visit.id+'/report-completed',{note:note.trim()});await loadClaimInbox();}
+                catch(error){alert(error.message);btn.disabled=false;}
+              };item.append(btn);
+            }
+            if(profile.role==='client' && visit.status==='completed'){
+              const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Confirmar corrección de garantía';
+              btn.onclick=async()=>{
+                if(!confirm('¿Confirmás que se realizó satisfactoriamente la corrección de esta garantía?'))return;
+                btn.disabled=true;
+                try{await api('POST','/api/claims/'+claim.id+'/warranty/'+visit.id+'/client-confirm',{confirmed:true});await loadClaimInbox();}
+                catch(error){alert(error.message);btn.disabled=false;}
+              };item.append(btn);
+            }
+          }
+        } catch(error) {
+          const msg=document.createElement('p');msg.textContent='No se pudo consultar garantía: '+error.message;item.append(msg);
+        }
         if (profile.role === 'professional' && ['open','in_review'].includes(claim.status)) {
           const form = document.createElement('form');
           const label = document.createElement('label');
@@ -409,6 +442,28 @@ if (profile.role === 'client') void loadClientSpecialties();
           const updates = await api('GET','/api/claims/'+encodeURIComponent(String(claim.id))+'/updates');
           renderClaimUpdates(professionalUpdates, updates);
         } catch(error) { professionalUpdates.textContent = 'No se pudo consultar descargo: '+error.message; }
+        try {
+          const visits=await api('GET','/api/claims/'+claim.id+'/warranty');
+          if(visits.length){
+            const summary=document.createElement('p');
+            summary.textContent=visits.map(v=>'Garantía '+v.code+' · '+v.status+
+              (v.resolution_note?' · Corrección: '+v.resolution_note:'')).join('\\n');
+            item.append(summary);
+          } else if(['open','in_review'].includes(claim.status)){
+            const authorize=document.createElement('button');
+            authorize.type='button';authorize.className='secondary';authorize.textContent='Autorizar intervención en garantía';
+            authorize.onclick=async()=>{
+              const note=prompt('Describí por qué corresponde la corrección bajo garantía:',
+                'El diagnóstico del profesional vincula la falla con la reparación anterior. Se autoriza corrección sin costo adicional.');
+              if(note===null)return;
+              if(note.trim().length<10){alert('Escribí al menos 10 caracteres.');return;}
+              if(!confirm('¿Autorizar la intervención en garantía vinculada al trabajo original?'))return;
+              authorize.disabled=true;
+              try{await api('POST','/api/claims/'+claim.id+'/authorize-warranty',{note:note.trim()});await loadAdminClaims();}
+              catch(error){alert('No se pudo autorizar: '+error.message);authorize.disabled=false;}
+            };item.append(authorize);
+          }
+        }catch(error){const msg=document.createElement('p');msg.textContent='Error consultando garantías: '+error.message;item.append(msg);}
         if (['open','in_review'].includes(claim.status)) {
           const requestButton = document.createElement('button');
           requestButton.className = 'secondary';
