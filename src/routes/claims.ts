@@ -257,6 +257,38 @@ claimsRouter.post('/:id/warranty/:visitId/client-confirm',requireRole('client'),
   }catch(error){if(db)await db.query('ROLLBACK').catch(()=>undefined);next(error);}finally{db?.release();}
 });
 
+const ratingInput=z.object({stars:z.number().int().min(1).max(5),comment:z.string().trim().max(3000).optional()}).strict();
+claimsRouter.get('/:id/warranty/:visitId/rating',async(req,res,next)=>{
+ const id=warrantyId(req.params.id),visit=warrantyId(req.params.visitId);
+ if(!id.success||!visit.success){res.status(400).json({error:'invalid_input'});return;}
+ try{
+  const result=await pool.query(`SELECT r.stars,r.comment,r.created_at FROM claims c
+   JOIN warranty_visits w ON w.original_job_id=c.job_id AND w.id=$2
+   LEFT JOIN ratings r ON r.warranty_visit_id=w.id
+   WHERE c.id=$1 AND ($3='admin' OR c.created_by=$4 OR c.professional_id=$4)`,
+   [id.data,visit.data,req.authUser!.role,req.authUser!.id]);
+  if(!result.rows[0]){res.status(404).json({error:'warranty_not_found'});return;}
+  res.json(result.rows[0].stars===null?null:result.rows[0]);
+ }catch(error){next(error);}
+});
+claimsRouter.post('/:id/warranty/:visitId/rating',requireRole('client'),async(req,res,next)=>{
+ const id=warrantyId(req.params.id),visit=warrantyId(req.params.visitId),input=ratingInput.safeParse(req.body);
+ if(!id.success||!visit.success||!input.success){res.status(400).json({error:'invalid_input'});return;}
+ try{
+  const result=await pool.query(`INSERT INTO ratings(warranty_visit_id,client_id,stars,comment)
+   SELECT w.id,c.created_by,$4,$5 FROM claims c
+   JOIN warranty_visits w ON w.original_job_id=c.job_id AND w.id=$2
+   WHERE c.id=$1 AND c.created_by=$3 AND w.status='completed'
+    AND EXISTS(SELECT 1 FROM audit_events a WHERE a.resource_type='claim'
+       AND a.resource_id=c.id::text AND a.action='warranty_client_confirmed'
+       AND a.metadata->>'warrantyId'=$2::text)
+   ON CONFLICT (warranty_visit_id) WHERE warranty_visit_id IS NOT NULL DO NOTHING
+   RETURNING stars,comment,created_at`,
+   [id.data,visit.data,req.authUser!.id,input.data.stars,input.data.comment||null]);
+  if(!result.rows[0]){res.status(409).json({error:'warranty_rating_not_available_or_already_submitted'});return;}
+  res.status(201).json(result.rows[0]);
+ }catch(error){next(error);}
+});
 const resolveSchema = z.object({
   resolutionNote: z.string().trim().min(5).max(3000),
 }).strict();
