@@ -122,11 +122,11 @@
             <div id="quoteList"></div>
             <form id="quoteForm" hidden>
               <label for="quoteAmount">Importe de prueba (ARS)</label>
-              <input id="quoteAmount" type="number" min="1" step="0.01" required>
+              <input id="quoteAmount" type="text" inputmode="decimal" maxlength="16" autocomplete="off" required>
               <label for="quoteDescription">Detalle del presupuesto</label>
-              <textarea id="quoteDescription" minlength="3" maxlength="3000" required></textarea>
+              <textarea id="quoteDescription" rows="6" minlength="3" maxlength="3000" required></textarea>
               <label for="quoteWarranty">Garantía (días)</label>
-              <input id="quoteWarranty" type="number" min="0" max="3650" value="30" required>
+              <input id="quoteWarranty" type="text" inputmode="numeric" pattern="[0-9]+" maxlength="4" value="30" autocomplete="off" required>
               <button class="primary" type="submit">Enviar presupuesto de prueba</button>
             </form>
             <p id="quoteFeedback" role="status"></p>
