@@ -116,6 +116,12 @@
             <button type="button" id="logout" class="secondary">Cerrar sesión</button>
           </div>
           <div id="jobsPanel" class="jobspanel"></div>
+          <section id="contractsSection" class="admin-section" hidden>
+            <h3>Mis trabajos contratados</h3>
+            <p class="hint">Trabajos adjudicados a tu cuenta profesional. No se muestran propuestas de otros profesionales.</p>
+            <button type="button" id="refreshContracts" class="secondary">Actualizar mis trabajos contratados</button>
+            <div id="contractsPanel" class="jobspanel" role="status" aria-live="polite"></div>
+          </section>
           <section id="jobDetailPanel" class="admin-section" hidden>
             <h3 id="jobDetailTitle">Solicitud de prueba</h3>
             <p id="jobDetailText" class="jobspanel"></p>
