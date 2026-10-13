@@ -88,7 +88,7 @@ claimsRouter.post('/:id/professional-response', requireRole('professional'), asy
       `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
        SELECT $2,'claim_professional_response','claim',$1::text,
               jsonb_build_object('description',$3::text,'jobId',c.job_id)
-       FROM claims c WHERE c.id=$1 AND c.professional_id=$2
+       FROM claims c WHERE c.id=$1::bigint AND c.professional_id=$2::bigint
          AND c.status IN ('open','in_review')
        RETURNING id,created_at`,
       [id.data,req.authUser!.id,input.data.description]
