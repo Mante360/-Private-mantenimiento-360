@@ -277,9 +277,79 @@ if (profile.role === 'client') void loadClientSpecialties();
       }
     };
     el('clientCompletionNotice').hidden = job.status !== 'completed';
+    el('clientReviewSection').hidden = !(profile?.role === 'client' && job.status === 'completed');
+    el('clientReviewForm').hidden = true;
+    el('clientClaimForm').hidden = true;
+    el('reviewResult').textContent = '';
+    el('claimResult').textContent = '';
+    if (profile?.role === 'client' && job.status === 'completed') void loadClientReviewStatus(job);
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
     await loadJobQuotes(job);
+  }
+
+  async function loadClientReviewStatus(job) {
+    try {
+      const [review, claims] = await Promise.all([
+        api('GET', '/api/jobs/' + encodeURIComponent(String(job.id)) + '/review'),
+        api('GET', '/api/claims')
+      ]);
+      if (openedJob?.id !== job.id) return;
+      const pending = claims.some(claim => String(claim.job_id) === String(job.id) &&
+        ['open','in_review'].includes(claim.status));
+      const reviewForm = el('clientReviewForm');
+      reviewForm.hidden = Boolean(review) || pending;
+      el('openClaimFormButton').hidden = pending;
+      if (review) {
+        el('reviewResult').textContent = 'Conformidad registrada: ' + review.stars +
+          ' estrellas. La garantía sigue vigente.';
+      } else if (pending) {
+        el('reviewResult').textContent = 'Hay un reclamo abierto en este trabajo. Administración debe revisarlo antes de registrar conformidad.';
+      }
+      if (pending) el('claimResult').textContent = 'Reclamo abierto. Podés consultar su estado en Administración.';
+    } catch (error) {
+      el('clientReviewForm').hidden = true;
+      el('reviewResult').textContent = 'No se pudo verificar la conformidad: ' + error.message;
+    }
+  }
+
+  async function submitClientReview(event) {
+    event.preventDefault();
+    if (profile?.role !== 'client' || !openedJob || openedJob.status !== 'completed') return;
+    const stars = Number(el('reviewStars').value);
+    const comment = el('reviewComment').value.trim();
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) return;
+    const button = el('clientReviewForm').querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      if (!confirm('¿Confirmar conformidad con el trabajo y enviar tu calificación de prueba?')) return;
+      await api('POST', '/api/jobs/' + encodeURIComponent(String(openedJob.id)) + '/review', {stars,comment});
+      await loadClientReviewStatus(openedJob);
+      void loadJobTimeline(openedJob);
+    } catch (error) {
+      el('reviewResult').textContent = 'No se pudo guardar la conformidad: ' + error.message;
+    } finally { button.disabled = false; }
+  }
+
+  async function submitClientClaim(event) {
+    event.preventDefault();
+    if (profile?.role !== 'client' || !openedJob || openedJob.status !== 'completed') return;
+    const job = openedJob;
+    const reason = el('claimReason').value.trim();
+    const description = el('claimDescription').value.trim();
+    if (reason.length < 2 || description.length < 3) return;
+    const button = el('clientClaimForm').querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      if (!confirm('¿Enviar este reclamo ficticio a Administración?')) return;
+      await api('POST', '/api/claims', {jobId:Number(job.id),reason,description});
+      el('clientClaimForm').reset();
+      el('clientClaimForm').hidden = true;
+      await loadClientReviewStatus(job);
+      el('claimResult').textContent = 'Reclamo registrado. Queda disponible para Administración.';
+    } catch (error) {
+      el('claimResult').textContent = 'No se pudo enviar el reclamo: ' + error.message;
+    } finally { button.disabled = false; }
   }
 
   async function loadJobQuotes(job) {
@@ -528,6 +598,11 @@ async function createLabRequest(event) {
   
 el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
+  el('clientReviewForm').addEventListener('submit',submitClientReview);
+  el('clientClaimForm').addEventListener('submit',submitClientClaim);
+  el('openClaimFormButton').addEventListener('click', () => {
+    el('clientClaimForm').hidden = !el('clientClaimForm').hidden;
+  });
 
   el('showPending').addEventListener('click',loadProfessionals);
   el('adminProfessionalSelect').addEventListener('change',updateAdminSelection);
