@@ -375,6 +375,15 @@ if (profile.role === 'client') void loadClientSpecialties();
           ' · Estado: ' + claim.status + '\nMotivo: ' + claim.reason +
           '\nDetalle: ' + claim.description;
         item.append(info);
+        const professionalUpdates = document.createElement('p');
+        professionalUpdates.textContent = 'Consultando descargo profesional...';
+        item.append(professionalUpdates);
+        try {
+          const updates = await api('GET','/api/claims/'+encodeURIComponent(String(claim.id))+'/updates');
+          professionalUpdates.textContent = updates.length
+            ? updates.map(x => 'Descargo del profesional: ' + x.description).join('\n')
+            : 'Aún no hay descargo del profesional.';
+        } catch(error) { professionalUpdates.textContent = 'No se pudo consultar descargo: '+error.message; }
         if (['open','in_review'].includes(claim.status)) {
           const button = document.createElement('button');
           button.className = 'secondary';
