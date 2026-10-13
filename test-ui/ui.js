@@ -325,7 +325,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         ? 'ADMINISTRACIÓN · Solicitud de revisión técnica'
         : 'PROFESIONAL · Descargo técnico';
       const body = document.createElement('p');
-      body.textContent = update.description || '';
+      body.textContent = update.action === 'warranty_client_confirmed' ? 'El cliente confirmó que la corrección fue satisfactoria.' : (update.description || '');
       body.style.margin = '7px 0 0';
       if(update.action === 'claim_warranty_authorized') heading.textContent='ADMINISTRACIÓN · Garantía autorizada';
       if(update.action === 'warranty_client_confirmed') heading.textContent='CLIENTE · Corrección confirmada';
@@ -353,7 +353,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           '\nDescripción: ' + claim.description +
           (claim.resolution_note ? '\nResolución: ' + claim.resolution_note : '');
         item.append(info);
-        const updates = document.createElement('p');
+        const updates = document.createElement('div');
         item.append(updates);
         try {
           const responses = await api('GET', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/updates');
@@ -361,10 +361,11 @@ if (profile.role === 'client') void loadClientSpecialties();
         } catch (err) { updates.textContent = 'No se pudo consultar el descargo: ' + err.message; }
         try {
           const warranties = await api('GET','/api/claims/'+claim.id+'/warranty');
+          const confirmedVisits = new Set((await api('GET','/api/claims/'+claim.id+'/updates')).filter(x=>x.action==='warranty_client_confirmed').map(x=>String(x.warranty_id)));
           for(const visit of warranties){
             const summary=document.createElement('p');
-            summary.textContent='Garantía '+visit.code+' · '+visit.status+'\\n'+visit.description+
-              (visit.resolution_note?'\\nCorrección informada: '+visit.resolution_note:'');
+            summary.textContent='Garantía '+visit.code+' · '+visit.status+'\n'+visit.description+
+              (visit.resolution_note?'\nCorrección informada: '+visit.resolution_note:'');
             item.append(summary);
             if(profile.role==='professional' && visit.status==='requested'){
               const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Informar corrección realizada';
@@ -377,7 +378,7 @@ if (profile.role === 'client') void loadClientSpecialties();
                 catch(error){alert(error.message);btn.disabled=false;}
               };item.append(btn);
             }
-            if(profile.role==='client' && visit.status==='completed'){
+            if(profile.role==='client' && visit.status==='completed' && !confirmedVisits.has(String(visit.id))){
               const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Confirmar corrección de garantía';
               btn.onclick=async()=>{
                 if(!confirm('¿Confirmás que se realizó satisfactoriamente la corrección de esta garantía?'))return;
@@ -435,7 +436,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           ' · Estado: ' + claim.status + '\nMotivo: ' + claim.reason +
           '\nDetalle: ' + claim.description;
         item.append(info);
-        const professionalUpdates = document.createElement('p');
+        const professionalUpdates = document.createElement('div');
         professionalUpdates.textContent = 'Consultando descargo profesional...';
         item.append(professionalUpdates);
         try {
@@ -447,7 +448,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           if(visits.length){
             const summary=document.createElement('p');
             summary.textContent=visits.map(v=>'Garantía '+v.code+' · '+v.status+
-              (v.resolution_note?' · Corrección: '+v.resolution_note:'')).join('\\n');
+              (v.resolution_note?' · Corrección: '+v.resolution_note:'')).join('\n');
             item.append(summary);
           } else if(['open','in_review'].includes(claim.status)){
             const authorize=document.createElement('button');
