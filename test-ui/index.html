@@ -129,6 +129,32 @@
             <button type="button" id="startJobButton" class="primary" hidden>Iniciar trabajo</button>
             <button type="button" id="completeJobButton" class="primary" hidden>Informar trabajo terminado</button>
             <p id="clientCompletionNotice" class="hint" hidden>El profesional informó que terminó el trabajo. Queda pendiente la revisión y conformidad del cliente. No se procesó ningún pago.</p>
+            <section id="clientReviewSection" class="admin-section" hidden>
+              <h3>Conformidad del cliente</h3>
+              <p class="hint">Confirmá solamente si estás conforme. La garantía continúa vigente y esta acción no genera pagos.</p>
+              <form id="clientReviewForm">
+                <label for="reviewStars">Calificación del profesional</label>
+                <select id="reviewStars" required>
+                  <option value="">Seleccionar calificación</option>
+                  <option value="5">5 estrellas</option><option value="4">4 estrellas</option>
+                  <option value="3">3 estrellas</option><option value="2">2 estrellas</option>
+                  <option value="1">1 estrella</option>
+                </select>
+                <label for="reviewComment">Reseña (opcional)</label>
+                <textarea id="reviewComment" rows="4" maxlength="3000" placeholder="Contá cómo fue el servicio. No incluyas datos personales."></textarea>
+                <button type="submit" class="primary">Confirmar conformidad y calificar</button>
+              </form>
+              <div id="reviewResult" class="feedback" role="status"></div>
+              <button type="button" id="openClaimFormButton" class="secondary">Presentar reclamo</button>
+              <form id="clientClaimForm" hidden>
+                <label for="claimReason">Motivo del reclamo</label>
+                <input id="claimReason" minlength="2" maxlength="120" required placeholder="Ejemplo: El equipo sigue sin enfriar">
+                <label for="claimDescription">Descripción del problema</label>
+                <textarea id="claimDescription" rows="4" minlength="3" maxlength="3000" required></textarea>
+                <button class="primary" type="submit">Enviar reclamo a Administración</button>
+              </form>
+              <p id="claimResult" class="feedback" role="status"></p>
+            </section>
             <div id="quoteList"></div>
             <form id="quoteForm" hidden>
               <label for="quoteAmount">Importe de prueba (ARS)</label>
