@@ -125,6 +125,53 @@ jobsRouter.get('/mine', requireRole('professional'), async (req, res, next) => {
   }
 });
 
+// Only the selected professional may start an accepted contract, once.
+jobsRouter.post('/:id/start', requireRole('professional'), async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  if (!id.success) {
+    res.status(400).json({ error: 'invalid_job_id' });
+    return;
+  }
+  let db;
+  try {
+    db = await pool.connect();
+    await db.query('BEGIN');
+    const result = await db.query(
+      `SELECT j.id,j.status FROM jobs j
+       JOIN job_contracts jc ON jc.job_id=j.id
+       JOIN job_quotes jq ON jq.id=jc.quote_id AND jq.job_id=j.id
+       WHERE j.id=$1 AND jq.professional_id=$2 FOR UPDATE OF j`,
+      [id.data,req.authUser!.id]
+    );
+    const job = result.rows[0];
+    if (!job) {
+      await db.query('ROLLBACK');
+      res.status(404).json({ error: 'job_not_found' });
+      return;
+    }
+    if (job.status !== 'confirmed') {
+      await db.query('ROLLBACK');
+      res.status(409).json({ error: 'job_cannot_be_started' });
+      return;
+    }
+    await db.query(
+      "UPDATE jobs SET status='in_progress',updated_at=now() WHERE id=$1",
+      [id.data]
+    );
+    await db.query(
+      "INSERT INTO job_status_events(job_id,actor_id,old_status,new_status) VALUES($1,$2,'confirmed','in_progress')",
+      [id.data,req.authUser!.id]
+    );
+    await db.query('COMMIT');
+    res.json({ jobId:id.data, status:'in_progress' });
+  } catch (error) {
+    if (db) await db.query('ROLLBACK').catch(() => undefined);
+    next(error);
+  } finally {
+    db?.release();
+  }
+});
+
 // No exact_address: address sharing requires separate consent-aware API.
 jobsRouter.get('/:id', async (req, res, next) => {
   const id = z.coerce.number().int().positive().safeParse(req.params.id);
