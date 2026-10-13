@@ -6,3 +6,6 @@
 #quoteDescription{display:block;width:100%;min-height:145px;resize:vertical;padding:12px;border:1px solid #bdc9db;border-radius:10px;font:inherit;line-height:1.5}
 #quoteAmount,#quoteWarranty{width:100%}
 #quoteDescription:focus{outline:2px solid #82aee2;outline-offset:1px}
+
+#jobTimeline{white-space:pre-line;line-height:1.65}
+#jobDetailPanel{scroll-margin-top:20px}
