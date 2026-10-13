@@ -112,7 +112,7 @@ claimsRouter.get('/:id/updates', async (req, res, next) => {
     );
     if (!allowed.rows[0]) { res.status(404).json({error:'claim_not_found'}); return; }
     const events = await pool.query(
-      `SELECT a.action,a.metadata->>'description' AS description,a.created_at
+      `SELECT a.action,a.metadata->>'description' AS description,a.metadata->>'warrantyId' AS warranty_id,a.created_at
        FROM audit_events a WHERE a.resource_type='claim' AND a.resource_id=$1
          AND a.action IN ('claim_professional_response','claim_technical_review_requested','claim_warranty_authorized','warranty_client_confirmed')
        ORDER BY a.created_at ASC,a.id ASC LIMIT 100`,
