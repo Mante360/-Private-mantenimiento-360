@@ -70,6 +70,7 @@
     el('jobsPanel').textContent = '';
     el('adminSection').hidden = profile.role !== 'admin';
     el('contractsSection').hidden = profile.role !== 'professional';
+    void loadClaimInbox();
     if (profile.role === 'professional') void loadContracts();
     
 el('clientRequestSection').hidden = profile.role !== 'client';
@@ -302,6 +303,57 @@ if (profile.role === 'client') void loadClientSpecialties();
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
     await loadJobQuotes(job);
+  }
+
+  async function loadClaimInbox() {
+    const section = el('claimInboxSection');
+    section.hidden = !profile || !['professional','client'].includes(profile.role);
+    if (section.hidden) return;
+    const panel = el('claimInboxPanel');
+    panel.textContent = 'Consultando reclamos...';
+    try {
+      const claims = await api('GET','/api/claims');
+      panel.replaceChildren();
+      if (!claims.length) { panel.textContent = 'No hay reclamos vinculados a esta cuenta.'; return; }
+      for (const claim of claims) {
+        const item = document.createElement('div');
+        item.className = 'jobspanel';
+        const info = document.createElement('p');
+        info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + claim.job_id +
+          ' · ' + claim.status + '\nMotivo: ' + claim.reason +
+          '\nDescripción: ' + claim.description +
+          (claim.resolution_note ? '\nResolución: ' + claim.resolution_note : '');
+        item.append(info);
+        const updates = document.createElement('p');
+        item.append(updates);
+        try {
+          const responses = await api('GET', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/updates');
+          updates.textContent = responses.length ? responses.map(r => 'Respuesta profesional: ' + r.description).join('\n') : 'Sin descargo profesional registrado.';
+        } catch (err) { updates.textContent = 'No se pudo consultar el descargo: ' + err.message; }
+        if (profile.role === 'professional' && ['open','in_review'].includes(claim.status)) {
+          const form = document.createElement('form');
+          const label = document.createElement('label');
+          label.textContent = 'Diagnóstico y descargo técnico';
+          const input = document.createElement('textarea');
+          input.rows=5;input.maxLength=3000;input.minLength=10;input.required=true;
+          input.placeholder='Describí qué encontraste y cómo proponés resolverlo.';
+          const submit = document.createElement('button');
+          submit.type='submit';submit.className='primary';submit.textContent='Enviar descargo';
+          const result = document.createElement('p');
+          form.append(label,input,submit,result);
+          form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            submit.disabled=true;
+            try {
+              await api('POST','/api/claims/'+encodeURIComponent(String(claim.id))+'/professional-response',{description:input.value.trim()});
+              await loadClaimInbox();
+            } catch(error) {result.textContent='No se pudo enviar: '+error.message;submit.disabled=false;}
+          });
+          item.append(form);
+        }
+        panel.append(item);
+      }
+    } catch (error) {panel.textContent = 'No se pudieron cargar reclamos: '+error.message;}
   }
 
   async function loadAdminClaims() {
@@ -663,6 +715,7 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
   el('clientReviewForm').addEventListener('submit',submitClientReview);
   el('clientClaimForm').addEventListener('submit',submitClientClaim);
   el('refreshAdminClaims').addEventListener('click',loadAdminClaims);
+  el('refreshClaimInbox').addEventListener('click',loadClaimInbox);
   el('openClaimFormButton').addEventListener('click', () => {
     el('clientClaimForm').hidden = !el('clientClaimForm').hidden;
   });
