@@ -17,6 +17,18 @@ const createSchema = z.object({
 const publicJobFields = `j.id,j.public_code,j.specialty_id,j.service_id,
   j.description,j.locality,j.status,j.created_at,j.updated_at`;
 
+
+jobsRouter.get('/specialties', requireRole('client'), async (_req, res, next) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name FROM specialties WHERE active=true ORDER BY name LIMIT 100'
+    );
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
 jobsRouter.post('/', requireRole('client'), async (req, res, next) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) {
