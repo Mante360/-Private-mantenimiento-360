@@ -306,6 +306,32 @@ if (profile.role === 'client') void loadClientSpecialties();
     await loadJobQuotes(job);
   }
 
+  function renderClaimUpdates(container, updates) {
+    container.replaceChildren();
+    if (!updates.length) {
+      container.textContent = 'Todavía no hay intervenciones registradas.';
+      return;
+    }
+    for (const update of updates) {
+      const entry = document.createElement('div');
+      entry.style.margin = '12px 0';
+      entry.style.padding = '10px 12px';
+      entry.style.borderLeft = update.action === 'claim_technical_review_requested'
+        ? '4px solid #315d9a' : '4px solid #5e687a';
+      entry.style.background = 'rgba(128,148,175,.09)';
+      entry.style.borderRadius = '5px';
+      const heading = document.createElement('strong');
+      heading.textContent = update.action === 'claim_technical_review_requested'
+        ? 'ADMINISTRACIÓN · Solicitud de revisión técnica'
+        : 'PROFESIONAL · Descargo técnico';
+      const body = document.createElement('p');
+      body.textContent = update.description || '';
+      body.style.margin = '7px 0 0';
+      entry.append(heading,body);
+      container.append(entry);
+    }
+  }
+
   async function loadClaimInbox() {
     const section = el('claimInboxSection');
     section.hidden = !profile || !['professional','client'].includes(profile.role);
@@ -329,7 +355,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         item.append(updates);
         try {
           const responses = await api('GET', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/updates');
-          updates.textContent = responses.length ? responses.map(r => (r.action === 'claim_technical_review_requested' ? 'Administración solicitó revisión técnica: ' : 'Respuesta profesional: ') + r.description).join('\n') : 'Sin descargo profesional registrado.';
+          renderClaimUpdates(updates, responses);
         } catch (err) { updates.textContent = 'No se pudo consultar el descargo: ' + err.message; }
         if (profile.role === 'professional' && ['open','in_review'].includes(claim.status)) {
           const form = document.createElement('form');
@@ -381,9 +407,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         item.append(professionalUpdates);
         try {
           const updates = await api('GET','/api/claims/'+encodeURIComponent(String(claim.id))+'/updates');
-          professionalUpdates.textContent = updates.length
-            ? updates.map(x => (x.action === 'claim_technical_review_requested' ? 'Revisión técnica solicitada por Administración: ' : 'Descargo del profesional: ') + x.description).join('\n')
-            : 'Aún no hay descargo del profesional.';
+          renderClaimUpdates(professionalUpdates, updates);
         } catch(error) { professionalUpdates.textContent = 'No se pudo consultar descargo: '+error.message; }
         if (['open','in_review'].includes(claim.status)) {
           const requestButton = document.createElement('button');
