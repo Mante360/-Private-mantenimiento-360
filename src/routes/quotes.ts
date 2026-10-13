@@ -112,6 +112,21 @@ quotesRouter.post('/:jobId/quotes', requireRole('professional'), async (req, res
   }
 });
 
+// A professional's submitted quotes remain visible regardless of any later claim.
+quotesRouter.get('/mine/quotes', requireRole('professional'), async (req,res,next) => {
+  try {
+    const result=await pool.query(
+      `SELECT q.id,q.job_id,j.public_code,j.locality,j.status AS job_status,
+              q.amount,q.description,q.warranty_days,q.status,q.submitted_at
+       FROM job_quotes q JOIN jobs j ON j.id=q.job_id
+       WHERE q.professional_id=$1
+       ORDER BY q.submitted_at DESC,q.id DESC LIMIT 100`,
+      [req.authUser!.id]
+    );
+    res.json(result.rows);
+  } catch(error){next(error);}
+});
+
 // Clients may compare ALL quotes only on their own request. Professionals may
 // view their OWN quote/status, not competing prices, identities or comments.
 quotesRouter.get('/:jobId/quotes', requireRole('client','professional'), async (req, res, next) => {
