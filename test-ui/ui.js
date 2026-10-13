@@ -75,7 +75,7 @@
 el('clientRequestSection').hidden = profile.role !== 'client';
 if (profile.role === 'client') void loadClientSpecialties();
 
-    if(profile.role === 'admin') void loadProfessionals();
+    if(profile.role === 'admin') { void loadProfessionals(); void loadAdminClaims(); }
   }
   async function activate(data) {
     token = data.token;
@@ -286,6 +286,52 @@ if (profile.role === 'client') void loadClientSpecialties();
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
     await loadJobQuotes(job);
+  }
+
+  async function loadAdminClaims() {
+    if (profile?.role !== 'admin') return;
+    const panel = el('adminClaimsPanel');
+    panel.textContent = 'Consultando reclamos...';
+    try {
+      const claims = await api('GET', '/api/claims');
+      panel.replaceChildren();
+      if (!claims.length) {
+        panel.textContent = 'No hay reclamos registrados.';
+        return;
+      }
+      for (const claim of claims) {
+        const item = document.createElement('div');
+        item.className = 'jobspanel';
+        const info = document.createElement('p');
+        info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + claim.job_id +
+          ' · Estado: ' + claim.status + '\nMotivo: ' + claim.reason +
+          '\nDetalle: ' + claim.description;
+        item.append(info);
+        if (['open','in_review'].includes(claim.status)) {
+          const button = document.createElement('button');
+          button.className = 'secondary';
+          button.type = 'button';
+          button.textContent = 'Resolver reclamo';
+          button.onclick = async () => {
+            const resolutionNote = prompt('Motivo y medida adoptada para resolver el reclamo (mínimo 5 caracteres):');
+            if (resolutionNote === null) return;
+            if (resolutionNote.trim().length < 5) { alert('Escribí al menos 5 caracteres.'); return; }
+            button.disabled = true;
+            try {
+              await api('PATCH', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/resolve', {resolutionNote:resolutionNote.trim()});
+              await loadAdminClaims();
+            } catch (error) {
+              alert('No se pudo resolver: ' + error.message);
+              button.disabled = false;
+            }
+          };
+          item.append(button);
+        }
+        panel.append(item);
+      }
+    } catch (error) {
+      panel.textContent = 'No se pudieron consultar los reclamos: ' + error.message;
+    }
   }
 
   async function loadClientReviewStatus(job) {
@@ -600,6 +646,7 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
   el('clientReviewForm').addEventListener('submit',submitClientReview);
   el('clientClaimForm').addEventListener('submit',submitClientClaim);
+  el('refreshAdminClaims').addEventListener('click',loadAdminClaims);
   el('openClaimFormButton').addEventListener('click', () => {
     el('clientClaimForm').hidden = !el('clientClaimForm').hidden;
   });
