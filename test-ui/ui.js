@@ -146,6 +146,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     const panel = el('jobsPanel');
     el('jobDetailPanel').hidden = true;
     openedJob = null;
+    el('jobClaimHistory').hidden = true;
     panel.replaceChildren();
     try {
       displayedJobs = await api('GET', '/api/jobs');
@@ -278,6 +279,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailTitle').textContent = 'Seguimiento del trabajo ' + job.public_code;
     el('jobDetailPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     void loadJobTimeline(job);
+    void loadJobClaimHistory(job);
     if (profile?.role === 'professional') void loadProfessionalReview(job);
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
       '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
@@ -359,17 +361,10 @@ if (profile.role === 'client') void loadClientSpecialties();
     }
   }
 
-  async function loadClaimInbox() {
-    const section = el('claimInboxSection');
-    section.hidden = !profile || !['professional','client'].includes(profile.role);
-    if (section.hidden) return;
-    const panel = el('claimInboxPanel');
-    panel.textContent = 'Consultando reclamos...';
-    try {
-      const claims = await api('GET','/api/claims');
-      panel.replaceChildren();
-      if (!claims.length) { panel.textContent = 'No hay reclamos vinculados a esta cuenta.'; return; }
-      for (const claim of claims) {
+  async function renderClaimCards(panel,claims) {
+    panel.replaceChildren();
+    if (!claims.length) {panel.textContent='No tenés reclamos pendientes.';return;}
+    for(const claim of claims){
         const item = document.createElement('div');
         item.className = 'jobspanel';
         const info = document.createElement('p');
@@ -453,8 +448,35 @@ if (profile.role === 'client') void loadClientSpecialties();
           item.append(form);
         }
         panel.append(item);
-      }
-    } catch (error) {panel.textContent = 'No se pudieron cargar reclamos: '+error.message;}
+    }
+  }
+
+  async function loadJobClaimHistory(job) {
+    const section=el('jobClaimHistory');
+    const panel=el('jobClaimHistoryPanel');
+    section.hidden=true;
+    panel.replaceChildren();
+    if(!profile || !['client','professional'].includes(profile.role) || !['confirmed','in_progress','completed'].includes(job.status)) return;
+    try {
+      const all=await api('GET','/api/claims');
+      if(openedJob?.id !== job.id) return;
+      const archived=all.filter(c=>String(c.job_id)===String(job.id) && ['resolved','dismissed'].includes(c.status));
+      if(!archived.length)return;
+      section.hidden=false;
+      await renderClaimCards(panel,archived);
+    } catch(error){panel.textContent='No se pudo cargar el historial: '+error.message;section.hidden=false;}
+  }
+
+  async function loadClaimInbox() {
+    const section=el('claimInboxSection');
+    section.hidden=!profile || !['client','professional'].includes(profile.role);
+    if(section.hidden)return;
+    const panel=el('claimInboxPanel');
+    panel.textContent='Consultando reclamos pendientes...';
+    try {
+      const claims=(await api('GET','/api/claims')).filter(c=>['open','in_review'].includes(c.status));
+      await renderClaimCards(panel,claims);
+    }catch(error){panel.textContent='No se pudieron cargar reclamos: '+error.message;}
   }
 
   async function loadAdminClaims() {
