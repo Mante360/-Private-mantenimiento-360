@@ -33,7 +33,7 @@
         authentication_required: 'Necesitás iniciar sesión.',
         invalid_or_expired_token: 'La sesión venció. Volvé a ingresar.'
       };
-      throw new Error(known[body.error] || 'La solicitud no se completó (HTTP ' + response.status + ').');
+      throw new Error(body.error === 'invalid_input' ? 'Los datos de la operación no son válidos.' : (known[body.error] || 'La solicitud no se completó (HTTP ' + response.status + ').'));
     }
     return body;
   }
@@ -173,7 +173,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailPanel').hidden = false;
     el('jobDetailTitle').textContent = 'Solicitud ' + job.public_code;
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
-      '\\nLocalidad: ' + job.locality + '\\nEstado: ' + job.status;
+      '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
     el('quoteFeedback').textContent = '';
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
@@ -198,7 +198,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           ' · Importe ARS ' + quote.amount +
           ' · Garantía: ' + quote.warranty_days + ' días' +
           ' · Estado: ' + quote.status +
-          '\\nDetalle: ' + quote.description;
+          '\nDetalle: ' + quote.description;
         section.append(summary);
         if (job.status === 'quoted' && quote.status === 'submitted') {
           const button = document.createElement('button');
@@ -209,7 +209,7 @@ if (profile.role === 'client') void loadClientSpecialties();
             if (!confirm('¿Aceptar este presupuesto de PRUEBA? No se realiza ningún pago.')) return;
             button.disabled = true;
             try {
-              await api('POST', '/api/jobs/' + job.id + '/accept-quote', {quoteId: quote.id});
+              await api('POST', '/api/jobs/' + job.id + '/accept-quote', {quoteId: Number(quote.id)});
               el('quoteFeedback').textContent = 'Presupuesto aceptado en el Laboratorio. No se procesó ningún pago.';
               await refreshJobs();
             } catch(error) {
@@ -227,11 +227,18 @@ if (profile.role === 'client') void loadClientSpecialties();
   async function submitLabQuote(event) {
     event.preventDefault();
     if (profile?.role !== 'professional' || !openedJob) return;
-    const amount = Number(el('quoteAmount').value);
+    const rawAmount = el('quoteAmount').value.trim().replace(',', '.');
+    const rawWarranty = el('quoteWarranty').value.trim();
+    const amount = Number(rawAmount);
     const description = el('quoteDescription').value.trim();
-    const warrantyDays = Number(el('quoteWarranty').value);
-    if (!(amount > 0) || description.length < 3 ||
-        !Number.isInteger(warrantyDays) || warrantyDays < 0 || warrantyDays > 3650) return;
+    const warrantyDays = Number(rawWarranty);
+    if (!/^[0-9]+(?:\.[0-9]{1,2})?$/.test(rawAmount) ||
+        !(amount > 0) || amount > 9999999999.99 ||
+        !/^[0-9]+$/.test(rawWarranty) || warrantyDays > 3650 ||
+        description.length < 3) {
+      el('quoteFeedback').textContent = 'Revisá importe, garantía y descripción.';
+      return;
+    }
     const button = el('quoteForm').querySelector('button[type="submit"]');
     button.disabled = true;
     try {
