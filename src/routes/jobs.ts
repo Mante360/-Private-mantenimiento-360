@@ -222,15 +222,15 @@ const reviewInput = z.object({
   comment: z.string().trim().max(3000),
 }).strict();
 
-jobsRouter.get('/:id/review', requireRole('client'), async (req, res, next) => {
+jobsRouter.get('/:id/review', requireRole('client','professional','admin'), async (req, res, next) => {
   const id = z.coerce.number().int().positive().safeParse(req.params.id);
   if (!id.success) { res.status(400).json({error:'invalid_job_id'}); return; }
   try {
     const result = await pool.query(
       `SELECT r.stars,r.comment,r.created_at FROM ratings r
        JOIN jobs j ON j.id=r.job_id
-       WHERE r.job_id=$1 AND j.client_id=$2`,
-      [id.data, req.authUser!.id]
+       WHERE r.job_id=$1 AND (j.client_id=$2 OR $3='admin' OR ($3='professional' AND EXISTS (SELECT 1 FROM job_contracts jc JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=j.id WHERE jc.job_id=j.id AND q.professional_id=$2)))`,
+      [id.data, req.authUser!.id,req.authUser!.role]
     );
     res.json(result.rows[0] ?? null);
   } catch (error) { next(error); }
@@ -299,7 +299,7 @@ jobsRouter.get('/:id/events', async (req, res, next) => {
   const account = req.authUser!;
   try {
     const result = await pool.query(
-      `SELECT e.old_status,e.new_status,e.created_at
+      `SELECT e.old_status,e.new_status,e.note,e.created_at
        FROM job_status_events e JOIN jobs j ON j.id=e.job_id
        WHERE j.id=$1 AND (
          ($2='client' AND j.client_id=$3)
