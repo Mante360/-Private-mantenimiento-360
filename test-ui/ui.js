@@ -30,6 +30,7 @@
         invalid_input: 'Revisá los datos ingresados. La contraseña necesita 12 caracteres o más.',
         account_unavailable: 'Esta cuenta ya existe o no está disponible.',
         invalid_credentials: 'Correo o contraseña incorrectos.',
+        professional_has_open_claim: 'No podés enviar nuevos presupuestos porque tenés un reclamo pendiente de resolver. Podés consultar las solicitudes y responder al reclamo desde tu cuenta.',
         authentication_required: 'Necesitás iniciar sesión.',
         invalid_or_expired_token: 'La sesión venció. Volvé a ingresar.'
       };
