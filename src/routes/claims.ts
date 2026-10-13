@@ -71,6 +71,57 @@ claimsRouter.get('/', async (req, res, next) => {
   }
 });
 
+const responseSchema = z.object({
+  description: z.string().trim().min(10).max(3000),
+}).strict();
+
+// The assigned professional may explain the fault and proposed solution.
+// This never closes the client's claim or changes guarantee coverage.
+claimsRouter.post('/:id/professional-response', requireRole('professional'), async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  const input = responseSchema.safeParse(req.body);
+  if (!id.success || !input.success) {
+    res.status(400).json({error:'invalid_input'}); return;
+  }
+  try {
+    const result = await pool.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       SELECT $2,'claim_professional_response','claim',$1::text,
+              jsonb_build_object('description',$3::text,'jobId',c.job_id)
+       FROM claims c WHERE c.id=$1 AND c.professional_id=$2
+         AND c.status IN ('open','in_review')
+       RETURNING id,created_at`,
+      [id.data,req.authUser!.id,input.data.description]
+    );
+    if (!result.rows[0]) {
+      res.status(404).json({error:'claim_not_open_or_unavailable'}); return;
+    }
+    res.status(201).json({saved:true,createdAt:result.rows[0].created_at});
+  } catch (error) { next(error); }
+});
+
+// Client, assigned professional and Administration see the same recorded responses.
+claimsRouter.get('/:id/updates', async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  if (!id.success) { res.status(400).json({error:'invalid_claim_id'}); return; }
+  try {
+    const allowed = await pool.query(
+      `SELECT id FROM claims
+       WHERE id=$1 AND ($2='admin' OR created_by=$3 OR professional_id=$3)`,
+      [id.data,req.authUser!.role,req.authUser!.id]
+    );
+    if (!allowed.rows[0]) { res.status(404).json({error:'claim_not_found'}); return; }
+    const events = await pool.query(
+      `SELECT a.action,a.metadata->>'description' AS description,a.created_at
+       FROM audit_events a WHERE a.resource_type='claim' AND a.resource_id=$1
+         AND a.action='claim_professional_response'
+       ORDER BY a.created_at ASC,a.id ASC LIMIT 100`,
+      [String(id.data)]
+    );
+    res.json(events.rows);
+  } catch (error) { next(error); }
+});
+
 const resolveSchema = z.object({
   resolutionNote: z.string().trim().min(5).max(3000),
 }).strict();
