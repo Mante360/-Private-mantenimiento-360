@@ -111,8 +111,8 @@ jobsRouter.get('/', async (req, res, next) => {
 jobsRouter.get('/mine', requireRole('professional'), async (req, res, next) => {
   try {
     const result = await pool.query(
-      `SELECT ${publicJobFields},jq.amount,jq.warranty_days,
-         jc.confirmed_at FROM jobs j
+      `SELECT ${publicJobFields},jq.amount,jq.description AS quote_description,
+         jq.warranty_days,jc.confirmed_at FROM jobs j
        JOIN job_contracts jc ON jc.job_id=j.id
        JOIN job_quotes jq ON jq.id=jc.quote_id AND jq.job_id=j.id
        WHERE jq.professional_id=$1
