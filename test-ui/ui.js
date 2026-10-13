@@ -402,6 +402,40 @@ if (profile.role === 'client') void loadClientSpecialties();
               summary.append(correction);
             }
             item.append(summary);
+            if(visit.status==='completed'){
+              try{
+                const rating=await api('GET','/api/claims/'+claim.id+'/warranty/'+visit.id+'/rating');
+                if(rating){
+                  const shown=document.createElement('p');
+                  shown.textContent='Calificación de esta garantía: '+rating.stars+' estrellas'+
+                    (rating.comment?' · '+rating.comment:'');
+                  item.append(shown);
+                }else if(profile.role==='client' && confirmedVisits.has(String(visit.id))){
+                  const form=document.createElement('form');
+                  const heading=document.createElement('strong');heading.textContent='Calificar esta garantía';
+                  const select=document.createElement('select');select.required=true;
+                  select.append(new Option('Elegí de 1 a 5 estrellas',''));
+                  for(let n=5;n>=1;n--)select.append(new Option(n+' estrellas',String(n)));
+                  const comment=document.createElement('textarea');
+                  comment.placeholder='Opinión sobre la corrección (opcional)';
+                  comment.maxLength=3000;comment.rows=3;
+                  const button=document.createElement('button');
+                  button.type='submit';button.className='secondary';button.textContent='Enviar calificación de garantía';
+                  const notice=document.createElement('p');
+                  form.append(heading,select,comment,button,notice);
+                  form.addEventListener('submit',async(event)=>{
+                    event.preventDefault();button.disabled=true;
+                    try{
+                      await api('POST','/api/claims/'+claim.id+'/warranty/'+visit.id+'/rating',
+                        {stars:Number(select.value),comment:comment.value.trim()});
+                      if(openedJob)await loadJobClaimHistory(openedJob);
+                      await loadClaimInbox();
+                    }catch(error){notice.textContent='No se pudo calificar: '+error.message;button.disabled=false;}
+                  });
+                  item.append(form);
+                }
+              }catch(error){const m=document.createElement('p');m.textContent='No se pudo consultar calificación: '+error.message;item.append(m);}
+            }
             if(profile.role==='professional' && visit.status==='requested'){
               const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Informar corrección realizada';
               btn.onclick=async()=>{
