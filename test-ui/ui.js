@@ -209,7 +209,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
       '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
     el('quoteFeedback').textContent = '';
-    if (profile?.role === 'professional' && job.status === 'confirmed') {
+    if (profile?.role === 'professional' && ['confirmed','in_progress'].includes(job.status)) {
       el('jobDetailText').textContent += '\nImporte acordado (ARS): ' + job.amount +
         '\nGarantía acordada: ' + job.warranty_days + ' días' +
         (job.quote_description ? '\nPresupuesto: ' + job.quote_description : '');
