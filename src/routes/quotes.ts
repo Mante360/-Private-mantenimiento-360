@@ -55,6 +55,10 @@ quotesRouter.post('/:jobId/quotes', requireRole('professional'), async (req, res
          AND NOT EXISTS (
            SELECT 1 FROM professional_restrictions pr
            WHERE pr.professional_id=$1 AND pr.lifted_at IS NULL
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM claims c
+           WHERE c.professional_id=$1 AND c.status IN ('open','in_review')
          )`,
       [req.authUser!.id,job.specialty_id,job.service_id]
     );
