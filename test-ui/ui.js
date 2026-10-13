@@ -363,9 +363,24 @@ if (profile.role === 'client') void loadClientSpecialties();
           const warranties = await api('GET','/api/claims/'+claim.id+'/warranty');
           const confirmedVisits = new Set((await api('GET','/api/claims/'+claim.id+'/updates')).filter(x=>x.action==='warranty_client_confirmed').map(x=>String(x.warranty_id)));
           for(const visit of warranties){
-            const summary=document.createElement('p');
-            summary.textContent='Garantía '+visit.code+' · '+visit.status+'\n'+visit.description+
-              (visit.resolution_note?'\nCorrección informada: '+visit.resolution_note:'');
+            const summary=document.createElement('div');
+            summary.style.margin='12px 0';
+            summary.style.padding='10px 12px';
+            summary.style.borderLeft='4px solid #315d9a';
+            summary.style.background='rgba(128,148,175,.09)';
+            summary.style.borderRadius='5px';
+            const heading=document.createElement('strong');
+            heading.textContent='ADMINISTRACIÓN · Garantía '+visit.code+' · '+visit.status;
+            const detail=document.createElement('p');
+            detail.textContent='Autorización: '+visit.description;
+            detail.style.margin='7px 0 0';
+            summary.append(heading,detail);
+            if(visit.resolution_note){
+              const correction=document.createElement('p');
+              correction.textContent='Corrección informada por el profesional: '+visit.resolution_note;
+              correction.style.margin='7px 0 0';
+              summary.append(correction);
+            }
             item.append(summary);
             if(profile.role==='professional' && visit.status==='requested'){
               const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Informar corrección realizada';
