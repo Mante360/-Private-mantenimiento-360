@@ -162,7 +162,8 @@ if (profile.role === 'client') void loadClientSpecialties();
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'secondary';
-        button.textContent = 'Ver solicitud';
+        button.textContent = profile?.role === 'client' && ['confirmed','in_progress','completed'].includes(job.status)
+          ? 'Seguir trabajo' : 'Ver solicitud';
         button.addEventListener('click', () => void openJob(job));
         line.append(summary, button);
         panel.append(line);
@@ -202,10 +203,39 @@ if (profile.role === 'client') void loadClientSpecialties();
     }
   }
 
+  const statusLabels = {
+    requested: 'Solicitado', quoted: 'Presupuestado',
+    confirmed: 'Contratado', in_progress: 'En ejecución',
+    completed: 'Terminado', cancelled: 'Cancelado',
+    accepted: 'Aceptado'
+  };
+  const statusLabel = (status) => statusLabels[status] || status;
+
+  async function loadJobTimeline(job) {
+    const panel = el('jobTimeline');
+    panel.textContent = 'Consultando seguimiento...';
+    try {
+      const events = await api('GET', '/api/jobs/' + encodeURIComponent(String(job.id)) + '/events');
+      if (openedJob?.id !== job.id) return;
+      const rows = events.map(event => {
+        const date = new Date(event.created_at);
+        const time = Number.isNaN(date.getTime())
+          ? '' : ' · ' + date.toLocaleString('es-AR');
+        return '• ' + statusLabel(event.new_status) + time;
+      });
+      panel.textContent = 'Seguimiento del trabajo\\n' +
+        (rows.length ? rows.join('\\n') : 'Solicitud registrada. Sin cambios posteriores.');
+    } catch (error) {
+      panel.textContent = 'No se pudo consultar el seguimiento: ' + error.message;
+    }
+  }
+
   async function openJob(job) {
     openedJob = job;
     el('jobDetailPanel').hidden = false;
-    el('jobDetailTitle').textContent = 'Solicitud ' + job.public_code;
+    el('jobDetailTitle').textContent = 'Seguimiento del trabajo ' + job.public_code;
+    el('jobDetailPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    void loadJobTimeline(job);
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
       '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
     el('quoteFeedback').textContent = '';
