@@ -216,6 +216,79 @@ jobsRouter.post('/:id/report-completed', requireRole('professional'), async (req
   }
 });
 
+// Client-only conformity and review. This does not release payments or waive guarantees.
+const reviewInput = z.object({
+  stars: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(3000),
+}).strict();
+
+jobsRouter.get('/:id/review', requireRole('client'), async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  if (!id.success) { res.status(400).json({error:'invalid_job_id'}); return; }
+  try {
+    const result = await pool.query(
+      `SELECT r.stars,r.comment,r.created_at FROM ratings r
+       JOIN jobs j ON j.id=r.job_id
+       WHERE r.job_id=$1 AND j.client_id=$2`,
+      [id.data, req.authUser!.id]
+    );
+    res.json(result.rows[0] ?? null);
+  } catch (error) { next(error); }
+});
+
+jobsRouter.post('/:id/review', requireRole('client'), async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  const parsed = reviewInput.safeParse(req.body);
+  if (!id.success || !parsed.success) {
+    res.status(400).json({error:'invalid_input'}); return;
+  }
+  let db;
+  try {
+    db = await pool.connect();
+    await db.query('BEGIN');
+    const found = await db.query(
+      'SELECT id,status FROM jobs WHERE id=$1 AND client_id=$2 FOR UPDATE',
+      [id.data,req.authUser!.id]
+    );
+    if (!found.rows[0] || found.rows[0].status !== 'completed') {
+      await db.query('ROLLBACK');
+      res.status(409).json({error:'job_not_ready_for_review'});
+      return;
+    }
+    const openClaims = await db.query(
+      "SELECT id FROM claims WHERE job_id=$1 AND status IN ('open','in_review') LIMIT 1",
+      [id.data]
+    );
+    if (openClaims.rowCount) {
+      await db.query('ROLLBACK');
+      res.status(409).json({error:'claim_pending_review'});
+      return;
+    }
+    const rated = await db.query(
+      `INSERT INTO ratings(job_id,client_id,stars,comment)
+       VALUES($1,$2,$3,$4)
+       ON CONFLICT (job_id) WHERE job_id IS NOT NULL DO NOTHING
+       RETURNING stars,comment,created_at`,
+      [id.data,req.authUser!.id,parsed.data.stars,parsed.data.comment || null]
+    );
+    if (!rated.rows[0]) {
+      await db.query('ROLLBACK');
+      res.status(409).json({error:'review_already_submitted'});
+      return;
+    }
+    await db.query(
+      `INSERT INTO job_status_events(job_id,actor_id,old_status,new_status,note)
+       VALUES($1,$2,'completed','completed','Conformidad del cliente y reseña registradas')`,
+      [id.data,req.authUser!.id]
+    );
+    await db.query('COMMIT');
+    res.status(201).json({ ...rated.rows[0],clientApproved:true,paymentProcessed:false });
+  } catch (error) {
+    if (db) await db.query('ROLLBACK').catch(() => undefined);
+    next(error);
+  } finally { db?.release(); }
+});
+
 // Status history: job owner, selected professional, or administrator only.
 jobsRouter.get('/:id/events', async (req, res, next) => {
   const id = z.coerce.number().int().positive().safeParse(req.params.id);
