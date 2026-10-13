@@ -134,22 +134,117 @@ if (profile.role === 'client') void loadClientSpecialties();
       render();
     }
   }
+  let displayedJobs = [];
+  let openedJob = null;
   async function refreshJobs() {
+    const panel = el('jobsPanel');
+    el('jobDetailPanel').hidden = true;
+    openedJob = null;
+    panel.replaceChildren();
     try {
-      const jobs=await api('GET','/api/jobs');
-      el('jobsPanel').textContent=jobs.length
-        ? 'Solicitudes de prueba disponibles: ' + jobs.length + '\n' +
-          jobs.map(j=>'• '+j.public_code+' · '+j.locality+' · '+j.status).join('\n')
-        : 
-profile?.role === 'professional'
-  ? 'No hay solicitudes abiertas para tu especialidad en este momento.'
-  : 'Todavía no hay solicitudes de prueba para mostrar.'
-;
-    }catch(err){
-      el('jobsPanel').textContent=err.message;
-    }
+      displayedJobs = await api('GET', '/api/jobs');
+      if (!displayedJobs.length) {
+        panel.textContent = profile?.role === 'professional'
+          ? 'No hay solicitudes abiertas para tu especialidad en este momento.'
+          : 'Todavía no hay solicitudes de prueba para mostrar.';
+        return;
+      }
+      const headline = document.createElement('p');
+      headline.textContent = 'Solicitudes de prueba disponibles: ' + displayedJobs.length;
+      panel.append(headline);
+      displayedJobs.forEach(job => {
+        const line = document.createElement('div');
+        line.className = 'jobspanel';
+        const summary = document.createElement('span');
+        summary.textContent = job.public_code + ' · ' + job.locality + ' · ' + job.status + ' ';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'secondary';
+        button.textContent = 'Ver solicitud';
+        button.addEventListener('click', () => void openJob(job));
+        line.append(summary, button);
+        panel.append(line);
+      });
+    } catch(error) { panel.textContent = error.message; }
   }
-  
+
+  async function openJob(job) {
+    openedJob = job;
+    el('jobDetailPanel').hidden = false;
+    el('jobDetailTitle').textContent = 'Solicitud ' + job.public_code;
+    el('jobDetailText').textContent = 'Descripción: ' + job.description +
+      '\\nLocalidad: ' + job.locality + '\\nEstado: ' + job.status;
+    el('quoteFeedback').textContent = '';
+    const isProfessional = profile?.role === 'professional';
+    el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
+    await loadJobQuotes(job);
+  }
+
+  async function loadJobQuotes(job) {
+    const list = el('quoteList');
+    list.replaceChildren();
+    if (profile?.role !== 'client') return;
+    try {
+      const quotes = await api('GET', '/api/jobs/' + job.id + '/quotes');
+      if (!quotes.length) {
+        list.textContent = 'Todavía no recibiste presupuestos para esta solicitud.';
+        return;
+      }
+      quotes.forEach(quote => {
+        const section = document.createElement('div');
+        section.className = 'jobspanel';
+        const summary = document.createElement('p');
+        summary.textContent = 'Profesional: ' + quote.professional_name +
+          ' · Importe ARS ' + quote.amount +
+          ' · Garantía: ' + quote.warranty_days + ' días' +
+          ' · Estado: ' + quote.status +
+          '\\nDetalle: ' + quote.description;
+        section.append(summary);
+        if (job.status === 'quoted' && quote.status === 'submitted') {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'secondary';
+          button.textContent = 'Aceptar presupuesto de prueba';
+          button.addEventListener('click', async () => {
+            if (!confirm('¿Aceptar este presupuesto de PRUEBA? No se realiza ningún pago.')) return;
+            button.disabled = true;
+            try {
+              await api('POST', '/api/jobs/' + job.id + '/accept-quote', {quoteId: quote.id});
+              el('quoteFeedback').textContent = 'Presupuesto aceptado en el Laboratorio. No se procesó ningún pago.';
+              await refreshJobs();
+            } catch(error) {
+              el('quoteFeedback').textContent = error.message;
+              button.disabled = false;
+            }
+          });
+          section.append(button);
+        }
+        list.append(section);
+      });
+    } catch(error) { list.textContent = 'No se pudieron consultar presupuestos: ' + error.message; }
+  }
+
+  async function submitLabQuote(event) {
+    event.preventDefault();
+    if (profile?.role !== 'professional' || !openedJob) return;
+    const amount = Number(el('quoteAmount').value);
+    const description = el('quoteDescription').value.trim();
+    const warrantyDays = Number(el('quoteWarranty').value);
+    if (!(amount > 0) || description.length < 3 ||
+        !Number.isInteger(warrantyDays) || warrantyDays < 0 || warrantyDays > 3650) return;
+    const button = el('quoteForm').querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      await api('POST', '/api/jobs/' + openedJob.id + '/quotes',
+        {amount, description, warrantyDays});
+      el('quoteFeedback').textContent = 'Presupuesto de prueba enviado correctamente.';
+      el('quoteForm').reset();
+      await refreshJobs();
+    } catch(error) {
+      el('quoteFeedback').textContent = 'No se pudo enviar el presupuesto: ' + error.message;
+    } finally { button.disabled = false; }
+  }
+
 async function loadClientSpecialties() {
   const select = el('requestSpecialty');
   select.replaceChildren(new Option('Seleccionar especialidad', ''));
@@ -322,6 +417,7 @@ async function createLabRequest(event) {
   el('refreshJobs').addEventListener('click',refreshJobs);
   
 el('labRequestForm').addEventListener('submit',createLabRequest);
+  el('quoteForm').addEventListener('submit',submitLabQuote);
 
   el('showPending').addEventListener('click',loadProfessionals);
   el('adminProfessionalSelect').addEventListener('change',updateAdminSelection);
