@@ -114,7 +114,7 @@ claimsRouter.get('/:id/updates', async (req, res, next) => {
     const events = await pool.query(
       `SELECT a.action,a.metadata->>'description' AS description,a.created_at
        FROM audit_events a WHERE a.resource_type='claim' AND a.resource_id=$1
-         AND a.action IN ('claim_professional_response','claim_technical_review_requested')
+         AND a.action IN ('claim_professional_response','claim_technical_review_requested','claim_warranty_authorized','warranty_client_confirmed')
        ORDER BY a.created_at ASC,a.id ASC LIMIT 100`,
       [String(id.data)]
     );
@@ -159,6 +159,102 @@ claimsRouter.post('/:id/request-technical-review', requireRole('admin'), async (
     if (db) await db.query('ROLLBACK').catch(() => undefined);
     next(error);
   } finally {db?.release();}
+});
+
+
+const warrantyNote = z.object({note:z.string().trim().min(10).max(3000)}).strict();
+const warrantyId = (value:unknown) => z.coerce.number().int().positive().safeParse(value);
+
+// Only Administration can authorize a warranty intervention; a suffix is
+// allocated per original job. This is NOT an additional independent job.
+claimsRouter.post('/:id/authorize-warranty', requireRole('admin'), async (req,res,next) => {
+  const id=warrantyId(req.params.id), input=warrantyNote.safeParse(req.body);
+  if(!id.success || !input.success){res.status(400).json({error:'invalid_input'});return;}
+  let db;
+  try {
+    db=await pool.connect(); await db.query('BEGIN');
+    const found=await db.query(
+      `SELECT c.id,c.job_id,c.professional_id,j.public_code FROM claims c
+       JOIN jobs j ON j.id=c.job_id
+       WHERE c.id=$1 AND c.status IN ('open','in_review') FOR UPDATE OF c`,[id.data]);
+    const claim=found.rows[0];
+    if(!claim?.professional_id){await db.query('ROLLBACK');res.status(409).json({error:'claim_unavailable'});return;}
+    await db.query('SELECT id FROM jobs WHERE id=$1 FOR UPDATE',[claim.job_id]);
+    const existing=await db.query(
+      `SELECT w.id,j.public_code||'-'||w.suffix AS code,w.status
+       FROM warranty_visits w JOIN jobs j ON j.id=w.original_job_id
+       WHERE w.original_job_id=$1 AND w.status <> 'cancelled'
+       ORDER BY w.id DESC LIMIT 1`,[claim.job_id]);
+    if(existing.rows[0]){
+      await db.query('ROLLBACK');res.status(409).json({error:'warranty_already_exists',warranty:existing.rows[0]});return;
+    }
+    const suffix='A';
+    const created=await db.query(
+      `INSERT INTO warranty_visits(original_job_id,suffix,assigned_professional_id,description,status)
+       VALUES($1,$2,$3,$4,'requested')
+       RETURNING id,original_job_id,suffix,status`,
+      [claim.job_id,suffix,claim.professional_id,input.data.note]);
+    await db.query(`UPDATE claims SET status='in_review' WHERE id=$1`,[id.data]);
+    await db.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       VALUES($1,'claim_warranty_authorized','claim',$2,$3::jsonb)`,
+      [req.authUser!.id,String(id.data),JSON.stringify({description:input.data.note,jobId:claim.job_id,warrantyId:created.rows[0].id,code:claim.public_code+'-'+suffix})]);
+    await db.query('COMMIT');res.status(201).json({...created.rows[0],code:claim.public_code+'-'+suffix});
+  } catch(error){if(db)await db.query('ROLLBACK').catch(()=>undefined);next(error);}finally{db?.release();}
+});
+
+// Only claim participants can inspect the linked warranty.
+claimsRouter.get('/:id/warranty',async(req,res,next)=>{
+  const id=warrantyId(req.params.id);
+  if(!id.success){res.status(400).json({error:'invalid_input'});return;}
+  try{
+    const result=await pool.query(
+      `SELECT w.id,w.original_job_id,w.status,w.description,w.resolution_note,
+              j.public_code||'-'||w.suffix AS code
+       FROM claims c JOIN warranty_visits w ON w.original_job_id=c.job_id
+       JOIN jobs j ON j.id=c.job_id
+       WHERE c.id=$1 AND ($2='admin' OR c.created_by=$3 OR c.professional_id=$3)
+       ORDER BY w.id DESC LIMIT 10`,[id.data,req.authUser!.role,req.authUser!.id]);
+    res.json(result.rows);
+  }catch(error){next(error);}
+});
+
+claimsRouter.post('/:id/warranty/:visitId/report-completed',requireRole('professional'),async(req,res,next)=>{
+  const id=warrantyId(req.params.id),visit=warrantyId(req.params.visitId),input=warrantyNote.safeParse(req.body);
+  if(!id.success||!visit.success||!input.success){res.status(400).json({error:'invalid_input'});return;}
+  try{
+    const result=await pool.query(
+      `UPDATE warranty_visits w SET status='completed',resolution_note=$4,completed_at=now()
+       FROM claims c WHERE c.id=$1 AND w.id=$2 AND w.original_job_id=c.job_id
+         AND w.assigned_professional_id=$3 AND c.professional_id=$3
+         AND c.status IN ('open','in_review') AND w.status IN ('requested','scheduled','in_progress')
+       RETURNING w.id,w.status,w.resolution_note`,
+      [id.data,visit.data,req.authUser!.id,input.data.note]);
+    if(!result.rows[0]){res.status(409).json({error:'warranty_not_available'});return;}
+    res.json(result.rows[0]);
+  }catch(error){next(error);}
+});
+
+claimsRouter.post('/:id/warranty/:visitId/client-confirm',requireRole('client'),async(req,res,next)=>{
+  const id=warrantyId(req.params.id),visit=warrantyId(req.params.visitId);
+  const input=z.object({confirmed:z.literal(true)}).strict().safeParse(req.body);
+  if(!id.success||!visit.success||!input.success){res.status(400).json({error:'invalid_input'});return;}
+  let db;
+  try{
+    db=await pool.connect();await db.query('BEGIN');
+    const result=await db.query(
+      `SELECT c.id,w.id AS visit_id,w.status FROM claims c
+       JOIN warranty_visits w ON w.original_job_id=c.job_id
+       WHERE c.id=$1 AND w.id=$2 AND c.created_by=$3 AND c.status='in_review'
+         AND w.status='completed' FOR UPDATE OF c,w`,
+      [id.data,visit.data,req.authUser!.id]);
+    if(!result.rows[0]){await db.query('ROLLBACK');res.status(409).json({error:'warranty_not_ready'});return;}
+    await db.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       VALUES($1,'warranty_client_confirmed','claim',$2,$3::jsonb)`,
+      [req.authUser!.id,String(id.data),JSON.stringify({warrantyId:visit.data})]);
+    await db.query('COMMIT');res.json({confirmed:true});
+  }catch(error){if(db)await db.query('ROLLBACK').catch(()=>undefined);next(error);}finally{db?.release();}
 });
 
 const resolveSchema = z.object({
