@@ -223,8 +223,8 @@ if (profile.role === 'client') void loadClientSpecialties();
           ? '' : ' · ' + date.toLocaleString('es-AR');
         return '• ' + statusLabel(event.new_status) + time;
       });
-      panel.textContent = 'Seguimiento del trabajo\\n' +
-        (rows.length ? rows.join('\\n') : 'Solicitud registrada. Sin cambios posteriores.');
+      panel.textContent = 'Seguimiento del trabajo\n' +
+        (rows.length ? rows.join('\n') : 'Solicitud registrada. Sin cambios posteriores.');
     } catch (error) {
       panel.textContent = 'No se pudo consultar el seguimiento: ' + error.message;
     }
