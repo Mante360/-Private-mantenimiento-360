@@ -172,6 +172,35 @@ jobsRouter.post('/:id/start', requireRole('professional'), async (req, res, next
   }
 });
 
+// Status history: job owner, selected professional, or administrator only.
+jobsRouter.get('/:id/events', async (req, res, next) => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  if (!id.success) {
+    res.status(400).json({ error: 'invalid_job_id' });
+    return;
+  }
+  const account = req.authUser!;
+  try {
+    const result = await pool.query(
+      `SELECT e.old_status,e.new_status,e.created_at
+       FROM job_status_events e JOIN jobs j ON j.id=e.job_id
+       WHERE j.id=$1 AND (
+         ($2='client' AND j.client_id=$3)
+         OR ($2='professional' AND EXISTS(
+           SELECT 1 FROM job_contracts jc JOIN job_quotes jq
+             ON jq.id=jc.quote_id AND jq.job_id=j.id
+           WHERE jc.job_id=j.id AND jq.professional_id=$3
+         ))
+         OR $2='admin'
+       ) ORDER BY e.created_at ASC,e.id ASC LIMIT 100`,
+      [id.data,account.role,account.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // No exact_address: address sharing requires separate consent-aware API.
 jobsRouter.get('/:id', async (req, res, next) => {
   const id = z.coerce.number().int().positive().safeParse(req.params.id);
