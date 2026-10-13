@@ -71,6 +71,8 @@
     el('jobsPanel').textContent = '';
     el('adminSection').hidden = profile.role !== 'admin';
     el('contractsSection').hidden = profile.role !== 'professional';
+    el('myQuotesSection').hidden = profile.role !== 'professional';
+    if(profile.role === 'professional') void loadMyQuotes();
     void loadClaimInbox();
     if (profile.role === 'professional') void loadContracts();
     
@@ -174,6 +176,29 @@ if (profile.role === 'client') void loadClientSpecialties();
   }
 
   // Only the authenticated professional's accepted contracts come from /api/jobs/mine.
+  async function loadMyQuotes() {
+    if(profile?.role !== 'professional') return;
+    const panel=el('myQuotesPanel');
+    panel.textContent='Consultando presupuestos...';
+    try {
+      const quotes=await api('GET','/api/jobs/mine/quotes');
+      panel.replaceChildren();
+      if(!quotes.length){panel.textContent='Todavía no enviaste presupuestos.';return;}
+      for(const quote of quotes){
+        const card=document.createElement('div');card.className='jobspanel';
+        const title=document.createElement('strong');
+        title.textContent='Solicitud '+quote.public_code+' · '+quote.locality;
+        const details=document.createElement('p');
+        details.textContent='Presupuesto N.º '+quote.id+
+          '\nImporte ARS '+quote.amount+' · Garantía '+quote.warranty_days+' días'+
+          '\nEstado del presupuesto: '+quote.status+
+          '\nEstado del trabajo: '+quote.job_status+
+          '\nDetalle: '+quote.description;
+        card.append(title,details);panel.append(card);
+      }
+    }catch(error){panel.textContent='No se pudieron consultar los presupuestos: '+error.message;}
+  }
+
   async function loadContracts() {
     if (profile?.role !== 'professional') return;
     const panel = el('contractsPanel');
@@ -832,6 +857,7 @@ async function createLabRequest(event) {
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
   el('refreshContracts').addEventListener('click',loadContracts);
+  el('refreshMyQuotes').addEventListener('click',loadMyQuotes);
   
 el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
