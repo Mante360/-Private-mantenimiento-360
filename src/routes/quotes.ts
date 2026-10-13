@@ -42,6 +42,16 @@ quotesRouter.post('/:jobId/quotes', requireRole('professional'), async (req, res
       return;
     }
 
+    const pendingClaim = await db.query(
+      "SELECT 1 FROM claims WHERE professional_id=$1 AND status IN ('open','in_review') LIMIT 1",
+      [req.authUser!.id]
+    );
+    if (pendingClaim.rowCount) {
+      await db.query('ROLLBACK');
+      res.status(403).json({error:'professional_has_open_claim'});
+      return;
+    }
+
     const professional = await db.query(
       `SELECT pp.user_id FROM professional_profiles pp
        JOIN professional_specialties ps
