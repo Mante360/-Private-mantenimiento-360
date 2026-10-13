@@ -221,7 +221,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         const date = new Date(event.created_at);
         const time = Number.isNaN(date.getTime())
           ? '' : ' · ' + date.toLocaleString('es-AR');
-        return '• ' + statusLabel(event.new_status) + time;
+        return '• ' + (event.note?.includes('Conformidad del cliente') ? 'Conformidad registrada por el cliente' : statusLabel(event.new_status)) + time;
       });
       panel.textContent = 'Seguimiento del trabajo\n' +
         (rows.length ? rows.join('\n') : 'Solicitud registrada. Sin cambios posteriores.');
@@ -230,12 +230,28 @@ if (profile.role === 'client') void loadClientSpecialties();
     }
   }
 
+  async function loadProfessionalReview(job) {
+    const panel = el('professionalReview');
+    panel.hidden = false;
+    panel.textContent = 'Consultando calificación...';
+    try {
+      const review = await api('GET', '/api/jobs/' + encodeURIComponent(String(job.id)) + '/review');
+      if (openedJob?.id !== job.id) return;
+      panel.textContent = review
+        ? 'Calificación del cliente: ' + review.stars + ' de 5 estrellas' +
+          (review.comment ? '\nReseña: ' + review.comment : '')
+        : 'Este trabajo todavía no tiene calificación.';
+    } catch (error) { panel.textContent = 'No se pudo consultar la calificación: ' + error.message; }
+  }
+
   async function openJob(job) {
     openedJob = job;
     el('jobDetailPanel').hidden = false;
+    el('professionalReview').hidden = profile?.role !== 'professional';
     el('jobDetailTitle').textContent = 'Seguimiento del trabajo ' + job.public_code;
     el('jobDetailPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     void loadJobTimeline(job);
+    if (profile?.role === 'professional') void loadProfessionalReview(job);
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
       '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
     el('quoteFeedback').textContent = '';
