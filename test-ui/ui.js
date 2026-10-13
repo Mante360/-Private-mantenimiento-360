@@ -329,7 +329,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         item.append(updates);
         try {
           const responses = await api('GET', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/updates');
-          updates.textContent = responses.length ? responses.map(r => 'Respuesta profesional: ' + r.description).join('\n') : 'Sin descargo profesional registrado.';
+          updates.textContent = responses.length ? responses.map(r => (r.action === 'claim_technical_review_requested' ? 'Administración solicitó revisión técnica: ' : 'Respuesta profesional: ') + r.description).join('\n') : 'Sin descargo profesional registrado.';
         } catch (err) { updates.textContent = 'No se pudo consultar el descargo: ' + err.message; }
         if (profile.role === 'professional' && ['open','in_review'].includes(claim.status)) {
           const form = document.createElement('form');
@@ -382,9 +382,27 @@ if (profile.role === 'client') void loadClientSpecialties();
         try {
           const updates = await api('GET','/api/claims/'+encodeURIComponent(String(claim.id))+'/updates');
           professionalUpdates.textContent = updates.length
-            ? updates.map(x => 'Descargo del profesional: ' + x.description).join('\n')
+            ? updates.map(x => (x.action === 'claim_technical_review_requested' ? 'Revisión técnica solicitada por Administración: ' : 'Descargo del profesional: ') + x.description).join('\n')
             : 'Aún no hay descargo del profesional.';
         } catch(error) { professionalUpdates.textContent = 'No se pudo consultar descargo: '+error.message; }
+        if (['open','in_review'].includes(claim.status)) {
+          const requestButton = document.createElement('button');
+          requestButton.className = 'secondary';
+          requestButton.type = 'button';
+          requestButton.textContent = 'Solicitar revisión técnica';
+          requestButton.onclick = async () => {
+            const note = prompt('Indicaciones de revisión técnica para el profesional y el cliente (mínimo 10 caracteres):',
+              'Solicito una nueva revisión técnica para identificar la causa de la falla y documentar si corresponde al trabajo original. El reclamo continúa abierto.');
+            if (note === null) return;
+            if (note.trim().length < 10) { alert('Escribí al menos 10 caracteres.'); return; }
+            requestButton.disabled = true;
+            try {
+              await api('POST','/api/claims/'+encodeURIComponent(String(claim.id))+'/request-technical-review',{note:note.trim()});
+              await loadAdminClaims();
+            } catch(error) {alert('No se pudo solicitar la revisión: '+error.message);requestButton.disabled=false;}
+          };
+          item.append(requestButton);
+        }
         if (['open','in_review'].includes(claim.status)) {
           const button = document.createElement('button');
           button.className = 'secondary';
