@@ -633,8 +633,20 @@ if (profile.role === 'client') void loadClientSpecialties();
       reviewForm.hidden = Boolean(review) || pending;
       el('openClaimFormButton').hidden = pending;
       if (review) {
-        el('reviewResult').textContent = 'Conformidad registrada: ' + review.stars +
-          ' estrellas. La garantía sigue vigente.';
+        el('clientCompletionNotice').hidden = false;
+        el('clientCompletionNotice').textContent = 'Conformidad del cliente registrada. El trabajo está finalizado. No se procesó ningún pago.';
+        el('reviewResult').textContent = 'Conformidad registrada: ' + review.stars + ' estrellas.';
+        try {
+          const quotes = await api('GET','/api/jobs/'+encodeURIComponent(String(job.id))+'/quotes');
+          if (openedJob?.id !== job.id) return;
+          const accepted = quotes.find(q => q.status === 'accepted');
+          if (accepted) {
+            const days = Number(accepted.warranty_days);
+            el('reviewResult').textContent += days === 0
+              ? ' Presupuesto con 0 días de garantía pactada.'
+              : ' Garantía pactada: '+days+' días. La vigencia debe verificarse según la fecha de inicio aplicable.';
+          }
+        } catch (_) { /* Do not assert validity if quote lookup fails. */ }
       } else if (pending) {
         el('reviewResult').textContent = 'Hay un reclamo abierto en este trabajo. Administración debe revisarlo antes de registrar conformidad.';
       }
