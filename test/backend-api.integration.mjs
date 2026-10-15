@@ -199,6 +199,41 @@ try {
   assert.equal(audit[0].total,1,'Auditoria de resolucion');
   tests++;
 
+  // A claim with a zero-day warranty may be filed and resolved, but no
+  // contractual warranty visit should be authorized by the API.
+  const zeroJob = expectStatus(await post('/api/jobs', {
+    specialtyId: Number(refrigeration.id), serviceId: Number(repair.id),
+    description: 'Reparacion sin garantia', locality: 'Olivos',
+  }, userB.token), 201, 'Crear solicitud sin garantia');
+  const [zeroQuote] = await query(
+    "INSERT INTO job_quotes(job_id,professional_id,amount,description,warranty_days,status) VALUES($1,$2,60000,'Sin garantia',0,'accepted') RETURNING id",
+    [zeroJob.id,pro.user.id]);
+  await query("INSERT INTO job_contracts(job_id,quote_id) VALUES($1,$2)",
+    [zeroJob.id,zeroQuote.id]);
+  await query("UPDATE jobs SET status='completed',completed_at=now() WHERE id=$1",[zeroJob.id]);
+  const zeroClaim = expectStatus(await post('/api/claims', {
+    jobId: Number(zeroJob.id), reason: 'Falla posterior',
+    description: 'Solicito revision de la falla sin garantia contractual.',
+  }, userB.token), 201, 'Reclamar con cero dias');
+  expectStatus(await post('/api/claims/' + zeroClaim.id + '/authorize-warranty', {
+    note: 'Intento de autorizar garantia sin dias pactados',
+  }, admin.token), 409, 'Bloquear garantia contractual sin plazo');
+  const [zeroState] = await query("SELECT status FROM claims WHERE id=$1",[zeroClaim.id]);
+  assert.equal(zeroState.status,'open');
+  tests++;
+  const zeroResolved = expectStatus(await request('PATCH',
+    '/api/claims/' + zeroClaim.id + '/resolve', admin.token,
+    { resolutionNote:'Se reviso el informe sin autorizar garantia.' }),
+    200,'Resolver reclamo sin garantia');
+  assert.equal(zeroResolved.status,'resolved');
+  const visibleToClient = expectStatus(await get('/api/claims',userB.token),
+    200,'Cliente consulta resolucion archivada');
+  const zeroArchived = visibleToClient.find(x=>String(x.id)===String(zeroClaim.id));
+  assert.equal(zeroArchived?.status,'resolved');
+  assert.equal(zeroArchived?.warranty_days,0);
+  assert.equal(zeroArchived?.resolution_note,'Se reviso el informe sin autorizar garantia.');
+  tests += 4;
+
   // La autorización real no depende del rol mostrado en la interfaz:
   // estos endpoints comprueban el rol ADMIN en cada llamada.
   expectStatus(await get('/api/admin/professionals'),401,
