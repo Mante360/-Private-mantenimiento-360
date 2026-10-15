@@ -375,6 +375,19 @@ if (profile.role === 'client') void loadClientSpecialties();
     }
   }
 
+  function appendClaimResolution(item, claim) {
+    if (claim.status !== 'resolved') return;
+    const box = document.createElement('div');
+    box.style.cssText = 'margin:12px 0;padding:10px 12px;border-left:4px solid #315d9a;background:rgba(128,148,175,.09);border-radius:5px';
+    const title = document.createElement('strong');
+    title.textContent = 'ADMINISTRACIÓN · Reclamo resuelto';
+    const detail = document.createElement('p');
+    detail.style.margin = '7px 0 0';
+    detail.textContent = claim.resolution_note || 'No hay un detalle de resolución disponible.';
+    box.append(title, detail);
+    item.append(box);
+  }
+
   async function renderClaimCards(panel,claims) {
     panel.replaceChildren();
     if (!claims.length) {panel.textContent='No tenés reclamos pendientes.';return;}
@@ -384,8 +397,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         const info = document.createElement('p');
         info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + claim.job_id +
           ' · ' + claim.status + '\nMotivo: ' + claim.reason +
-          '\nDescripción: ' + claim.description +
-          (claim.resolution_note ? '\nResolución: ' + claim.resolution_note : '');
+          '\nDescripción: ' + claim.description;
         item.append(info);
         const updates = document.createElement('div');
         item.append(updates);
@@ -393,6 +405,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           const responses = await api('GET', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/updates');
           renderClaimUpdates(updates, responses);
         } catch (err) { updates.textContent = 'No se pudo consultar el descargo: ' + err.message; }
+        appendClaimResolution(item, claim);
         try {
           const warranties = await api('GET','/api/claims/'+claim.id+'/warranty');
           const confirmedVisits = new Set((await api('GET','/api/claims/'+claim.id+'/updates')).filter(x=>x.action==='warranty_client_confirmed').map(x=>String(x.warranty_id)));
@@ -553,6 +566,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           const updates = await api('GET','/api/claims/'+encodeURIComponent(String(claim.id))+'/updates');
           renderClaimUpdates(professionalUpdates, updates);
         } catch(error) { professionalUpdates.textContent = 'No se pudo consultar descargo: '+error.message; }
+        appendClaimResolution(item, claim);
         try {
           const visits=await api('GET','/api/claims/'+claim.id+'/warranty');
           if(visits.length){
@@ -560,7 +574,7 @@ if (profile.role === 'client') void loadClientSpecialties();
             summary.textContent=visits.map(v=>'Garantía '+v.code+' · '+v.status+
               (v.resolution_note?' · Corrección: '+v.resolution_note:'')).join('\n');
             item.append(summary);
-          } else if(['open','in_review'].includes(claim.status)){
+          } else if(['open','in_review'].includes(claim.status) && Number(claim.warranty_days) > 0){
             const authorize=document.createElement('button');
             authorize.type='button';authorize.className='secondary';authorize.textContent='Autorizar intervención en garantía';
             authorize.onclick=async()=>{
@@ -573,6 +587,10 @@ if (profile.role === 'client') void loadClientSpecialties();
               try{await api('POST','/api/claims/'+claim.id+'/authorize-warranty',{note:note.trim()});await loadAdminClaims();}
               catch(error){alert('No se pudo autorizar: '+error.message);authorize.disabled=false;}
             };item.append(authorize);
+          } else if(['open','in_review'].includes(claim.status)){
+            const note = document.createElement('p');
+            note.textContent = 'Sin garantía contractual comprobada: no se habilita una intervención automática en garantía. El reclamo puede revisarse y resolverse.';
+            item.append(note);
           }
         }catch(error){const msg=document.createElement('p');msg.textContent='Error consultando garantías: '+error.message;item.append(msg);}
         if (['open','in_review'].includes(claim.status)) {
