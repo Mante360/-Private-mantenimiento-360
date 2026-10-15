@@ -60,7 +60,11 @@ claimsRouter.get('/', async (req, res, next) => {
     const params = actor.role === 'admin' ? [] : [actor.id];
     const result = await pool.query(
       `SELECT c.id,c.job_id,c.warranty_visit_id,c.reason,c.description,
-              c.status,c.resolution_note,c.created_at,c.resolved_at
+              c.status,c.resolution_note,c.created_at,c.resolved_at,
+              (SELECT q.warranty_days
+               FROM job_contracts jc JOIN job_quotes q
+                 ON q.id=jc.quote_id AND q.job_id=jc.job_id
+               WHERE jc.job_id=c.job_id) AS warranty_days
        FROM claims c ${conditions}
        ORDER BY c.created_at DESC LIMIT 100`,
       params
@@ -174,11 +178,21 @@ claimsRouter.post('/:id/authorize-warranty', requireRole('admin'), async (req,re
   try {
     db=await pool.connect(); await db.query('BEGIN');
     const found=await db.query(
-      `SELECT c.id,c.job_id,c.professional_id,j.public_code FROM claims c
+      `SELECT c.id,c.job_id,c.professional_id,j.public_code,q.warranty_days
+       FROM claims c
        JOIN jobs j ON j.id=c.job_id
+       JOIN job_contracts jc ON jc.job_id=j.id
+       JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=j.id
        WHERE c.id=$1 AND c.status IN ('open','in_review') FOR UPDATE OF c`,[id.data]);
     const claim=found.rows[0];
     if(!claim?.professional_id){await db.query('ROLLBACK');res.status(409).json({error:'claim_unavailable'});return;}
+    // A zero-day contractual warranty must not create an automatic warranty visit.
+    // Administrative review and resolution of the underlying complaint remains possible.
+    if(Number(claim.warranty_days) <= 0){
+      await db.query('ROLLBACK');
+      res.status(409).json({error:'no_contractual_warranty'});
+      return;
+    }
     await db.query('SELECT id FROM jobs WHERE id=$1 FOR UPDATE',[claim.job_id]);
     const existing=await db.query(
       `SELECT w.id,j.public_code||'-'||w.suffix AS code,w.status
