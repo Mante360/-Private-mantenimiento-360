@@ -16,3 +16,14 @@
 
 /* Bloqueo de presupuestos: aviso de alto contraste en la cuenta profesional. */
 #quoteFeedback.quote-warning{display:block;margin:16px 0;padding:15px 17px;border:2px solid #bc202c;border-left-width:7px;border-radius:10px;background:#fff0f0;color:#8f1420;font-size:15px;line-height:1.55;font-weight:800;box-shadow:0 2px 7px #6d16241a}
+
+/* Private technical questions and visit prep: no general messenger */
+.technical-thread{background:#fff;border:1px solid #c6d6e6;border-radius:11px;padding:14px;margin-top:13px}
+.technical-thread h4{font-size:15px;margin:5px 0 9px}
+.technical-thread textarea{display:block;width:100%;border:1px solid #b9c7d7;background:#fff;padding:10px;border-radius:8px;font:inherit;resize:vertical}
+.technical-thread .primary{margin-top:10px}
+.technical-thread .secondary{margin:9px 0}
+.technical-pair{border-left:4px solid #4a75a5;background:#f4f7fb;border-radius:5px;padding:8px 12px;margin:12px 0}
+.technical-pair p{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+.technical-meta{font-size:12px;font-weight:700;color:#345a85}
+.technical-preparation{background:#f5f8ec;border:1px solid #cbd8aa;border-radius:9px;padding:12px;margin-top:15px}
