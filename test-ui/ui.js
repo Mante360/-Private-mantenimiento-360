@@ -32,7 +32,8 @@
         invalid_credentials: 'Correo o contraseña incorrectos.',
         professional_has_open_claim: 'No podés enviar nuevos presupuestos porque tenés un reclamo pendiente de resolver. Podés consultar las solicitudes y responder al reclamo desde tu cuenta.',
         authentication_required: 'Necesitás iniciar sesión.',
-        invalid_or_expired_token: 'La sesión venció. Volvé a ingresar.'
+        invalid_or_expired_token: 'La sesión venció. Volvé a ingresar.',
+        claim_already_open: 'Ya existe un reclamo abierto o en revisión para este trabajo. Esperá su resolución antes de presentar otro.'
       };
       throw new Error(body.error === 'invalid_input' ? 'Los datos de la operación no son válidos.' : (known[body.error] || 'La solicitud no se completó (HTTP ' + response.status + ').'));
     }
@@ -163,7 +164,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         const line = document.createElement('div');
         line.className = 'jobspanel';
         const summary = document.createElement('span');
-        summary.textContent = job.public_code + ' · ' + job.locality + ' · ' + job.status + ' ';
+        summary.textContent = job.public_code + ' · ' + job.locality + ' · ' + statusLabel(job.status,job) + ' ';
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'secondary';
@@ -192,8 +193,8 @@ if (profile.role === 'client') void loadClientSpecialties();
         const details=document.createElement('p');
         details.textContent='Presupuesto N.º '+quote.id+
           '\nImporte ARS '+quote.amount+' · Garantía '+quote.warranty_days+' días'+
-          '\nEstado del presupuesto: '+quote.status+
-          '\nEstado del trabajo: '+quote.job_status+
+          '\nEstado del presupuesto: '+statusLabel(quote.status)+
+          '\nEstado del trabajo: '+statusLabel(quote.job_status)+
           '\nDetalle: '+quote.description;
         card.append(title,details);panel.append(card);
       }
@@ -217,7 +218,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         line.className = 'jobspanel';
         const summary = document.createElement('p');
         summary.textContent = job.public_code + ' · ' + job.locality +
-          ' · ' + job.status + ' · ARS ' + job.amount;
+          ' · ' + statusLabel(job.status,job) + ' · ARS ' + job.amount;
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'secondary';
@@ -232,12 +233,19 @@ if (profile.role === 'client') void loadClientSpecialties();
   }
 
   const statusLabels = {
-    requested: 'Solicitado', quoted: 'Presupuestado',
+    requested: 'Solicitado', quoted: 'Presupuestado', submitted: 'Enviado',
     confirmed: 'Contratado', in_progress: 'En ejecución',
     completed: 'Finalización informada · pendiente de revisión', cancelled: 'Cancelado',
-    accepted: 'Aceptado'
+    accepted: 'Aceptado', not_selected: 'No seleccionado', rejected: 'Rechazado',
+    withdrawn: 'Retirado', open: 'Abierto', in_review: 'En revisión',
+    resolved: 'Resuelto', dismissed: 'Desestimado', scheduled: 'Programado'
   };
-  const statusLabel = (status) => statusLabels[status] || status;
+  const statusLabel = (status, job = null) =>
+    status === 'completed' && job?.client_approved === true
+      ? 'Finalizado con conformidad del cliente'
+      : (statusLabels[status] || status);
+  const warrantyStatusLabel = (status) =>
+    status === 'completed' ? 'Intervención completada' : statusLabel(status);
 
   async function loadJobTimeline(job) {
     const panel = el('jobTimeline');
@@ -265,6 +273,9 @@ if (profile.role === 'client') void loadClientSpecialties();
     try {
       const review = await api('GET', '/api/jobs/' + encodeURIComponent(String(job.id)) + '/review');
       if (openedJob?.id !== job.id) return;
+      if (review && job.status === 'completed') {
+        el('jobDetailText').textContent = el('jobDetailText').textContent.replace(/Estado: [^\n]+/, 'Estado: Finalizado con conformidad del cliente');
+      }
       panel.textContent = review
         ? 'Calificación del cliente: ' + review.stars + ' de 5 estrellas' +
           (review.comment ? '\nReseña: ' + review.comment : '')
@@ -282,7 +293,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     void loadJobClaimHistory(job);
     if (profile?.role === 'professional') void loadProfessionalReview(job);
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
-      '\nLocalidad: ' + job.locality + '\nEstado: ' + job.status;
+      '\nLocalidad: ' + job.locality + '\nEstado: ' + statusLabel(job.status,job);
     el('quoteFeedback').textContent = '';
     if (profile?.role === 'professional' && ['confirmed','in_progress','completed'].includes(job.status)) {
       el('jobDetailText').textContent += '\nImporte acordado (ARS): ' + job.amount +
@@ -396,7 +407,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         item.className = 'jobspanel';
         const info = document.createElement('p');
         info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + claim.job_id +
-          ' · ' + claim.status + '\nMotivo: ' + claim.reason +
+          ' · ' + statusLabel(claim.status) + '\nMotivo: ' + claim.reason +
           '\nDescripción: ' + claim.description;
         item.append(info);
         const updates = document.createElement('div');
@@ -417,7 +428,7 @@ if (profile.role === 'client') void loadClientSpecialties();
             summary.style.background='rgba(128,148,175,.09)';
             summary.style.borderRadius='5px';
             const heading=document.createElement('strong');
-            heading.textContent='ADMINISTRACIÓN · Garantía '+visit.code+' · '+visit.status;
+            heading.textContent='ADMINISTRACIÓN · Garantía '+visit.code+' · '+warrantyStatusLabel(visit.status);
             const detail=document.createElement('p');
             detail.textContent='Autorización: '+visit.description;
             detail.style.margin='7px 0 0';
@@ -556,7 +567,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         item.className = 'jobspanel';
         const info = document.createElement('p');
         info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + claim.job_id +
-          ' · Estado: ' + claim.status + '\nMotivo: ' + claim.reason +
+          ' · Estado: ' + statusLabel(claim.status) + '\nMotivo: ' + claim.reason +
           '\nDetalle: ' + claim.description;
         item.append(info);
         const professionalUpdates = document.createElement('div');
@@ -571,7 +582,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           const visits=await api('GET','/api/claims/'+claim.id+'/warranty');
           if(visits.length){
             const summary=document.createElement('p');
-            summary.textContent=visits.map(v=>'Garantía '+v.code+' · '+v.status+
+            summary.textContent=visits.map(v=>'Garantía '+v.code+' · '+warrantyStatusLabel(v.status)+
               (v.resolution_note?' · Corrección: '+v.resolution_note:'')).join('\n');
             item.append(summary);
           } else if(['open','in_review'].includes(claim.status) && Number(claim.warranty_days) > 0){
@@ -650,7 +661,10 @@ if (profile.role === 'client') void loadClientSpecialties();
       const reviewForm = el('clientReviewForm');
       reviewForm.hidden = Boolean(review) || pending;
       el('openClaimFormButton').hidden = pending;
+      el('openClaimFormButton').textContent = claims.some(c => String(c.job_id) === String(job.id) && ['resolved','dismissed'].includes(c.status))
+        ? 'Presentar otro reclamo' : 'Presentar reclamo';
       if (review) {
+        el('jobDetailText').textContent = el('jobDetailText').textContent.replace(/Estado: [^\n]+/, 'Estado: Finalizado con conformidad del cliente');
         el('clientCompletionNotice').hidden = false;
         el('clientCompletionNotice').textContent = 'Conformidad del cliente registrada. El trabajo está finalizado. No se procesó ningún pago.';
         el('reviewResult').textContent = 'Conformidad registrada: ' + review.stars + ' estrellas.';
@@ -668,7 +682,9 @@ if (profile.role === 'client') void loadClientSpecialties();
       } else if (pending) {
         el('reviewResult').textContent = 'Hay un reclamo abierto en este trabajo. Administración debe revisarlo antes de registrar conformidad.';
       }
-      if (pending) el('claimResult').textContent = 'Reclamo abierto. Podés consultar su estado en Administración.';
+      if (pending) el('claimResult').textContent = 'Ya existe un reclamo pendiente para este trabajo. No se puede presentar otro hasta su resolución.';
+      else if (claims.some(c => String(c.job_id) === String(job.id) && ['resolved','dismissed'].includes(c.status)))
+        el('claimResult').textContent = 'El reclamo anterior quedó archivado. Si surgió un problema distinto, podés presentar uno nuevo.';
     } catch (error) {
       el('clientReviewForm').hidden = true;
       el('reviewResult').textContent = 'No se pudo verificar la conformidad: ' + error.message;
