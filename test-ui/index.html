@@ -111,8 +111,8 @@
 
     <label for="requestPhotoInput">Fotografías del problema (opcional)</label>
     <input id="requestPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-    <p class="hint">Hasta 5 imágenes por cliente y trabajo. JPG, PNG o WebP; máximo 10 MB por archivo original. Para este laboratorio se reducen y guardan como JPG liviano. Usá únicamente fotos ficticias.</p>
-    <p id="requestPhotoPreview" class="hint" role="status"></p>
+    <p class="hint">Elegí hasta 5 fotos (JPG, PNG o WebP; máximo 10 MB cada una). Verás una vista previa y podrás quitar las que no quieras. Se guardarán al tocar «Crear solicitud de prueba». Usá solo imágenes ficticias.</p>
+    <div id="requestPhotoPreview" class="photo-staging" role="status" aria-live="polite"></div>
 
     <button type="submit" id="createRequestButton" class="primary">
       Crear solicitud de prueba
@@ -156,8 +156,8 @@
               <div id="photoUploadControls" hidden>
                 <label for="jobPhotoInput">Agregar fotos a este trabajo (hasta 5 por perfil)</label>
                 <input id="jobPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-                <button type="button" id="uploadJobPhotos" class="secondary">Adjuntar fotografías</button>
-                <p id="photoUploadResult" class="hint" role="status"></p>
+                <p class="hint">Al seleccionar las imágenes se adjuntan automáticamente. Esperá el mensaje «Guardadas»; si te equivocaste, podés quitar tu foto desde la galería.</p>
+                <p id="photoUploadResult" class="hint" role="status" aria-live="polite"></p>
               </div>
             </section>
             <section id="jobClaimHistory" class="admin-section" hidden>
