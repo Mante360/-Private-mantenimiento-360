@@ -152,7 +152,7 @@
             <div id="professionalReview" class="jobspanel" role="status" hidden></div>
             <section id="jobPhotosSection" class="admin-section">
               <h3>Fotografías del trabajo</h3>
-              <p class="hint">Fotos vinculadas al trabajo; visibles solo para cliente, profesionales habilitados para ver la solicitud y Administración. Hacé clic en una imagen para ampliarla.</p>
+              <p class="hint">Fotos vinculadas al trabajo; visibles solo para cliente, profesionales habilitados para ver la solicitud y Administración. Tocá una foto para ampliarla y usá las flechas para recorrer las demás.</p>
               <div id="jobPhotosGallery" class="photo-grid" role="status" aria-live="polite"></div>
               <div id="photoUploadControls" hidden>
                 <label for="jobPhotoInput">Agregar fotos a este trabajo (hasta 5 por perfil)</label>
@@ -221,5 +221,20 @@
     </section>
     <footer>Área experimental independiente · No se admiten clientes, direcciones ni pagos reales.</footer>
   </main>
+  <div id="photoViewer" class="photo-viewer" role="dialog" aria-modal="true" aria-label="Visor de fotografías" hidden>
+    <div class="photo-viewer-inner">
+      <div class="photo-viewer-header">
+        <strong id="photoViewerCounter" aria-live="polite">Fotografía</strong>
+        <button type="button" id="photoViewerClose" class="photo-viewer-close" aria-label="Cerrar visor de fotografías">✕ Cerrar</button>
+      </div>
+      <div class="photo-viewer-main">
+        <button type="button" id="photoViewerPrev" class="photo-viewer-arrow" aria-label="Fotografía anterior">❮</button>
+        <img id="photoViewerImage" alt="Fotografía ampliada">
+        <button type="button" id="photoViewerNext" class="photo-viewer-arrow" aria-label="Fotografía siguiente">❯</button>
+      </div>
+      <p id="photoViewerDescription" class="photo-viewer-caption"></p>
+      <p class="photo-viewer-tip">También podés usar ← y → en el teclado o deslizar en el teléfono. Esc para cerrar.</p>
+    </div>
+  </div>
 </body>
 </html>
