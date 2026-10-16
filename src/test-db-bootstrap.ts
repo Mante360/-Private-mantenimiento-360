@@ -28,7 +28,7 @@ export async function bootstrapTestSchemaIfRequested(): Promise<void> {
       const sql = readFileSync(join(process.cwd(), 'database', '001_new_install.sql'), 'utf8');
       await client.query(sql);
       console.log('Test-only PostgreSQL schema installed');
-    } else if (existing.rows.length === 21) {
+    } else if ([21,22].includes(existing.rows.length)) {
       // A previously completed installation may be reused. Do not touch rows.
       console.log('Test-only PostgreSQL schema already present');
     } else {
@@ -52,12 +52,12 @@ export async function bootstrapTestSchemaIfRequested(): Promise<void> {
         'claims','warranty_visits','ratings','audit_events','legacy_imports'
       ]]
     );
-    if (schema.rows[0]?.total !== 21 ||
+    if (![21,22].includes(schema.rows[0]?.total) ||
         warranty.rows[0]?.total !== 1 ||
         essentials.rows[0]?.total !== 10) {
       throw new Error('Refusing startup: test schema integrity check failed');
     }
-    console.log('Test-only database schema verified: 21 tables and warranty view');
+    console.log('Test-only database schema verified: 21 original tables, optional photo table and warranty view');
   } finally {
     await client.query('SELECT pg_advisory_unlock($1::bigint)', [36020261012]).catch(() => undefined);
     client.release();
