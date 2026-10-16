@@ -86,9 +86,9 @@ photosRouter.get('/:jobId/photos', async (req, res, next) => {
       res.status(404).json({error:'job_not_found'}); return;
     }
     const photos = await db.query(
-      `SELECT id,uploader_role,size_bytes,created_at
+      `SELECT id,uploader_role,size_bytes,created_at,(uploader_id=$2) AS can_remove
        FROM lab_job_photos WHERE job_id=$1 ORDER BY created_at,id LIMIT 20`,
-      [id.data]
+      [id.data,req.authUser!.id]
     );
     res.json(photos.rows);
   } catch (error) { next(error); } finally { db.release(); }
@@ -157,3 +157,31 @@ photosRouter.post('/:jobId/photos',
     } finally { db.release(); }
   }
 );
+
+ // Laboratory only: uploader may retract a mistakenly selected photograph.
+photosRouter.delete('/:jobId/photos/:photoId', async (req, res, next) => {
+  const id = jobIdFrom(req.params.jobId);
+  const photoId = jobIdFrom(req.params.photoId);
+  if (!id.success || !photoId.success) {
+    res.status(400).json({error:'invalid_photo_id'}); return;
+  }
+  const db=await pool.connect();
+  try {
+    await db.query('BEGIN');
+    const access=await permission(db,id.data,req.authUser!,true);
+    if (!access.write) {
+      await db.query('ROLLBACK');
+      res.status(403).json({error:'photo_delete_not_allowed'}); return;
+    }
+    const deleted=await db.query(
+      'DELETE FROM lab_job_photos WHERE job_id=$1 AND id=$2 AND uploader_id=$3 RETURNING id',
+      [id.data,photoId.data,req.authUser!.id]
+    );
+    await db.query('COMMIT');
+    if (!deleted.rows.length) { res.status(404).json({error:'photo_not_found'}); return; }
+    res.json({deleted:true});
+  } catch (error) {
+    await db.query('ROLLBACK').catch(() => undefined);
+    next(error);
+  } finally {db.release();}
+});
