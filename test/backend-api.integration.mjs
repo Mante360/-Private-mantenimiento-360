@@ -215,6 +215,10 @@ try {
     jobId: Number(zeroJob.id), reason: 'Falla posterior',
     description: 'Solicito revision de la falla sin garantia contractual.',
   }, userB.token), 201, 'Reclamar con cero dias');
+  expectStatus(await post('/api/claims', {
+    jobId: Number(zeroJob.id), reason: 'Reclamo repetido',
+    description: 'Segundo reclamo simultaneo sobre el mismo trabajo.',
+  }, userB.token), 409, 'Impedir reclamo duplicado mientras hay uno abierto');
   expectStatus(await post('/api/claims/' + zeroClaim.id + '/authorize-warranty', {
     note: 'Intento de autorizar garantia sin dias pactados',
   }, admin.token), 409, 'Bloquear garantia contractual sin plazo');
@@ -233,6 +237,15 @@ try {
   assert.equal(zeroArchived?.warranty_days,0);
   assert.equal(zeroArchived?.resolution_note,'Se reviso el informe sin autorizar garantia.');
   tests += 4;
+  const reopenedClaim = expectStatus(await post('/api/claims', {
+    jobId: Number(zeroJob.id), reason: 'Incidencia diferente',
+    description: 'Se presenta un nuevo problema tras resolver el reclamo anterior.',
+  }, userB.token), 201, 'Nuevo reclamo permitido tras resolucion');
+  assert.ok(Number(reopenedClaim.id) > Number(zeroClaim.id));
+  expectStatus(await request('PATCH','/api/claims/' + reopenedClaim.id + '/resolve',
+    admin.token,{resolutionNote:'Cierre de segundo reclamo de prueba.'}),200,
+    'Segundo reclamo archivado de forma independiente');
+  tests++;
 
   // La autorización real no depende del rol mostrado en la interfaz:
   // estos endpoints comprueban el rol ADMIN en cada llamada.
