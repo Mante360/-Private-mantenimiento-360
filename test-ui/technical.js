@@ -4,6 +4,8 @@
   const el=id=>document.getElementById(id);
   const token=()=>sessionStorage.getItem('m360-lab-token')||'';
   let shownJob=null;
+  let shownProfile=null;
+  let currentJob=null;
   let session=0;
   const endpoint=(jobId)=>'/api/jobs/'+encodeURIComponent(String(jobId))+'/technical';
 
@@ -148,6 +150,8 @@
   async function reload(job,profile){
     const version=++session;
     shownJob=Number(job.id);
+    shownProfile=profile;
+    currentJob=job;
     const section=el('technicalInfoSection');
     const panel=el('technicalInfoPanel');
     section.hidden=false;
@@ -176,12 +180,13 @@
   }
   function close() {
     shownJob=null;
+    currentJob=null;
+    shownProfile=null;
     session++;
     el('technicalInfoSection').hidden=true;
   }
   el('refreshTechnicalInfo').addEventListener('click',()=>{
-    const data=window.labTechnicalCurrent;
-    if(data?.job&&data?.profile) void reload(data.job,data.profile);
+    if(currentJob&&shownProfile) void reload(currentJob,shownProfile);
   });
   window.labTechnical={openJob,close};
   // Stored only in the browser; no customer or professional personal data persisted.
