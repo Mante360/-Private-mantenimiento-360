@@ -828,7 +828,7 @@ async function createLabRequest(event) {
   const locality = el('requestLocality').value.trim();
 
   if (!specialtyId || description.length < 3 || locality.length < 2) return;
-  const photos=Array.from(el('requestPhotoInput').files||[]);
+  const photos=window.labPhotos.getStagedPhotos();
   if (photos.length>5) { el('requestResult').textContent='Elegí hasta 5 fotografías.'; return; }
 
   const button = el('createRequestButton');
@@ -846,13 +846,13 @@ async function createLabRequest(event) {
       try {
         const count=await window.labPhotos.uploadLabPhotos(job.id,photos);
         photosResult=' Se guardaron '+count+' foto(s).';
-        el('requestPhotoInput').value='';
-        el('requestPhotoPreview').textContent='';
+        // Previews are cleared after confirming the completed request.
       } catch (error) {
         photosResult=' Atención: '+error.message+
           ' La solicitud quedó creada. Abrila para ver qué fotos llegaron y agregar las faltantes.';
       }
     }
+    window.labPhotos.clearStagedPhotos();
     el('requestResult').textContent =
       'Solicitud de prueba creada: ' + job.public_code + '.' + photosResult;
 
