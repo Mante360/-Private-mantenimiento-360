@@ -27,3 +27,30 @@
 .technical-pair p{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
 .technical-meta{font-size:12px;font-weight:700;color:#345a85}
 .technical-preparation{background:#f5f8ec;border:1px solid #cbd8aa;border-radius:9px;padding:12px;margin-top:15px}
+
+/* Visor de fotografías dentro de la plataforma, sin pestañas nuevas. */
+.photo-thumb{cursor:pointer;text-align:left;width:100%}
+.photo-thumb:focus-visible{outline:3px solid #4388d4;outline-offset:3px}
+body.photo-viewer-open{overflow:hidden}
+.photo-viewer[hidden]{display:none!important}
+.photo-viewer{position:fixed;inset:0;z-index:9999;background:rgba(5,14,31,.94);color:#fff;display:flex;align-items:center;justify-content:center;padding:14px}
+.photo-viewer-inner{display:flex;flex-direction:column;gap:12px;width:min(1150px,100%);max-height:calc(100dvh - 28px);min-height:0}
+.photo-viewer-header{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:16px}
+.photo-viewer-close,.photo-viewer-arrow{background:#fff;color:#091b36;border:0;border-radius:10px;font-weight:800;cursor:pointer;touch-action:manipulation}
+.photo-viewer-close{padding:12px 16px;font-size:15px}
+.photo-viewer-main{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:0;flex:1}
+.photo-viewer-main img{display:block;object-fit:contain;max-width:calc(100% - 110px);max-height:72dvh;min-width:0;min-height:0;margin:auto;user-select:none;-webkit-user-drag:none;touch-action:pan-y}
+.photo-viewer-arrow{font-size:29px;min-width:48px;min-height:65px;flex-shrink:0}
+.photo-viewer-arrow:disabled{opacity:.3;cursor:default}
+.photo-viewer-arrow:focus-visible,.photo-viewer-close:focus-visible{outline:3px solid #8fc8ff;outline-offset:3px}
+.photo-viewer-caption,.photo-viewer-tip{margin:0;text-align:center;overflow-wrap:anywhere}
+.photo-viewer-caption{font-size:14px;font-weight:700}
+.photo-viewer-tip{font-size:12px;color:#cbd9ed}
+@media(max-width:600px){
+  .photo-viewer{padding:10px}
+  .photo-viewer-inner{max-height:calc(100dvh - 20px);gap:10px}
+  .photo-viewer-main{gap:5px}
+  .photo-viewer-main img{max-width:calc(100% - 90px);max-height:70dvh}
+  .photo-viewer-arrow{font-size:25px;min-width:39px;min-height:55px}
+  .photo-viewer-close{padding:10px 12px}
+}
