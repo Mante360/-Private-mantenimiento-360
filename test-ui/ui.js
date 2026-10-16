@@ -35,7 +35,9 @@
         invalid_or_expired_token: 'La sesión venció. Volvé a ingresar.',
         claim_already_open: 'Ya existe un reclamo abierto o en revisión para este trabajo. Esperá su resolución antes de presentar otro.'
       };
-      throw new Error(body.error === 'invalid_input' ? 'Los datos de la operación no son válidos.' : (known[body.error] || 'La solicitud no se completó (HTTP ' + response.status + ').'));
+      const error = new Error(body.error === 'invalid_input' ? 'Los datos de la operación no son válidos.' : (known[body.error] || 'La solicitud no se completó (HTTP ' + response.status + ').'));
+      error.code = body.error || '';
+      throw error;
     }
     return body;
   }
@@ -296,6 +298,8 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailText').textContent = 'Descripción: ' + job.description +
       '\nLocalidad: ' + job.locality + '\nEstado: ' + statusLabel(job.status,job);
     el('quoteFeedback').textContent = '';
+    el('quoteFeedback').classList.remove('quote-warning');
+    el('quoteFeedback').setAttribute('role','status');
     if (profile?.role === 'professional' && ['confirmed','in_progress','completed'].includes(job.status)) {
       el('jobDetailText').textContent += '\nImporte acordado (ARS): ' + job.amount +
         '\nGarantía acordada: ' + job.warranty_days + ' días' +
@@ -778,6 +782,8 @@ if (profile.role === 'client') void loadClientSpecialties();
   async function submitLabQuote(event) {
     event.preventDefault();
     if (profile?.role !== 'professional' || !openedJob) return;
+    el('quoteFeedback').classList.remove('quote-warning');
+    el('quoteFeedback').setAttribute('role','status');
     const rawAmount = el('quoteAmount').value.trim().replace(',', '.');
     const rawWarranty = el('quoteWarranty').value.trim();
     const amount = Number(rawAmount);
@@ -799,7 +805,13 @@ if (profile.role === 'client') void loadClientSpecialties();
       el('quoteForm').reset();
       await refreshJobs();
     } catch(error) {
-      el('quoteFeedback').textContent = 'No se pudo enviar el presupuesto: ' + error.message;
+      const blocked = error.code === 'professional_has_open_claim';
+      const notice = el('quoteFeedback');
+      notice.classList.toggle('quote-warning',blocked);
+      notice.setAttribute('role',blocked ? 'alert' : 'status');
+      notice.textContent = blocked
+        ? '⛔ PRESUPUESTO BLOQUEADO. ' + error.message
+        : 'No se pudo enviar el presupuesto: ' + error.message;
     } finally { button.disabled = false; }
   }
 
