@@ -11,3 +11,5 @@
 #jobDetailPanel{scroll-margin-top:20px}
 
 .photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px;margin:14px 0}.photo-thumb{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #cad7e7;border-radius:10px;padding:7px;text-decoration:none;color:#1b2f49;font-size:12px;font-weight:bold;overflow:hidden}.photo-thumb img{height:138px;width:100%;object-fit:cover;border-radius:6px}.photo-thumb span{display:block;overflow-wrap:anywhere}#photoUploadControls input,#requestPhotoInput{display:block;padding:10px;background:#fff}#photoUploadControls .secondary{margin-top:12px}
+
+.photo-staging .photo-grid{margin-top:8px}.photo-item{display:flex;flex-direction:column;gap:5px;min-width:0}.photo-item .photo-thumb{flex:1}.photo-remove{font-size:12px;padding:7px 9px;align-self:stretch}.photo-grid .photo-thumb img{max-height:150px}.photo-grid .photo-thumb span{font-size:12px;overflow-wrap:anywhere}#requestPhotoPreview{min-height:26px}
