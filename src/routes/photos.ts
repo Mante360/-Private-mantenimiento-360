@@ -86,7 +86,7 @@ photosRouter.get('/:jobId/photos', async (req, res, next) => {
       res.status(404).json({error:'job_not_found'}); return;
     }
     const photos = await db.query(
-      `SELECT id,uploader_role,size_bytes,created_at,(uploader_id=$2) AS can_remove
+      `SELECT id,uploader_role,size_bytes,created_at,(uploader_id=$2 AND created_at>now()-interval '15 minutes') AS can_remove
        FROM lab_job_photos WHERE job_id=$1 ORDER BY created_at,id LIMIT 20`,
       [id.data,req.authUser!.id]
     );
@@ -174,7 +174,7 @@ photosRouter.delete('/:jobId/photos/:photoId', async (req, res, next) => {
       res.status(403).json({error:'photo_delete_not_allowed'}); return;
     }
     const deleted=await db.query(
-      'DELETE FROM lab_job_photos WHERE job_id=$1 AND id=$2 AND uploader_id=$3 RETURNING id',
+      'DELETE FROM lab_job_photos WHERE job_id=$1 AND id=$2 AND uploader_id=$3 AND created_at>now()-interval ''15 minutes'' RETURNING id',
       [id.data,photoId.data,req.authUser!.id]
     );
     await db.query('COMMIT');
