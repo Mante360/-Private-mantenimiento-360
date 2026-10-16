@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/pruebas/ui.css">
   <script src="/pruebas/ui.js" defer></script>
   <script src="/pruebas/photos.js" defer></script>
+  <script src="/pruebas/technical.js" defer></script>
 </head>
 <body>
   <main class="shell">
@@ -195,6 +196,12 @@
               <p id="claimResult" class="feedback" role="status"></p>
             </section>
             <div id="quoteList"></div>
+            <section id="technicalInfoSection" class="admin-section" hidden>
+              <h3>Información técnica para preparar la visita</h3>
+              <p class="hint">Estas consultas se habilitan solamente después de presentar un presupuesto. No es un chat libre. Las consultas son privadas entre cliente y profesional; las fotos nuevas de la solicitud pueden verlas otros profesionales habilitados.</p>
+              <button type="button" class="secondary" id="refreshTechnicalInfo">Actualizar consultas técnicas</button>
+              <div id="technicalInfoPanel" role="status" aria-live="polite"></div>
+            </section>
             <form id="quoteForm" hidden>
               <label for="quoteAmount">Importe de prueba (ARS)</label>
               <input id="quoteAmount" type="text" inputmode="decimal" maxlength="16" autocomplete="off" required>
