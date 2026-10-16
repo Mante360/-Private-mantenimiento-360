@@ -5,6 +5,10 @@
   const token = () => sessionStorage.getItem('m360-lab-token') || '';
   let opened = null;
   let urls = [];
+  let staged = [];
+  let stagedUrls = [];
+  let pendingUpload = false;
+  let stagingError = '';
   const release = () => { urls.forEach(x=>URL.revokeObjectURL(x)); urls=[]; };
 
   async function optimize(file) {
@@ -33,6 +37,71 @@
       }
       throw new Error('No se pudo reducir la imagen al límite del laboratorio.');
     } finally { bmp.close(); }
+  }
+
+
+  function clearStagedPhotos() {
+    staged = [];
+    stagingError = '';
+    el('requestPhotoInput').value = '';
+    renderStagedPhotos();
+  }
+
+  function renderStagedPhotos() {
+    stagedUrls.forEach(url=>URL.revokeObjectURL(url));
+    stagedUrls = [];
+    const panel = el('requestPhotoPreview');
+    panel.replaceChildren();
+    const notice = document.createElement('p');
+    notice.className = 'hint';
+    notice.textContent = stagingError || (staged.length ?
+      staged.length+' fotografía(s) listas para enviar con la solicitud.' :
+      'Todavía no seleccionaste fotografías.');
+    panel.append(notice);
+    if (!staged.length) return;
+    const grid = document.createElement('div');
+    grid.className = 'photo-grid';
+    staged.forEach((file, index)=>{
+      const url = URL.createObjectURL(file);
+      stagedUrls.push(url);
+      const box = document.createElement('div');
+      box.className = 'photo-thumb';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Vista previa de '+file.name;
+      const info = document.createElement('span');
+      info.textContent = file.name + ' · '+Math.round(file.size/1024)+' KB (original)';
+      const remove = document.createElement('button');
+      remove.className = 'secondary photo-remove';
+      remove.type = 'button';
+      remove.textContent = 'Quitar';
+      remove.addEventListener('click',()=>{
+        staged.splice(index,1);
+        stagingError = '';
+        renderStagedPhotos();
+      });
+      box.append(img,info,remove);
+      grid.append(box);
+    });
+    panel.append(grid);
+  }
+
+  function stageNewRequestPhotos() {
+    const picker = el('requestPhotoInput');
+    const chosen = Array.from(picker.files || []);
+    picker.value = '';
+    if (!chosen.length) return;
+    const bad = chosen.find(file=> !['image/jpeg','image/png','image/webp'].includes(file.type) ||
+      file.size>10*1024*1024);
+    if (bad) {
+      stagingError='La foto '+bad.name+' no es JPG/PNG/WebP o supera los 10 MB. No se agregaron las nuevas fotos.';
+    } else if(staged.length+chosen.length>5) {
+      stagingError='Podés seleccionar hasta 5 fotos por solicitud. Quitá alguna antes de agregar más.';
+    } else {
+      staged.push(...chosen);
+      stagingError = '';
+    }
+    renderStagedPhotos();
   }
 
   async function uploadLabPhotos(jobId,files) {
@@ -95,7 +164,33 @@
         caption.textContent=(photo.uploader_role==='client'?'Cliente':'Profesional')+
           ' · '+Math.round(Number(photo.size_bytes)/1024)+' KB';
         a.append(img,caption);
-        panel.append(a);
+        const card = document.createElement('div');
+        card.className='photo-item';
+        card.append(a);
+        if (photo.can_remove === true) {
+          const remove = document.createElement('button');
+          remove.type='button';
+          remove.className='secondary photo-remove';
+          remove.textContent='Quitar esta foto';
+          remove.addEventListener('click', async ()=>{
+            if (!confirm('¿Quitar esta fotografía? Solo podrás quitar tus propias fotos recientes.')) return;
+            remove.disabled=true;
+            try {
+              const result=await fetch('/api/jobs/'+encodeURIComponent(String(jobId))+
+                '/photos/'+encodeURIComponent(String(photo.id)),{
+                method:'DELETE',cache:'no-store',headers:{Authorization:'Bearer '+token()}
+              });
+              if(!result.ok) throw new Error('La foto ya no puede quitarse o no tenés autorización.');
+              el('photoUploadResult').textContent='Fotografía retirada correctamente.';
+              if (opened?.id===jobId) await loadPhotos(jobId);
+            } catch(error) {
+              el('photoUploadResult').textContent=error.message;
+              remove.disabled=false;
+            }
+          });
+          card.append(remove);
+        }
+        panel.append(card);
       }
     } catch (error) { panel.textContent='No se pudieron cargar las fotos: '+error.message; }
   }
@@ -111,29 +206,35 @@
     void loadPhotos(Number(job.id));
   }
 
-  el('requestPhotoInput').addEventListener('change',()=>{
-    const n=el('requestPhotoInput').files?.length||0;
-    el('requestPhotoPreview').textContent=n+' archivo(s) seleccionado(s)'+(n>5?' (máximo 5)':'');
-  });
-  el('uploadJobPhotos').addEventListener('click',async()=>{
-    const files=Array.from(el('jobPhotoInput').files||[]);
-    if (!opened||!files.length) {
-      el('photoUploadResult').textContent='Elegí una fotografía primero.'; return;
-    }
+  el('requestPhotoInput').addEventListener('change',stageNewRequestPhotos);
+  renderStagedPhotos();
+
+  el('jobPhotoInput').addEventListener('change',async()=>{
+    const picker=el('jobPhotoInput');
+    const files=Array.from(picker.files||[]);
+    picker.value='';
+    if (!opened || !files.length || pendingUpload) return;
     const jobId=opened.id;
-    const button=el('uploadJobPhotos');
-    button.disabled=true;
-    el('photoUploadResult').textContent='Preparando y subiendo fotos...';
+    pendingUpload=true;
+    picker.disabled=true;
+    el('photoUploadResult').textContent='Preparando y guardando '+files.length+' foto(s)...';
     try {
       const count=await uploadLabPhotos(jobId,files);
-      el('jobPhotoInput').value='';
-      el('photoUploadResult').textContent='Guardadas: '+count+' fotografía(s).';
+      if (opened?.id===jobId) {
+        el('photoUploadResult').textContent='Guardadas: '+count+' fotografía(s). Ya aparecen en este trabajo.';
+      }
     } catch (error) {
-      el('photoUploadResult').textContent='Carga incompleta: '+error.message;
+      if (opened?.id===jobId) {
+        el('photoUploadResult').textContent='Carga incompleta: '+error.message;
+      }
     } finally {
-      button.disabled=false;
+      pendingUpload=false;
+      picker.disabled=false;
       if (opened?.id===jobId) await loadPhotos(jobId);
     }
   });
-  window.labPhotos={openJob,uploadLabPhotos};
+
+  window.labPhotos={openJob,uploadLabPhotos,
+    getStagedPhotos:()=>staged.slice(),clearStagedPhotos};
+
 })();
