@@ -149,6 +149,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     const panel = el('jobsPanel');
     el('jobDetailPanel').hidden = true;
     openedJob = null;
+    window.labTechnical.close();
     el('jobClaimHistory').hidden = true;
     panel.replaceChildren();
     try {
@@ -198,7 +199,15 @@ if (profile.role === 'client') void loadClientSpecialties();
           '\nEstado del presupuesto: '+statusLabel(quote.status)+
           '\nEstado del trabajo: '+statusLabel(quote.job_status)+
           '\nDetalle: '+quote.description;
-        card.append(title,details);panel.append(card);
+        const open=document.createElement('button');
+        open.type='button';open.className='secondary';
+        open.textContent='Ver consultas y preparar visita';
+        open.addEventListener('click',()=>void openJob({
+          id:quote.job_id,public_code:quote.public_code,
+          locality:quote.locality,status:quote.job_status,
+          description:quote.job_description
+        }));
+        card.append(title,details,open);panel.append(card);
       }
     }catch(error){panel.textContent='No se pudieron consultar los presupuestos: '+error.message;}
   }
@@ -288,6 +297,7 @@ if (profile.role === 'client') void loadClientSpecialties();
   async function openJob(job) {
     openedJob = job;
     window.labPhotos.openJob(job,profile);
+    window.labTechnical.openJob(job,profile);
     el('jobDetailPanel').hidden = false;
     el('professionalReview').hidden = profile?.role !== 'professional';
     el('jobDetailTitle').textContent = 'Seguimiento del trabajo ' + job.public_code;
@@ -804,6 +814,7 @@ if (profile.role === 'client') void loadClientSpecialties();
       el('quoteFeedback').textContent = 'Presupuesto de prueba enviado correctamente.';
       el('quoteForm').reset();
       await refreshJobs();
+      await loadMyQuotes();
     } catch(error) {
       const blocked = error.code === 'professional_has_open_claim';
       const notice = el('quoteFeedback');
