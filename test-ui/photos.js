@@ -5,11 +5,85 @@
   const token = () => sessionStorage.getItem('m360-lab-token') || '';
   let opened = null;
   let urls = [];
+  let viewerItems = [];
+  let viewerIndex = 0;
+  let viewerPreviousFocus = null;
+  let touchStartX = null;
   let staged = [];
   let stagedUrls = [];
   let pendingUpload = false;
   let stagingError = '';
   const release = () => { urls.forEach(x=>URL.revokeObjectURL(x)); urls=[]; };
+  function closePhotoViewer() {
+    const viewer=el('photoViewer');
+    if (viewer.hidden) return;
+    viewer.hidden=true;
+    document.body.classList.remove('photo-viewer-open');
+    el('photoViewerImage').removeAttribute('src');
+    const previous=viewerPreviousFocus;
+    viewerPreviousFocus=null;
+    if (previous?.isConnected && !previous.closest('[hidden]')) previous.focus();
+  }
+  function showViewerItem(index) {
+    if (!viewerItems.length) return;
+    viewerIndex=(index+viewerItems.length)%viewerItems.length;
+    const item=viewerItems[viewerIndex];
+    el('photoViewerImage').src=item.url;
+    el('photoViewerImage').alt=item.alt;
+    el('photoViewerCounter').textContent='Fotografía '+(viewerIndex+1)+' de '+viewerItems.length;
+    el('photoViewerDescription').textContent=item.caption;
+    const single=viewerItems.length<2;
+    el('photoViewerPrev').disabled=single;
+    el('photoViewerNext').disabled=single;
+  }
+  function openPhotoViewer(index) {
+    if (!viewerItems[index]) return;
+    viewerPreviousFocus=document.activeElement;
+    showViewerItem(index);
+    el('photoViewer').hidden=false;
+    document.body.classList.add('photo-viewer-open');
+    el('photoViewerClose').focus();
+  }
+  el('photoViewerClose').addEventListener('click',closePhotoViewer);
+  el('photoViewerPrev').addEventListener('click',()=>showViewerItem(viewerIndex-1));
+  el('photoViewerNext').addEventListener('click',()=>showViewerItem(viewerIndex+1));
+  el('photoViewer').addEventListener('click',event=>{
+    if(event.target===el('photoViewer')) closePhotoViewer();
+  });
+  document.addEventListener('keydown',event=>{
+    if(el('photoViewer').hidden) return;
+    if(event.key==='Escape') {
+      event.preventDefault();
+      closePhotoViewer();
+    } else if(event.key==='ArrowLeft'){
+      event.preventDefault();
+      showViewerItem(viewerIndex-1);
+    } else if(event.key==='ArrowRight'){
+      event.preventDefault();
+      showViewerItem(viewerIndex+1);
+    } else if(event.key==='Tab') {
+      const controls=['photoViewerClose','photoViewerPrev','photoViewerNext']
+        .map(el).filter(button=>!button.disabled);
+      if(!controls.length)return;
+      const first=controls[0],last=controls[controls.length-1];
+      if(event.shiftKey&&document.activeElement===first){
+        event.preventDefault();last.focus();
+      }else if(!event.shiftKey&&document.activeElement===last){
+        event.preventDefault();first.focus();
+      }
+    }
+  });
+  el('photoViewerImage').addEventListener('touchstart',event=>{
+    touchStartX=event.touches.length===1?event.touches[0].clientX:null;
+  },{passive:true});
+  el('photoViewerImage').addEventListener('touchend',event=>{
+    if(touchStartX===null || event.changedTouches.length!==1)return;
+    const travel=event.changedTouches[0].clientX-touchStartX;
+    touchStartX=null;
+    if(Math.abs(travel)>55){
+      showViewerItem(viewerIndex+(travel<0?1:-1));
+    }
+  },{passive:true});
 
   async function optimize(file) {
     if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
@@ -132,6 +206,8 @@
   }
 
   async function loadPhotos(jobId) {
+    closePhotoViewer();
+    viewerItems=[];
     release();
     const panel=el('jobPhotosGallery');
     panel.replaceChildren();
@@ -154,19 +230,24 @@
         const url=URL.createObjectURL(blob);
         if (opened?.id!==jobId) { URL.revokeObjectURL(url); return; }
         urls.push(url);
-        const a=document.createElement('a');
-        a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
-        a.className='photo-thumb'; a.title='Abrir fotografía ampliada';
+        const thumb=document.createElement('button');
+        thumb.type='button';
+        thumb.className='photo-thumb';
+        thumb.title='Ampliar y recorrer fotografías';
+        thumb.setAttribute('aria-label','Ampliar foto '+(viewerItems.length+1)+' de '+photos.length);
         const img=document.createElement('img');
         img.src=url; img.loading='lazy';
         img.alt='Foto de '+(photo.uploader_role==='client'?'cliente':'profesional');
         const caption=document.createElement('span');
         caption.textContent=(photo.uploader_role==='client'?'Cliente':'Profesional')+
           ' · '+Math.round(Number(photo.size_bytes)/1024)+' KB';
-        a.append(img,caption);
+        const index=viewerItems.length;
+        viewerItems.push({url,alt:img.alt,caption:caption.textContent});
+        thumb.addEventListener('click',()=>openPhotoViewer(index));
+        thumb.append(img,caption);
         const card = document.createElement('div');
         card.className='photo-item';
-        card.append(a);
+        card.append(thumb);
         if (photo.can_remove === true) {
           const remove = document.createElement('button');
           remove.type='button';
@@ -196,6 +277,7 @@
   }
 
   function openJob(job,profile) {
+    closePhotoViewer();
     opened={id:Number(job.id)};
     const mayUpload=profile?.role==='client' ||
       (profile?.role==='professional' && job.amount!==undefined &&
