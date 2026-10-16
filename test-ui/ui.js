@@ -285,6 +285,7 @@ if (profile.role === 'client') void loadClientSpecialties();
 
   async function openJob(job) {
     openedJob = job;
+    window.labPhotos.openJob(job,profile);
     el('jobDetailPanel').hidden = false;
     el('professionalReview').hidden = profile?.role !== 'professional';
     el('jobDetailTitle').textContent = 'Seguimiento del trabajo ' + job.public_code;
@@ -827,6 +828,8 @@ async function createLabRequest(event) {
   const locality = el('requestLocality').value.trim();
 
   if (!specialtyId || description.length < 3 || locality.length < 2) return;
+  const photos=Array.from(el('requestPhotoInput').files||[]);
+  if (photos.length>5) { el('requestResult').textContent='Elegí hasta 5 fotografías.'; return; }
 
   const button = el('createRequestButton');
   button.disabled = true;
@@ -838,8 +841,20 @@ async function createLabRequest(event) {
       locality
     });
 
+    let photosResult='';
+    if (photos.length) {
+      try {
+        const count=await window.labPhotos.uploadLabPhotos(job.id,photos);
+        photosResult=' Se guardaron '+count+' foto(s).';
+        el('requestPhotoInput').value='';
+        el('requestPhotoPreview').textContent='';
+      } catch (error) {
+        photosResult=' Atención: '+error.message+
+          ' La solicitud quedó creada. Abrila para ver qué fotos llegaron y agregar las faltantes.';
+      }
+    }
     el('requestResult').textContent =
-      'Solicitud de prueba creada: ' + job.public_code;
+      'Solicitud de prueba creada: ' + job.public_code + '.' + photosResult;
 
     el('requestDescription').value = '';
     el('requestLocality').value = '';
