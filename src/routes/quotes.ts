@@ -117,6 +117,7 @@ quotesRouter.get('/mine/quotes', requireRole('professional'), async (req,res,nex
   try {
     const result=await pool.query(
       `SELECT q.id,q.job_id,j.public_code,j.locality,j.status AS job_status,
+              j.description AS job_description,j.specialty_id,j.service_id,
               q.amount,q.description,q.warranty_days,q.status,q.submitted_at
        FROM job_quotes q JOIN jobs j ON j.id=q.job_id
        WHERE q.professional_id=$1
