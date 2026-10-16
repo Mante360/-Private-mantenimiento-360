@@ -7,6 +7,7 @@ import { jobsRouter } from './routes/jobs.js';
 import { quotesRouter } from './routes/quotes.js';
 import { claimsRouter } from './routes/claims.js';
 import { photosRouter, ensureLabPhotoSchema } from './routes/photos.js';
+import { technicalRouter, ensureLabTechnicalSchema } from './routes/technical.js';
 import { pool } from './db.js';
 import { bootstrapTestSchemaIfRequested } from './test-db-bootstrap.js';
 import { seedLabAdminIfRequested } from './test-admin-seed.js';
@@ -66,6 +67,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/jobs', quotesRouter);
 app.use('/api/jobs', photosRouter);
+app.use('/api/jobs', technicalRouter);
 app.use('/api/claims', claimsRouter);
 app.use('/api/admin', adminRouter);
 
@@ -85,6 +87,7 @@ app.use((
 
 await bootstrapTestSchemaIfRequested();
 await ensureLabPhotoSchema();
+await ensureLabTechnicalSchema();
 await seedLabAdminIfRequested();
 
 app.listen(port, '0.0.0.0', () => {
