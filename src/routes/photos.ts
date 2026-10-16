@@ -174,7 +174,7 @@ photosRouter.delete('/:jobId/photos/:photoId', async (req, res, next) => {
       res.status(403).json({error:'photo_delete_not_allowed'}); return;
     }
     const deleted=await db.query(
-      'DELETE FROM lab_job_photos WHERE job_id=$1 AND id=$2 AND uploader_id=$3 AND created_at>now()-interval ''15 minutes'' RETURNING id',
+      `DELETE FROM lab_job_photos WHERE job_id=$1 AND id=$2 AND uploader_id=$3 AND created_at > now() - interval '15 minutes' RETURNING id`,
       [id.data,photoId.data,req.authUser!.id]
     );
     await db.query('COMMIT');
