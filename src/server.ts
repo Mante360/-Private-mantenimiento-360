@@ -53,6 +53,7 @@ app.get('/pruebas', serveLab('index.html'));
 app.get('/pruebas/ui.css', serveLab('ui.css'));
 app.get('/pruebas/ui.js', serveLab('ui.js'));
 app.get('/pruebas/photos.js', serveLab('photos.js'));
+app.get('/pruebas/technical.js', serveLab('technical.js'));
 
 app.get('/health', async (_req, res, next) => {
   try {
