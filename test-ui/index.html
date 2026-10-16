@@ -108,6 +108,11 @@
     <input id="requestLocality" minlength="2" maxlength="120" required
       placeholder="Ejemplo: Localidad de Prueba">
 
+    <label for="requestPhotoInput">Fotografías del problema (opcional)</label>
+    <input id="requestPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+    <p class="hint">Hasta 5 imágenes por cliente y trabajo. JPG, PNG o WebP; máximo 10 MB por archivo original. Para este laboratorio se reducen y guardan como JPG liviano. Usá únicamente fotos ficticias.</p>
+    <p id="requestPhotoPreview" class="hint" role="status"></p>
+
     <button type="submit" id="createRequestButton" class="primary">
       Crear solicitud de prueba
     </button>
@@ -143,6 +148,17 @@
             <p id="jobDetailText" class="jobspanel"></p>
             <div id="jobTimeline" class="jobspanel" role="status" aria-live="polite"></div>
             <div id="professionalReview" class="jobspanel" role="status" hidden></div>
+            <section id="jobPhotosSection" class="admin-section">
+              <h3>Fotografías del trabajo</h3>
+              <p class="hint">Fotos vinculadas al trabajo; visibles solo para cliente, profesionales habilitados para ver la solicitud y Administración. Hacé clic en una imagen para ampliarla.</p>
+              <div id="jobPhotosGallery" class="photo-grid" role="status" aria-live="polite"></div>
+              <div id="photoUploadControls" hidden>
+                <label for="jobPhotoInput">Agregar fotos a este trabajo (hasta 5 por perfil)</label>
+                <input id="jobPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+                <button type="button" id="uploadJobPhotos" class="secondary">Adjuntar fotografías</button>
+                <p id="photoUploadResult" class="hint" role="status"></p>
+              </div>
+            </section>
             <section id="jobClaimHistory" class="admin-section" hidden>
               <h3>Historial de reclamos y garantías</h3>
               <div id="jobClaimHistoryPanel" class="jobspanel"></div>
