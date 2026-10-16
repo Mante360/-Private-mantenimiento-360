@@ -21,8 +21,38 @@ claimsRouter.post('/', requireRole('client'), async (req, res, next) => {
     return;
   }
   const { jobId, warrantyVisitId, reason, description } = parsed.data;
+  let db;
   try {
-    const result = await pool.query(
+    db = await pool.connect();
+    await db.query('BEGIN');
+    // Serialize new claims for the same job to prevent concurrent open duplicates.
+    const allowed = await db.query(
+      `SELECT j.id FROM jobs j
+       JOIN job_contracts jc ON jc.job_id=j.id
+       JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=j.id
+       WHERE j.id=$1 AND j.client_id=$2 AND j.status='completed'
+         AND ($3::bigint IS NULL OR EXISTS(
+           SELECT 1 FROM warranty_visits w
+           WHERE w.id=$3 AND w.original_job_id=j.id
+         ))
+       FOR UPDATE OF j`,
+      [jobId,req.authUser!.id,warrantyVisitId ?? null]
+    );
+    if (!allowed.rows[0]) {
+      await db.query('ROLLBACK');
+      res.status(404).json({ error: 'job_not_found_or_not_completed' });
+      return;
+    }
+    const pending = await db.query(
+      "SELECT 1 FROM claims WHERE job_id=$1 AND status IN ('open','in_review') LIMIT 1",
+      [jobId]
+    );
+    if (pending.rowCount) {
+      await db.query('ROLLBACK');
+      res.status(409).json({ error: 'claim_already_open' });
+      return;
+    }
+    const result = await db.query(
       `INSERT INTO claims(job_id,warranty_visit_id,created_by,professional_id,
                           reason,description,status)
        SELECT j.id,$3,$1,q.professional_id,$4,$5,'open'
@@ -41,10 +71,12 @@ claimsRouter.post('/', requireRole('client'), async (req, res, next) => {
       res.status(404).json({ error: 'job_not_found_or_not_completed' });
       return;
     }
+    await db.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    if (db) await db.query('ROLLBACK').catch(() => undefined);
     next(error);
-  }
+  } finally { db?.release(); }
 });
 
 // Privacy: clients see their claims, professionals only their own related
