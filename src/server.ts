@@ -6,6 +6,7 @@ import { authRouter } from './routes/auth.js';
 import { jobsRouter } from './routes/jobs.js';
 import { quotesRouter } from './routes/quotes.js';
 import { claimsRouter } from './routes/claims.js';
+import { photosRouter, ensureLabPhotoSchema } from './routes/photos.js';
 import { pool } from './db.js';
 import { bootstrapTestSchemaIfRequested } from './test-db-bootstrap.js';
 import { seedLabAdminIfRequested } from './test-admin-seed.js';
@@ -44,7 +45,7 @@ app.get('/', (_req, res) => {
 const serveLab = (filename: string): express.RequestHandler => (_req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   res.setHeader('Content-Security-Policy',
-    "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+    "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   res.sendFile(process.cwd() + '/test-ui/' + filename);
 };
 app.get('/pruebas', serveLab('index.html'));
@@ -63,6 +64,7 @@ app.get('/health', async (_req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/jobs', quotesRouter);
+app.use('/api/jobs', photosRouter);
 app.use('/api/claims', claimsRouter);
 app.use('/api/admin', adminRouter);
 
@@ -72,12 +74,16 @@ app.use((
   res: express.Response,
   _next: express.NextFunction
 ) => {
+  if ((error as {type?:string})?.type === 'entity.too.large') {
+    res.status(413).json({ error:'photo_too_large' }); return;
+  }
   // No stack traces or SQL/database details in public responses.
   console.error('API request failed', error);
   res.status(500).json({ error: 'internal_server_error' });
 });
 
 await bootstrapTestSchemaIfRequested();
+await ensureLabPhotoSchema();
 await seedLabAdminIfRequested();
 
 app.listen(port, '0.0.0.0', () => {
