@@ -24,24 +24,24 @@ export async function ensureLabTechnicalSchema(): Promise<void> {
     if (found.rows[0]?.name!==LAB_DB) throw new Error('Technical consultation feature restricted to test database');
     await db.query('SELECT pg_advisory_lock($1::bigint)',[36020261017]);
     await db.query(
-      \`CREATE TABLE IF NOT EXISTS lab_quote_technical_questions (
+      `CREATE TABLE IF NOT EXISTS lab_quote_technical_questions (
         id BIGSERIAL PRIMARY KEY,
         quote_id BIGINT NOT NULL REFERENCES job_quotes(id) ON DELETE CASCADE,
         question TEXT NOT NULL CHECK(length(question) BETWEEN 10 AND 800),
         answer TEXT CHECK (answer IS NULL OR length(answer) BETWEEN 2 AND 1500),
         asked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         answered_at TIMESTAMPTZ
-      )\`
+      )`
     );
     await db.query(
       'CREATE UNIQUE INDEX IF NOT EXISTS uq_lab_question_one_pending ON lab_quote_technical_questions(quote_id) WHERE answer IS NULL'
     );
     await db.query(
-      \`CREATE TABLE IF NOT EXISTS lab_visit_preparations (
+      `CREATE TABLE IF NOT EXISTS lab_visit_preparations (
         quote_id BIGINT PRIMARY KEY REFERENCES job_quotes(id) ON DELETE CASCADE,
         notes TEXT NOT NULL DEFAULT '' CHECK(length(notes)<=1800),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-      )\`
+      )`
     );
     console.log('Technical consultations and private visit-preparation ready (lab only)');
   } finally {
@@ -52,7 +52,7 @@ export async function ensureLabTechnicalSchema(): Promise<void> {
 
 async function getAccess(db:PoolClient,jobId:number,account:AuthUser,lock=false) {
   const result=await db.query(
-    \`SELECT id,client_id,status FROM jobs WHERE id=$1 \${lock?'FOR UPDATE':''}\`,
+    `SELECT id,client_id,status FROM jobs WHERE id=$1 ${lock?'FOR UPDATE':''}`,
     [jobId]
   );
   const job=result.rows[0];
@@ -60,10 +60,10 @@ async function getAccess(db:PoolClient,jobId:number,account:AuthUser,lock=false)
   const admin=!!job && account.role==='admin';
   if(!job || (!isOwner && !admin && account.role!=='professional')) return null;
   const quotes=await db.query(
-    \`SELECT q.id,q.status,q.professional_id,u.name AS professional_name
+    `SELECT q.id,q.status,q.professional_id,u.name AS professional_name
      FROM job_quotes q JOIN users u ON u.id=q.professional_id
-     WHERE q.job_id=$1 \${account.role==='professional'?'AND q.professional_id=$2':''}
-     ORDER BY q.submitted_at,q.id\`,
+     WHERE q.job_id=$1 ${account.role==='professional'?'AND q.professional_id=$2':''}
+     ORDER BY q.submitted_at,q.id`,
     account.role==='professional'?[jobId,account.id]:[jobId]
   );
   if(account.role==='professional' && !quotes.rows.length) return null;
@@ -81,9 +81,9 @@ technicalRouter.get('/:jobId/technical', async(req,res,next)=>{
     let records:{rows:any[]}={rows:[]};
     if(quoteIds.length) {
       records=await db.query(
-        \`SELECT id,quote_id,question,answer,asked_at,answered_at
+        `SELECT id,quote_id,question,answer,asked_at,answered_at
          FROM lab_quote_technical_questions
-         WHERE quote_id=ANY($1::bigint[]) ORDER BY asked_at,id LIMIT 500\`,
+         WHERE quote_id=ANY($1::bigint[]) ORDER BY asked_at,id LIMIT 500`,
         [quoteIds]
       );
     }
@@ -171,10 +171,10 @@ technicalRouter.post('/:jobId/technical/quotes/:quoteId/questions/:questionId/an
       await db.query('ROLLBACK');res.status(409).json({error:'technical_window_closed'});return;
     }
     const saved=await db.query(
-      \`UPDATE lab_quote_technical_questions SET answer=$4,answered_at=now()
+      `UPDATE lab_quote_technical_questions SET answer=$4,answered_at=now()
        WHERE id=$3 AND quote_id=$2 AND answer IS NULL
          AND EXISTS(SELECT 1 FROM job_quotes WHERE id=$2 AND job_id=$1)
-       RETURNING id,quote_id,answer,answered_at\`,
+       RETURNING id,quote_id,answer,answered_at`,
       [jobId.data,quoteId.data,questionId.data,input.data.answer]
     );
     if(!saved.rowCount){await db.query('ROLLBACK');res.status(409).json({error:'question_already_answered'});return;}
@@ -200,9 +200,9 @@ technicalRouter.put('/:jobId/technical/quotes/:quoteId/preparation',
       await db.query('ROLLBACK');res.status(409).json({error:'technical_window_closed'});return;
     }
     const saved=await db.query(
-      \`INSERT INTO lab_visit_preparations(quote_id,notes) VALUES($1,$2)
+      `INSERT INTO lab_visit_preparations(quote_id,notes) VALUES($1,$2)
        ON CONFLICT(quote_id) DO UPDATE SET notes=EXCLUDED.notes,updated_at=now()
-       RETURNING quote_id,notes,updated_at\`,
+       RETURNING quote_id,notes,updated_at`,
       [quoteId.data,input.data.notes]
     );
     await db.query('COMMIT');res.json(saved.rows[0]);
