@@ -719,12 +719,12 @@ if (profile.role === 'client') void loadClientSpecialties();
     const button = el('clientClaimForm').querySelector('button[type="submit"]');
     button.disabled = true;
     try {
-      if (!confirm('¿Enviar este reclamo ficticio a Administración?')) return;
+      if (!confirm('¿Registrar este reclamo de prueba para el profesional involucrado? Administración también podrá consultarlo y resolverlo.')) return;
       await api('POST', '/api/claims', {jobId:Number(job.id),reason,description});
       el('clientClaimForm').reset();
       el('clientClaimForm').hidden = true;
       await loadClientReviewStatus(job);
-      el('claimResult').textContent = 'Reclamo registrado. Queda disponible para Administración.';
+      el('claimResult').textContent = 'Reclamo registrado. El profesional involucrado y Administración pueden consultarlo desde sus respectivas cuentas.';
     } catch (error) {
       el('claimResult').textContent = 'No se pudo enviar el reclamo: ' + error.message;
     } finally { button.disabled = false; }
