@@ -30,7 +30,9 @@
         question_already_answered:'Esta consulta ya fue respondida.',
         technical_info_not_found:'No tenés acceso a esta información técnica.'
       };
-      throw new Error(known[body.error] || 'No se pudo completar esta operación (HTTP '+response.status+').');
+      const error=new Error(known[body.error] || 'No se pudo completar esta operación (HTTP '+response.status+').');
+      error.code=body.error||'';
+      throw error;
     }
     return body;
   }
@@ -155,7 +157,7 @@
     currentJob=job;
     const section=el('technicalInfoSection');
     const panel=el('technicalInfoPanel');
-    section.hidden=false;
+    section.hidden=true;
     panel.replaceChildren(node('p','Consultando información técnica...','hint'));
     try{
       const data=await request('GET',endpoint(job.id));
@@ -165,10 +167,19 @@
         section.hidden=true;
         return;
       }
+      section.hidden=false;
       for(const thread of data.threads) panel.append(renderThread(job,profile,thread));
     }catch(error){
       if(shownJob!==Number(job.id)||version!==session) return;
-      // Existing requests do not become unusable if consultations fail.
+      // Before sending a quote the professional must not see or use private consultations.
+      // The API deliberately responds 404; do not mispresent this as an application failure.
+      if(profile?.role==='professional' && error.code==='technical_info_not_found'){
+        section.hidden=true;
+        panel.replaceChildren();
+        return;
+      }
+      // Genuine failures remain visible to help the user recover.
+      section.hidden=false;
       panel.replaceChildren(node('p','No se pudieron consultar las solicitudes técnicas: '+error.message,'feedback error'));
     }
   }
