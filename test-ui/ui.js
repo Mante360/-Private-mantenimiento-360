@@ -541,17 +541,52 @@ if (profile.role === 'client') void loadClientSpecialties();
   async function loadJobClaimHistory(job) {
     const section=el('jobClaimHistory');
     const panel=el('jobClaimHistoryPanel');
+    const warrantyPanel=el('jobWarrantySummary');
     section.hidden=true;
     panel.replaceChildren();
-    if(!profile || !['client','professional'].includes(profile.role) || !['confirmed','in_progress','completed'].includes(job.status)) return;
+    warrantyPanel.replaceChildren();
+    if(!profile || !['client','professional'].includes(profile.role) ||
+        !['confirmed','in_progress','completed'].includes(job.status)) return;
+    section.hidden=false;
+    warrantyPanel.textContent='Consultando vigencia de la garantía...';
+    panel.textContent='Consultando historial de reclamos...';
+    const jobId=encodeURIComponent(String(job.id));
+    const displayDate=(value)=>new Date(value).toLocaleString('es-AR',{
+      timeZone:'America/Argentina/Buenos_Aires',dateStyle:'medium',timeStyle:'short'
+    });
+    try {
+      const warranty=await api('GET','/api/jobs/'+jobId+'/warranty-status');
+      if(openedJob?.id !== job.id) return;
+      const days=Number(warranty.warranty_days);
+      let message='Garantía pactada: '+days+' día(s).';
+      if(warranty.warranty_status==='awaiting_conformity'){
+        message+='\nInicio y vencimiento: pendientes de la conformidad del cliente.';
+      } else if(warranty.warranty_status==='no_warranty'){
+        message+='\nEstado: sin garantía contractual (0 días).';
+      } else if(warranty.approved_at && warranty.expires_at){
+        message+='\nInicio: '+displayDate(warranty.approved_at)+
+          '\nVencimiento: '+displayDate(warranty.expires_at)+
+          '\nEstado: '+(warranty.warranty_status==='active'?'Vigente':'Vencida');
+      } else {
+        message+='\nEstado: pendiente de verificar.';
+      }
+      warrantyPanel.textContent=message;
+    } catch(error){
+      if(openedJob?.id===job.id) warrantyPanel.textContent=
+        'No se pudo consultar la garantía: '+error.message;
+    }
     try {
       const all=await api('GET','/api/claims');
       if(openedJob?.id !== job.id) return;
-      const archived=all.filter(c=>String(c.job_id)===String(job.id) && ['resolved','dismissed'].includes(c.status));
-      if(!archived.length)return;
-      section.hidden=false;
-      await renderClaimCards(panel,archived);
-    } catch(error){panel.textContent='No se pudo cargar el historial: '+error.message;section.hidden=false;}
+      const related=all.filter(c=>String(c.job_id)===String(job.id));
+      if(!related.length) {
+        panel.textContent='No hay reclamos ni intervenciones en garantía registrados para este trabajo.';
+      } else {
+        await renderClaimCards(panel,related);
+      }
+    } catch(error){
+      if(openedJob?.id===job.id) panel.textContent='No se pudo cargar el historial: '+error.message;
+    }
   }
 
   async function loadClaimInbox() {
@@ -691,7 +726,7 @@ if (profile.role === 'client') void loadClientSpecialties();
             const days = Number(accepted.warranty_days);
             el('reviewResult').textContent += days === 0
               ? ' Presupuesto con 0 días de garantía pactada.'
-              : ' Garantía pactada: '+days+' días. La vigencia debe verificarse según la fecha de inicio aplicable.';
+              : ' Garantía pactada: '+days+' días. Se computa desde la conformidad registrada por el cliente.';
           }
         } catch (_) { /* Do not assert validity if quote lookup fails. */ }
       } else if (pending) {
@@ -762,7 +797,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         summary.textContent = 'Profesional: ' + quote.professional_name +
           ' · Importe ARS ' + quote.amount +
           ' · Garantía: ' + quote.warranty_days + ' días' +
-          ' · Estado: ' + quote.status +
+          ' · Estado: ' + statusLabel(quote.status) +
           '\nDetalle: ' + quote.description;
         section.append(summary);
         if (job.status === 'quoted' && quote.status === 'submitted') {
