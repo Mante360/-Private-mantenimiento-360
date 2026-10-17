@@ -16,6 +16,7 @@ const answerInput=z.object({answer:z.string().trim().min(2).max(1500)}).strict()
 const preparationInput=z.object({notes:z.string().trim().max(1800)}).strict();
 const activeQuote=(status:string)=>['submitted','accepted'].includes(status);
 const preparationStatuses=(status:string)=>['quoted','confirmed'].includes(status);
+const editablePreparationStatuses=(status:string)=>['quoted','confirmed','in_progress'].includes(status);
 
 export async function ensureLabTechnicalSchema(): Promise<void> {
   const db=await pool.connect();
@@ -105,7 +106,8 @@ technicalRouter.get('/:jobId/technical', async(req,res,next)=>{
         quoteId:q.id,professionalName:q.professional_name,quoteStatus:q.status,
         questions,canAsk:own&&canContinue&&!pending,
         canAnswer:access.owner&&canContinue,
-        canEditPreparation:own&&canContinue,
+        canViewPreparation:own&&activeQuote(q.status),
+        canEditPreparation:own&&activeQuote(q.status)&&editablePreparationStatuses(access.job.status),
         preparation:own ? (preparation.rows.find(x=>String(x.quote_id)===String(q.id))||null) : null
       };
     })});
@@ -196,7 +198,7 @@ technicalRouter.put('/:jobId/technical/quotes/:quoteId/preparation',
     const access=await getAccess(db,jobId.data,req.authUser!,true);
     const q=access?.quotes.find(x=>String(x.id)===String(quoteId.data));
     if(!q){await db.query('ROLLBACK');res.status(404).json({error:'quote_not_found'});return;}
-    if(!activeQuote(q.status)||!preparationStatuses(access!.job.status)){
+    if(!activeQuote(q.status)||!editablePreparationStatuses(access!.job.status)){
       await db.query('ROLLBACK');res.status(409).json({error:'technical_window_closed'});return;
     }
     const saved=await db.query(
