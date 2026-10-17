@@ -119,7 +119,7 @@
         box.append(node('p','Las nuevas consultas no están disponibles para este presupuesto o en este estado del trabajo.','hint'));
       }
 
-      if(thread.canEditPreparation){
+      if(thread.canViewPreparation){
         const prep=node('div',undefined,'technical-preparation');
         prep.append(node('h4','Preparación de la visita · Solo visible para vos'));
         prep.append(node('p','Registrá instrumentos, herramientas y posibles repuestos para llevar. Esta nota no modifica el presupuesto.','hint'));
