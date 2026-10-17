@@ -290,6 +290,40 @@ jobsRouter.post('/:id/review', requireRole('client'), async (req, res, next) => 
   } finally { db?.release(); }
 });
 
+// Laboratory warranty view: the accepted quote's days run from the client's
+// recorded conformity timestamp, never from quote submission or job start.
+// Date arithmetic is performed by PostgreSQL to avoid browser clock skew.
+jobsRouter.get('/:id/warranty-status', async (req,res,next) => {
+  const id=z.coerce.number().int().positive().safeParse(req.params.id);
+  if(!id.success){res.status(400).json({error:'invalid_job_id'});return;}
+  try {
+    const account=req.authUser!;
+    const result=await pool.query(
+      `SELECT j.id AS job_id,q.warranty_days,r.created_at AS approved_at,
+        CASE WHEN r.created_at IS NOT NULL AND q.warranty_days>0
+          THEN r.created_at + q.warranty_days * INTERVAL '1 day'
+          ELSE NULL END AS expires_at,
+        CASE WHEN r.created_at IS NULL THEN 'awaiting_conformity'
+          WHEN q.warranty_days=0 THEN 'no_warranty'
+          WHEN now() < r.created_at + q.warranty_days * INTERVAL '1 day'
+            THEN 'active'
+          ELSE 'expired' END AS warranty_status
+       FROM jobs j
+       JOIN job_contracts jc ON jc.job_id=j.id
+       JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=j.id
+       LEFT JOIN ratings r ON r.job_id=j.id
+       WHERE j.id=$1 AND (
+         ($2='client' AND j.client_id=$3)
+         OR ($2='professional' AND q.professional_id=$3)
+         OR $2='admin'
+       )`,
+      [id.data,account.role,account.id]
+    );
+    if(!result.rows[0]){res.status(404).json({error:'warranty_not_found'});return;}
+    res.json(result.rows[0]);
+  }catch(error){next(error);}
+});
+
 // Status history: job owner, selected professional, or administrator only.
 jobsRouter.get('/:id/events', async (req, res, next) => {
   const id = z.coerce.number().int().positive().safeParse(req.params.id);
