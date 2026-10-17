@@ -128,7 +128,8 @@
         const field=node('textarea');field.id=label.htmlFor;field.rows=4;field.maxLength=1800;
         field.placeholder='Ejemplo: multímetro, manómetros, capacitores compatibles, herramientas, hidrolavadora...';
         field.value=thread.preparation?.notes||'';
-        const button=node('button','Guardar preparación de la visita','secondary');button.type='submit';
+        field.readOnly=!thread.canEditPreparation;
+        const button=node('button',thread.canEditPreparation?'Guardar preparación de la visita':'Preparación archivada','secondary');button.type='submit';button.disabled=!thread.canEditPreparation;
         const msg=node('p',undefined,'feedback');msg.setAttribute('role','status');
         form.append(label,field,button,msg);
         form.addEventListener('submit',async(event)=>{
