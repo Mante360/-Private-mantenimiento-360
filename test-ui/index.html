@@ -80,6 +80,24 @@
               <h3>Reclamos de trabajos · Laboratorio</h3>
               <h4>Reclamos pendientes de atención</h4>
               <p class="hint">Acá aparecen solo los reclamos abiertos o en revisión. Los resueltos pasan automáticamente al archivo, sin perder datos.</p>
+              <div class="admin-claim-stats" role="status" aria-live="polite" aria-label="Contadores de reclamos">
+                <div class="admin-claim-stat">
+                  <span>Abiertos</span><strong id="adminOpenCount">—</strong>
+                  <small>Sin revisar</small>
+                </div>
+                <div class="admin-claim-stat">
+                  <span>En revisión</span><strong id="adminReviewCount">—</strong>
+                  <small>En proceso</small>
+                </div>
+                <div class="admin-claim-stat">
+                  <span>Total pendientes</span><strong id="adminTotalPendingCount">—</strong>
+                  <small>Abiertos + en revisión</small>
+                </div>
+                <div class="admin-claim-stat">
+                  <span>Finalizados</span><strong id="adminArchivedCount">—</strong>
+                  <small>En el archivo</small>
+                </div>
+              </div>
               <button type="button" id="refreshAdminClaims" class="secondary">Actualizar pendientes</button>
               <p id="adminPendingCount" class="hint" role="status"></p>
               <div id="adminClaimsPanel" role="status"></div>
