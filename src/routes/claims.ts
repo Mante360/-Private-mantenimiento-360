@@ -79,6 +79,47 @@ claimsRouter.post('/', requireRole('client'), async (req, res, next) => {
   } finally { db?.release(); }
 });
 
+// Administrative inbox and searchable archive. This is a read-only view:
+// resolving a complaint archives it automatically; no record is deleted.
+const adminClaimListInput = z.object({
+  view:z.enum(['pending','archived']).default('pending'),
+  search:z.string().trim().max(120).default(''),
+  page:z.coerce.number().int().min(1).max(100000).default(1)
+}).strict();
+claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
+  const parsed=adminClaimListInput.safeParse(req.query);
+  if(!parsed.success){res.status(400).json({error:'invalid_filter'});return;}
+  const {view,search,page}=parsed.data;
+  const pageSize=10;
+  const statusWhere=view==='archived'
+    ? "c.status IN ('resolved','dismissed')"
+    : "c.status IN ('open','in_review')";
+  const fromWhere=`FROM claims c
+    JOIN jobs j ON j.id=c.job_id
+    LEFT JOIN users pro ON pro.id=c.professional_id
+    WHERE ${statusWhere}
+      AND ($1::text='' OR pro.name ILIKE '%' || $1 || '%'
+        OR c.id::text=$1 OR c.professional_id::text=$1
+        OR j.id::text=$1 OR j.public_code ILIKE '%' || $1 || '%')`;
+  try{
+    const count=await pool.query(`SELECT count(*)::integer AS total ${fromWhere}`,[search]);
+    const total=Number(count.rows[0].total);
+    const items=await pool.query(
+      `SELECT c.id,c.job_id,c.warranty_visit_id,c.reason,c.description,
+          c.status,c.resolution_note,c.created_at,c.resolved_at,
+          pro.name AS professional_name,j.public_code AS job_public_code,
+          (SELECT q.warranty_days FROM job_contracts jc
+           JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=jc.job_id
+           WHERE jc.job_id=c.job_id) AS warranty_days
+        ${fromWhere}
+        ORDER BY ${view==='archived'?'COALESCE(c.resolved_at,c.created_at)':'c.created_at'} DESC,c.id DESC
+        LIMIT $2 OFFSET $3`,
+      [search,pageSize,(page-1)*pageSize]
+    );
+    res.json({items:items.rows,total,page,pageSize,hasMore:page*pageSize<total});
+  }catch(error){next(error);}
+});
+
 // Privacy: clients see their claims, professionals only their own related
 // cases; administration has read access for complaint management.
 claimsRouter.get('/', async (req, res, next) => {
