@@ -119,21 +119,47 @@ claimsRouter.post('/:id/professional-response', requireRole('professional'), asy
   if (!id.success || !input.success) {
     res.status(400).json({error:'invalid_input'}); return;
   }
+  let db;
   try {
-    const result = await pool.query(
-      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
-       SELECT $2,'claim_professional_response','claim',$1::text,
-              jsonb_build_object('description',$3::text,'jobId',c.job_id)
-       FROM claims c WHERE c.id=$1::bigint AND c.professional_id=$2::bigint
-         AND c.status IN ('open','in_review')
-       RETURNING id,created_at`,
-      [id.data,req.authUser!.id,input.data.description]
+    db = await pool.connect();
+    await db.query('BEGIN');
+    // Serialize with client warranty confirmation: both actions lock the
+    // complaint before reading/writing its audit trail.
+    const selected = await db.query(
+      `SELECT c.id,c.job_id FROM claims c
+       WHERE c.id=$1 AND c.professional_id=$2 AND c.status IN ('open','in_review')
+       FOR UPDATE OF c`,
+      [id.data,req.authUser!.id]
     );
-    if (!result.rows[0]) {
+    const claim=selected.rows[0];
+    if (!claim) {
+      await db.query('ROLLBACK');
       res.status(404).json({error:'claim_not_open_or_unavailable'}); return;
     }
+    const confirmed = await db.query(
+      `SELECT 1 FROM audit_events a
+       WHERE a.resource_type='claim' AND a.resource_id=$1
+         AND a.action='warranty_client_confirmed'
+       LIMIT 1`,
+      [String(id.data)]
+    );
+    if (confirmed.rowCount) {
+      await db.query('ROLLBACK');
+      res.status(409).json({error:'warranty_correction_already_confirmed'}); return;
+    }
+    const result = await db.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       VALUES($1,'claim_professional_response','claim',$2,
+         jsonb_build_object('description',$3::text,'jobId',$4::bigint))
+       RETURNING id,created_at`,
+      [req.authUser!.id,String(id.data),input.data.description,claim.job_id]
+    );
+    await db.query('COMMIT');
     res.status(201).json({saved:true,createdAt:result.rows[0].created_at});
-  } catch (error) { next(error); }
+  } catch (error) {
+    if(db) await db.query('ROLLBACK').catch(()=>undefined);
+    next(error);
+  } finally {db?.release();}
 });
 
 // Client, assigned professional and Administration see the same recorded responses.
