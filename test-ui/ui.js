@@ -436,6 +436,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           const warranties = await api('GET','/api/claims/'+claim.id+'/warranty');
           const confirmedVisits = new Set((await api('GET','/api/claims/'+claim.id+'/updates')).filter(x=>x.action==='warranty_client_confirmed').map(x=>String(x.warranty_id)));
           for(const visit of warranties){
+            const clientConfirmed=Boolean(visit.client_confirmed_at) || confirmedVisits.has(String(visit.id));
             const summary=document.createElement('div');
             summary.style.margin='12px 0';
             summary.style.padding='10px 12px';
@@ -455,6 +456,13 @@ if (profile.role === 'client') void loadClientSpecialties();
               summary.append(correction);
             }
             item.append(summary);
+            if(clientConfirmed){
+              const notice=document.createElement('p');
+              notice.className='feedback ok';
+              notice.textContent='Corrección confirmada por el cliente'+
+                (visit.client_confirmed_at?' · '+new Date(visit.client_confirmed_at).toLocaleString('es-AR'):'')+'.';
+              item.append(notice);
+            }
             if(visit.status==='completed'){
               try{
                 const rating=await api('GET','/api/claims/'+claim.id+'/warranty/'+visit.id+'/rating');
@@ -463,7 +471,7 @@ if (profile.role === 'client') void loadClientSpecialties();
                   shown.textContent='Calificación de esta garantía: '+rating.stars+' estrellas'+
                     (rating.comment?' · '+rating.comment:'');
                   item.append(shown);
-                }else if(profile.role==='client' && confirmedVisits.has(String(visit.id))){
+                }else if(profile.role==='client' && clientConfirmed){
                   const form=document.createElement('form');
                   const heading=document.createElement('strong');heading.textContent='Calificar esta garantía';
                   const select=document.createElement('select');select.required=true;
@@ -500,13 +508,27 @@ if (profile.role === 'client') void loadClientSpecialties();
                 catch(error){alert(error.message);btn.disabled=false;}
               };item.append(btn);
             }
-            if(profile.role==='client' && visit.status==='completed' && !confirmedVisits.has(String(visit.id))){
+            if(profile.role==='client' && visit.status==='completed' && !clientConfirmed){
               const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Confirmar corrección de garantía';
               btn.onclick=async()=>{
                 if(!confirm('¿Confirmás que se realizó satisfactoriamente la corrección de esta garantía?'))return;
                 btn.disabled=true;
-                try{await api('POST','/api/claims/'+claim.id+'/warranty/'+visit.id+'/client-confirm',{confirmed:true});await loadClaimInbox();}
-                catch(error){alert(error.message);btn.disabled=false;}
+                const status=document.createElement('p');
+                status.setAttribute('role','status');
+                btn.after(status);
+                try{
+                  await api('POST','/api/claims/'+claim.id+'/warranty/'+visit.id+'/client-confirm',{confirmed:true});
+                }catch(error){
+                  status.className='feedback error';
+                  status.textContent='No se registró la confirmación: '+error.message;
+                  btn.disabled=false;
+                  return;
+                }
+                btn.textContent='Corrección confirmada';
+                status.className='feedback ok';
+                status.textContent='Corrección confirmada y registrada. Actualizando historial...';
+                await loadClaimInbox();
+                if(openedJob && String(openedJob.id)===String(claim.job_id)) await loadJobClaimHistory(openedJob);
               };item.append(btn);
             }
           }
