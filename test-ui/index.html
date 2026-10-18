@@ -78,8 +78,36 @@
             <button type="button" id="approveSelected" class="primary" disabled>Aprobar profesional seleccionado para la prueba</button>
             <section class="admin-section">
               <h3>Reclamos de trabajos · Laboratorio</h3>
-              <button type="button" id="refreshAdminClaims" class="secondary">Consultar reclamos</button>
-              <div id="adminClaimsPanel" class="jobspanel" role="status"></div>
+              <h4>Reclamos pendientes de atención</h4>
+              <p class="hint">Acá aparecen solo los reclamos abiertos o en revisión. Los resueltos pasan automáticamente al archivo, sin perder datos.</p>
+              <button type="button" id="refreshAdminClaims" class="secondary">Actualizar pendientes</button>
+              <p id="adminPendingCount" class="hint" role="status"></p>
+              <div id="adminClaimsPanel" role="status"></div>
+              <div class="admin-claim-pagination">
+                <button type="button" id="adminPendingPrev" class="secondary" disabled>← Anteriores</button>
+                <span id="adminPendingPageInfo" class="hint"></span>
+                <button type="button" id="adminPendingNext" class="secondary" disabled>Siguientes →</button>
+              </div>
+              <div class="admin-claim-archive">
+                <h4>Archivo de reclamos finalizados</h4>
+                <p class="hint">Consultá los reclamos resueltos sin llenar la pantalla de entrada. Podés buscarlos por profesional, número de reclamo o trabajo.</p>
+                <button type="button" id="toggleClaimArchive" class="secondary" aria-expanded="false" aria-controls="claimArchiveSection">Abrir archivo de reclamos finalizados</button>
+                <section id="claimArchiveSection" hidden>
+                  <form id="adminArchiveSearchForm">
+                    <label for="adminArchiveSearch">Buscar por profesional, N.º de reclamo o trabajo</label>
+                    <input id="adminArchiveSearch" type="search" maxlength="120" placeholder="Ej.: Andrés Lucas, 4 o 360-00003">
+                    <button type="submit" class="secondary">Buscar en archivo</button>
+                    <button type="button" id="clearAdminArchiveSearch" class="secondary">Limpiar búsqueda</button>
+                  </form>
+                  <p id="adminArchiveCount" class="hint" role="status"></p>
+                  <div id="adminArchivePanel" role="status"></div>
+                  <div class="admin-claim-pagination">
+                    <button type="button" id="adminArchivePrev" class="secondary" disabled>← Anteriores</button>
+                    <span id="adminArchivePageInfo" class="hint"></span>
+                    <button type="button" id="adminArchiveNext" class="secondary" disabled>Siguientes →</button>
+                  </div>
+                </section>
+              </div>
             </section>
             <form id="resetProfessionalForm" class="reset-form" autocomplete="off" hidden>
               <h3>Recuperar acceso de Sebastián Salva (ID 4)</h3>
