@@ -33,6 +33,7 @@
         professional_has_open_claim: 'No podés enviar nuevos presupuestos porque tenés un reclamo pendiente de resolver. Podés consultar las solicitudes y responder al reclamo desde tu cuenta.',
         authentication_required: 'Necesitás iniciar sesión.',
         invalid_or_expired_token: 'La sesión venció. Volvé a ingresar.',
+        warranty_correction_already_confirmed: 'La corrección en garantía ya fue confirmada por el cliente. No se admiten nuevos descargos sobre este reclamo.',
         claim_already_open: 'Ya existe un reclamo abierto o en revisión para este trabajo. Esperá su resolución antes de presentar otro.'
       };
       const error = new Error(body.error === 'invalid_input' ? 'Los datos de la operación no son válidos.' : (known[body.error] || 'La solicitud no se completó (HTTP ' + response.status + ').'));
@@ -427,8 +428,12 @@ if (profile.role === 'client') void loadClientSpecialties();
         item.append(info);
         const updates = document.createElement('div');
         item.append(updates);
+        let updatesLoaded=false;
+        let correctionConfirmed=false;
         try {
           const responses = await api('GET', '/api/claims/' + encodeURIComponent(String(claim.id)) + '/updates');
+          correctionConfirmed=responses.some(record=>record.action==='warranty_client_confirmed');
+          updatesLoaded=true;
           renderClaimUpdates(updates, responses);
         } catch (err) { updates.textContent = 'No se pudo consultar el descargo: ' + err.message; }
         appendClaimResolution(item, claim);
@@ -437,6 +442,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           const confirmedVisits = new Set((await api('GET','/api/claims/'+claim.id+'/updates')).filter(x=>x.action==='warranty_client_confirmed').map(x=>String(x.warranty_id)));
           for(const visit of warranties){
             const clientConfirmed=Boolean(visit.client_confirmed_at) || confirmedVisits.has(String(visit.id));
+            if(clientConfirmed) correctionConfirmed=true;
             const summary=document.createElement('div');
             summary.style.margin='12px 0';
             summary.style.padding='10px 12px';
@@ -535,7 +541,14 @@ if (profile.role === 'client') void loadClientSpecialties();
         } catch(error) {
           const msg=document.createElement('p');msg.textContent='No se pudo consultar garantía: '+error.message;item.append(msg);
         }
-        if (profile.role === 'professional' && ['open','in_review'].includes(claim.status)) {
+        if (profile.role === 'professional' && correctionConfirmed) {
+          const closed=document.createElement('p');
+          closed.className='hint';
+          closed.textContent='Descargo técnico cerrado: el cliente confirmó la corrección en garantía. Administración debe resolver el reclamo.';
+          item.append(closed);
+        }
+        if (profile.role === 'professional' && updatesLoaded && !correctionConfirmed &&
+          ['open','in_review'].includes(claim.status)) {
           const form = document.createElement('form');
           const label = document.createElement('label');
           label.textContent = 'Diagnóstico y descargo técnico';
