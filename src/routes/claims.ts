@@ -102,6 +102,20 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
         OR c.id::text=$1 OR c.professional_id::text=$1
         OR j.id::text=$1 OR j.public_code ILIKE '%' || $1 || '%')`;
   try{
+    // Unfiltered dashboard totals: counts reflect all claims, not just this page.
+    const totals=await pool.query(
+      `SELECT count(*) FILTER (WHERE status='open')::integer AS open,
+              count(*) FILTER (WHERE status='in_review')::integer AS in_review,
+              count(*) FILTER (WHERE status IN ('resolved','dismissed'))::integer AS archived
+       FROM claims`
+    );
+    const counts=totals.rows[0];
+    const statusTotals={
+      open:Number(counts.open),
+      inReview:Number(counts.in_review),
+      pending:Number(counts.open)+Number(counts.in_review),
+      archived:Number(counts.archived)
+    };
     const count=await pool.query(`SELECT count(*)::integer AS total ${fromWhere}`,[search]);
     const total=Number(count.rows[0].total);
     const items=await pool.query(
@@ -116,7 +130,7 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
         LIMIT $2 OFFSET $3`,
       [search,pageSize,(page-1)*pageSize]
     );
-    res.json({items:items.rows,total,page,pageSize,hasMore:page*pageSize<total});
+    res.json({items:items.rows,total,page,pageSize,hasMore:page*pageSize<total,statusTotals});
   }catch(error){next(error);}
 });
 
