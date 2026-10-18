@@ -737,7 +737,15 @@ if (profile.role === 'client') void loadClientSpecialties();
     try{
       const data=await api('GET','/api/claims/admin-list?view=pending&page='+adminPendingPage);
       if(version!==adminPendingVersion || profile?.role!=='admin') return;
-      el('adminPendingCount').textContent='Reclamos pendientes: '+data.total;
+      // Independent figures always cover all records, not only the visible page.
+      const totals=data.statusTotals;
+      if(totals){
+        el('adminOpenCount').textContent=String(totals.open);
+        el('adminReviewCount').textContent=String(totals.inReview);
+        el('adminTotalPendingCount').textContent=String(totals.pending);
+        el('adminArchivedCount').textContent=String(totals.archived);
+      }
+      el('adminPendingCount').textContent='Reclamos pendientes de atención: '+data.total;
       el('adminPendingPageInfo').textContent='Página '+data.page+' de '+Math.max(1,Math.ceil(data.total/data.pageSize));
       el('adminPendingPrev').disabled=adminPendingPage<=1;
       el('adminPendingNext').disabled=!data.hasMore;
