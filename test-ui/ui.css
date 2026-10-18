@@ -54,3 +54,15 @@ body.photo-viewer-open{overflow:hidden}
   .photo-viewer-arrow{font-size:25px;min-width:39px;min-height:55px}
   .photo-viewer-close{padding:10px 12px}
 }
+
+/* Archivo administrativo: compacto, buscable y separado de los pendientes. */
+.admin-claim-archive{margin-top:22px;padding-top:14px;border-top:1px solid #cbd9e9}
+.admin-claim-archive h4{margin:8px 0;font-size:15px}
+.admin-claim-pagination{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px}
+.admin-claim-pagination .secondary{margin:0}
+.admin-claim-pagination .hint{margin:0}
+.admin-archive-item{margin:9px 0;border:1px solid #cbd9e9;background:#fff;border-radius:9px;padding:10px}
+.admin-archive-item>summary{cursor:pointer;font-size:13px;font-weight:700;line-height:1.6}
+.admin-archive-item>summary:focus-visible{outline:2px solid #315d9a;outline-offset:4px}
+.admin-archive-item[open]>summary{margin-bottom:8px}
+#adminArchiveSearch{width:100%}
