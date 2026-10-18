@@ -256,7 +256,11 @@ claimsRouter.get('/:id/warranty',async(req,res,next)=>{
   try{
     const result=await pool.query(
       `SELECT w.id,w.original_job_id,w.status,w.description,w.resolution_note,
-              j.public_code||'-'||w.suffix AS code
+              j.public_code||'-'||w.suffix AS code,
+              (SELECT MIN(a.created_at) FROM audit_events a
+                WHERE a.resource_type='claim' AND a.resource_id=c.id::text
+                  AND a.action='warranty_client_confirmed'
+                  AND a.metadata->>'warrantyId'=w.id::text) AS client_confirmed_at
        FROM claims c JOIN warranty_visits w ON w.original_job_id=c.job_id
        JOIN jobs j ON j.id=c.job_id
        WHERE c.id=$1 AND ($2='admin' OR c.created_by=$3 OR c.professional_id=$3)
@@ -295,11 +299,25 @@ claimsRouter.post('/:id/warranty/:visitId/client-confirm',requireRole('client'),
          AND w.status='completed' FOR UPDATE OF c,w`,
       [id.data,visit.data,req.authUser!.id]);
     if(!result.rows[0]){await db.query('ROLLBACK');res.status(409).json({error:'warranty_not_ready'});return;}
-    await db.query(
+    // Claim row is locked above, so repeated clicks cannot write duplicate events.
+    const previous=await db.query(
+      `SELECT a.created_at FROM audit_events a
+       WHERE a.action='warranty_client_confirmed' AND a.resource_type='claim'
+         AND a.resource_id=$1 AND a.metadata->>'warrantyId'=$2
+       ORDER BY a.id LIMIT 1`,
+      [String(id.data),String(visit.data)]
+    );
+    if(previous.rows[0]){
+      await db.query('COMMIT');
+      res.json({confirmed:true,alreadyConfirmed:true,confirmedAt:previous.rows[0].created_at});
+      return;
+    }
+    const recorded=await db.query(
       `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
-       VALUES($1,'warranty_client_confirmed','claim',$2,$3::jsonb)`,
+       VALUES($1,'warranty_client_confirmed','claim',$2,$3::jsonb)
+       RETURNING created_at`,
       [req.authUser!.id,String(id.data),JSON.stringify({warrantyId:visit.data})]);
-    await db.query('COMMIT');res.json({confirmed:true});
+    await db.query('COMMIT');res.json({confirmed:true,alreadyConfirmed:false,confirmedAt:recorded.rows[0].created_at});
   }catch(error){if(db)await db.query('ROLLBACK').catch(()=>undefined);next(error);}finally{db?.release();}
 });
 
