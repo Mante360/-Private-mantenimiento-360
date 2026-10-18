@@ -636,24 +636,22 @@ if (profile.role === 'client') void loadClientSpecialties();
     }catch(error){panel.textContent='No se pudieron cargar reclamos: '+error.message;}
   }
 
-  async function loadAdminClaims() {
-    if (profile?.role !== 'admin') return;
-    const panel = el('adminClaimsPanel');
-    panel.textContent = 'Consultando reclamos...';
-    try {
-      const claims = await api('GET', '/api/claims');
-      panel.replaceChildren();
-      if (!claims.length) {
-        panel.textContent = 'No hay reclamos registrados.';
-        return;
-      }
+  let adminPendingPage=1;
+  let adminArchivePage=1;
+  let adminPendingVersion=0;
+  let adminArchiveVersion=0;
+
+  async function renderAdminClaimCards(panel, claims) {
+    panel.replaceChildren();
+    if (!claims.length) { panel.textContent='No hay reclamos en esta selección.'; return; }
       for (const claim of claims) {
         const item = document.createElement('div');
         item.className = 'jobspanel';
         const info = document.createElement('p');
-        info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + claim.job_id +
-          ' · Estado: ' + statusLabel(claim.status) + '\nMotivo: ' + claim.reason +
-          '\nDetalle: ' + claim.description;
+        info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + (claim.job_public_code || claim.job_id) +
+          ' · Estado: ' + statusLabel(claim.status) +
+          '\nProfesional: ' + (claim.professional_name || 'Sin asignar') +
+          '\nMotivo: ' + claim.reason + '\nDetalle: ' + claim.description;
         item.append(info);
         const professionalUpdates = document.createElement('div');
         professionalUpdates.textContent = 'Consultando descargo profesional...';
@@ -729,8 +727,77 @@ if (profile.role === 'client') void loadClientSpecialties();
         }
         panel.append(item);
       }
-    } catch (error) {
-      panel.textContent = 'No se pudieron consultar los reclamos: ' + error.message;
+  }
+
+  async function loadAdminClaims() {
+    if(profile?.role!=='admin') return;
+    const version=++adminPendingVersion;
+    const panel=el('adminClaimsPanel');
+    panel.textContent='Consultando reclamos pendientes...';
+    try{
+      const data=await api('GET','/api/claims/admin-list?view=pending&page='+adminPendingPage);
+      if(version!==adminPendingVersion || profile?.role!=='admin') return;
+      el('adminPendingCount').textContent='Reclamos pendientes: '+data.total;
+      el('adminPendingPageInfo').textContent='Página '+data.page+' de '+Math.max(1,Math.ceil(data.total/data.pageSize));
+      el('adminPendingPrev').disabled=adminPendingPage<=1;
+      el('adminPendingNext').disabled=!data.hasMore;
+      if(!data.items.length && data.total && adminPendingPage>1){
+        adminPendingPage=Math.max(1,adminPendingPage-1);
+        return loadAdminClaims();
+      }
+      if(!data.items.length){panel.textContent='No hay reclamos pendientes de atención.';return;}
+      await renderAdminClaimCards(panel,data.items);
+    }catch(error){
+      if(version===adminPendingVersion)panel.textContent='No se pudieron consultar los reclamos pendientes: '+error.message;
+    }
+  }
+
+  async function loadArchivedClaims() {
+    if(profile?.role!=='admin' || el('claimArchiveSection').hidden) return;
+    const version=++adminArchiveVersion;
+    const panel=el('adminArchivePanel');
+    panel.textContent='Buscando reclamos finalizados...';
+    const params=new URLSearchParams({
+      view:'archived',
+      page:String(adminArchivePage),
+      search:el('adminArchiveSearch').value.trim()
+    });
+    try{
+      const data=await api('GET','/api/claims/admin-list?'+params.toString());
+      if(version!==adminArchiveVersion || profile?.role!=='admin' || el('claimArchiveSection').hidden)return;
+      el('adminArchiveCount').textContent='Reclamos finalizados encontrados: '+data.total;
+      el('adminArchivePageInfo').textContent='Página '+data.page+' de '+Math.max(1,Math.ceil(data.total/data.pageSize));
+      el('adminArchivePrev').disabled=adminArchivePage<=1;
+      el('adminArchiveNext').disabled=!data.hasMore;
+      if(!data.items.length && data.total && adminArchivePage>1){
+        adminArchivePage=Math.max(1,adminArchivePage-1);
+        return loadArchivedClaims();
+      }
+      panel.replaceChildren();
+      if(!data.items.length){
+        panel.textContent='No hay reclamos finalizados con ese criterio.';
+        return;
+      }
+      for(const claim of data.items){
+        const details=document.createElement('details');
+        details.className='admin-archive-item';
+        const summary=document.createElement('summary');
+        summary.textContent='Reclamo '+claim.id+' · Trabajo '+(claim.job_public_code||claim.job_id)+
+          ' · '+(claim.professional_name||'Profesional sin asignar')+
+          ' · '+statusLabel(claim.status);
+        const full=document.createElement('div');
+        details.append(summary,full);
+        details.addEventListener('toggle',async()=>{
+          if(!details.open || details.dataset.loaded)return;
+          details.dataset.loaded='true';
+          full.textContent='Consultando historial...';
+          try{await renderAdminClaimCards(full,[claim]);}
+          catch(error){full.textContent='No se pudo mostrar el detalle: '+error.message;delete details.dataset.loaded;}
+        });
+        panel.append(details);
+      }
+    }catch(error){
+      if(version===adminArchiveVersion) panel.textContent='No se pudo consultar el archivo: '+error.message;
     }
   }
 
@@ -1087,7 +1154,34 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
   el('clientReviewForm').addEventListener('submit',submitClientReview);
   el('clientClaimForm').addEventListener('submit',submitClientClaim);
-  el('refreshAdminClaims').addEventListener('click',loadAdminClaims);
+  el('refreshAdminClaims').addEventListener('click',()=>{adminPendingPage=1;void loadAdminClaims();});
+  el('adminPendingPrev').addEventListener('click',()=>{if(adminPendingPage>1){adminPendingPage--;void loadAdminClaims();}});
+  el('adminPendingNext').addEventListener('click',()=>{adminPendingPage++;void loadAdminClaims();});
+  el('toggleClaimArchive').addEventListener('click',()=>{
+    const archive=el('claimArchiveSection');
+    archive.hidden=!archive.hidden;
+    el('toggleClaimArchive').setAttribute('aria-expanded',String(!archive.hidden));
+    el('toggleClaimArchive').textContent=archive.hidden
+      ? 'Abrir archivo de reclamos finalizados' : 'Cerrar archivo de reclamos finalizados';
+    if(!archive.hidden) void loadArchivedClaims();
+  });
+  el('adminArchiveSearchForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    adminArchivePage=1;
+    void loadArchivedClaims();
+  });
+  el('clearAdminArchiveSearch').addEventListener('click',()=>{
+    el('adminArchiveSearch').value='';
+    adminArchivePage=1;
+    void loadArchivedClaims();
+  });
+  el('adminArchivePrev').addEventListener('click',()=>{
+    if(adminArchivePage>1){adminArchivePage--;void loadArchivedClaims();}
+  });
+  el('adminArchiveNext').addEventListener('click',()=>{
+    adminArchivePage++;
+    void loadArchivedClaims();
+  });
   el('refreshClaimInbox').addEventListener('click',loadClaimInbox);
   el('openClaimFormButton').addEventListener('click', () => {
     el('clientClaimForm').hidden = !el('clientClaimForm').hidden;
