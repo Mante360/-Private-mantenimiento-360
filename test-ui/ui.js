@@ -745,7 +745,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         el('adminTotalPendingCount').textContent=String(totals.pending);
         el('adminArchivedCount').textContent=String(totals.archived);
       }
-      el('adminPendingCount').textContent='Reclamos pendientes de atención: '+data.total;
+      el('adminPendingCount').textContent='Total sin resolver: '+data.total;
       el('adminPendingPageInfo').textContent='Página '+data.page+' de '+Math.max(1,Math.ceil(data.total/data.pageSize));
       el('adminPendingPrev').disabled=adminPendingPage<=1;
       el('adminPendingNext').disabled=!data.hasMore;
