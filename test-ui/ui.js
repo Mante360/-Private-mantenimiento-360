@@ -749,6 +749,8 @@ if (profile.role === 'client') void loadClientSpecialties();
       el('adminPendingPageInfo').textContent='Página '+data.page+' de '+Math.max(1,Math.ceil(data.total/data.pageSize));
       el('adminPendingPrev').disabled=adminPendingPage<=1;
       el('adminPendingNext').disabled=!data.hasMore;
+      // If the archive is open, refresh it too when a complaint is resolved.
+      if(!el('claimArchiveSection').hidden) void loadArchivedClaims();
       if(!data.items.length && data.total && adminPendingPage>1){
         adminPendingPage=Math.max(1,adminPendingPage-1);
         return loadAdminClaims();
