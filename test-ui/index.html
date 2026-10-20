@@ -127,6 +127,24 @@
                 </section>
               </div>
             </section>
+            <section class="admin-section admin-performance" id="claimPerformanceSection">
+              <h3>Subadministradores y liquidaciones · Etapa 1</h3>
+              <p class="hint">Control de reclamos cerrados por responsable. La validación registra la complejidad, pero no paga ni descuenta dinero. Todavía no hay altas de subadministradores ni tarifas configuradas.</p>
+              <div class="admin-performance-toolbar">
+                <label for="claimPerformanceMonth">Mes de cierre</label>
+                <input type="month" id="claimPerformanceMonth" min="2026-01" max="2099-12">
+                <button type="button" class="secondary" id="refreshClaimPerformance">Consultar cierres del mes</button>
+              </div>
+              <p class="hint" id="claimPerformanceStatus" role="status"></p>
+              <div id="claimPerformanceSummary" class="admin-performance-summary" aria-live="polite"></div>
+              <h4>Reclamos cerrados para revisar</h4>
+              <div id="claimPerformanceCases"></div>
+              <div class="admin-claim-pagination">
+                <button type="button" class="secondary" id="claimPerformancePrev" disabled>← Anteriores</button>
+                <span class="hint" id="claimPerformancePageInfo"></span>
+                <button type="button" class="secondary" id="claimPerformanceNext" disabled>Siguientes →</button>
+              </div>
+            </section>
             <form id="resetProfessionalForm" class="reset-form" autocomplete="off" hidden>
               <h3>Recuperar acceso de Sebastián Salva (ID 4)</h3>
               <p class="hint">Se conserva su aprobación y especialidad. Usá únicamente claves creadas para este laboratorio.</p>
