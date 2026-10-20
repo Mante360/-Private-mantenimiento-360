@@ -268,7 +268,7 @@ if (profile.role === 'client') void loadClientSpecialties();
       const rows = events.map(event => {
         const date = new Date(event.created_at);
         const time = Number.isNaN(date.getTime())
-          ? '' : ' · ' + date.toLocaleString('es-AR');
+          ? '' : ' · ' + date.toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false});
         return '• ' + (event.note?.includes('Conformidad del cliente') ? 'Conformidad registrada por el cliente' : statusLabel(event.new_status)) + time;
       });
       panel.textContent = 'Seguimiento del trabajo\n' +
@@ -435,7 +435,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           state.className='hint';
           if(claim.professional_acknowledged_at){
             state.textContent='Recepción confirmada el '+
-              new Date(claim.professional_acknowledged_at).toLocaleString('es-AR')+
+              new Date(claim.professional_acknowledged_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false})+
               '. El descargo se presenta por separado.';
           }else{
             state.textContent='Este reclamo está disponible en tu cuenta. Confirmá que tomaste conocimiento; esto no reemplaza tu respuesta técnica.';
@@ -501,7 +501,7 @@ if (profile.role === 'client') void loadClientSpecialties();
               const notice=document.createElement('p');
               notice.className='feedback ok';
               notice.textContent='Corrección confirmada por el cliente'+
-                (visit.client_confirmed_at?' · '+new Date(visit.client_confirmed_at).toLocaleString('es-AR'):'')+'.';
+                (visit.client_confirmed_at?' · '+new Date(visit.client_confirmed_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false}):'')+'.';
               item.append(notice);
             }
             if(visit.status==='completed'){
@@ -622,7 +622,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     panel.textContent='Consultando historial de reclamos...';
     const jobId=encodeURIComponent(String(job.id));
     const displayDate=(value)=>new Date(value).toLocaleString('es-AR',{
-      timeZone:'America/Argentina/Buenos_Aires',dateStyle:'medium',timeStyle:'short'
+      timeZone:'America/Argentina/Buenos_Aires',dateStyle:'medium',timeStyle:'short',hour12:false
     });
     try {
       const warranty=await api('GET','/api/jobs/'+jobId+'/warranty-status');
@@ -736,7 +736,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         const owner=document.createElement('p');
         owner.className='hint';
         owner.textContent='Cierre registrado por: '+claim.administrator_name+
-          ' · Fecha: '+new Date(claim.resolved_at).toLocaleString('es-AR');
+          ' · Fecha: '+new Date(claim.resolved_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false});
         detail.append(owner);
         if(claim.complexity){
           const note=document.createElement('p');
@@ -817,11 +817,11 @@ if (profile.role === 'client') void loadClientSpecialties();
           '\nMotivo: ' + claim.reason + '\nDetalle: ' + claim.description +
           '\nRecepción del aviso: ' +
           (claim.professional_acknowledged_at
-            ? 'Confirmada por el profesional · '+new Date(claim.professional_acknowledged_at).toLocaleString('es-AR')
+            ? 'Confirmada por el profesional · '+new Date(claim.professional_acknowledged_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false})
             : 'Sin confirmación explícita') +
           '\nDescargo profesional: ' +
           (claim.professional_responded_at
-            ? 'Presentado · '+new Date(claim.professional_responded_at).toLocaleString('es-AR')
+            ? 'Presentado · '+new Date(claim.professional_responded_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false})
             : 'Pendiente');
 
         item.append(info);
