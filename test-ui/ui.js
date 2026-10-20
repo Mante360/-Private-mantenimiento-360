@@ -426,6 +426,41 @@ if (profile.role === 'client') void loadClientSpecialties();
           ' · ' + statusLabel(claim.status) + '\nMotivo: ' + claim.reason +
           '\nDescripción: ' + claim.description;
         item.append(info);
+        if(profile?.role==='professional' && ['open','in_review'].includes(claim.status)){
+          const receipt=document.createElement('div');
+          receipt.className='claim-receipt';
+          const title=document.createElement('strong');
+          title.textContent='Aviso del reclamo en MANTENIMIENTO 360°';
+          const state=document.createElement('p');
+          state.className='hint';
+          if(claim.professional_acknowledged_at){
+            state.textContent='Recepción confirmada el '+
+              new Date(claim.professional_acknowledged_at).toLocaleString('es-AR')+
+              '. El descargo se presenta por separado.';
+          }else{
+            state.textContent='Este reclamo está disponible en tu cuenta. Confirmá que tomaste conocimiento; esto no reemplaza tu respuesta técnica.';
+            const button=document.createElement('button');
+            button.type='button';button.className='secondary';
+            button.textContent='Tomé conocimiento del reclamo';
+            const result=document.createElement('p');
+            result.className='hint';result.setAttribute('role','status');
+            button.addEventListener('click',async()=>{
+              if(!confirm('¿Confirmás que tomaste conocimiento del reclamo N.º '+claim.id+'? La recepción quedará registrada y tu descargo seguirá pendiente.'))return;
+              button.disabled=true;result.textContent='Registrando recepción...';
+              try{
+                await api('POST','/api/claims/'+encodeURIComponent(String(claim.id))+'/acknowledge');
+                await loadClaimInbox();
+                if(openedJob && String(openedJob.id)===String(claim.job_id))await loadJobClaimHistory(openedJob);
+              }catch(error){
+                result.textContent='No se pudo confirmar la recepción: '+error.message;
+                button.disabled=false;
+              }
+            });
+            receipt.append(title,state,button,result);
+          }
+          if(claim.professional_acknowledged_at)receipt.append(title,state);
+          item.append(receipt);
+        }
         const updates = document.createElement('div');
         item.append(updates);
         let updatesLoaded=false;
@@ -779,7 +814,16 @@ if (profile.role === 'client') void loadClientSpecialties();
         info.textContent = 'Reclamo ' + claim.id + ' · Trabajo ' + (claim.job_public_code || claim.job_id) +
           ' · Estado: ' + statusLabel(claim.status) +
           '\nProfesional: ' + (claim.professional_name || 'Sin asignar') +
-          '\nMotivo: ' + claim.reason + '\nDetalle: ' + claim.description;
+          '\nMotivo: ' + claim.reason + '\nDetalle: ' + claim.description +
+          '\nRecepción del aviso: ' +
+          (claim.professional_acknowledged_at
+            ? 'Confirmada por el profesional · '+new Date(claim.professional_acknowledged_at).toLocaleString('es-AR')
+            : 'Sin confirmación explícita') +
+          '\nDescargo profesional: ' +
+          (claim.professional_responded_at
+            ? 'Presentado · '+new Date(claim.professional_responded_at).toLocaleString('es-AR')
+            : 'Pendiente');
+
         item.append(info);
         const professionalUpdates = document.createElement('div');
         professionalUpdates.textContent = 'Consultando descargo profesional...';
