@@ -259,6 +259,29 @@ if (profile.role === 'client') void loadClientSpecialties();
   const warrantyStatusLabel = (status) =>
     status === 'completed' ? 'Intervención completada' : statusLabel(status);
 
+  const displayArgDate=value=>new Date(value).toLocaleString('es-AR',{
+    timeZone:'America/Argentina/Buenos_Aires',hour12:false
+  });
+  function claimResponseNotice(window){
+    if(!window)return '';
+    if(window.state==='calendar_pending'){
+      return 'Plazo sin calcular: falta configurar el calendario hábil correspondiente. Administración debe revisarlo.';
+    }
+    if(window.state==='responded'){
+      return 'Descargo recibido. Se detuvo el plazo para la primera respuesta.';
+    }
+    const due='Vence: '+displayArgDate(window.dueAt)+' (hora Argentina).';
+    if(window.state==='overdue')
+      return 'ALERTA INTERNA: transcurrieron las 12 horas hábiles sin descargo. Administración debe revisar el caso. '+due;
+    if(window.state==='reminder8')
+      return 'SEGUNDO RECORDATORIO INTERNO: transcurrieron 8 horas hábiles sin descargo. '+due;
+    if(window.state==='reminder4')
+      return 'PRIMER RECORDATORIO INTERNO: transcurrieron 4 horas hábiles sin descargo. '+due;
+    return 'Plazo de primera respuesta: 12 horas hábiles (lunes a viernes, 07:00–19:00, excluyendo feriados). '+
+      'Primer recordatorio interno: '+displayArgDate(window.firstReminderAt)+'. '+due;
+  }
+
+
   async function loadJobTimeline(job) {
     const panel = el('jobTimeline');
     panel.textContent = 'Consultando seguimiento...';
@@ -460,6 +483,16 @@ if (profile.role === 'client') void loadClientSpecialties();
           }
           if(claim.professional_acknowledged_at)receipt.append(title,state);
           item.append(receipt);
+          const reminder=document.createElement('div');
+          reminder.className='claim-response-clock'+
+            (claim.response_window?.state==='overdue'?' overdue':'');
+          const text=document.createElement('p');
+          text.textContent=claimResponseNotice(claim.response_window);
+          reminder.append(text);
+          const note=document.createElement('small');
+          note.textContent='Seguimiento visible al ingresar o actualizar. WhatsApp y correo todavía no están activos.';
+          reminder.append(note);
+          item.append(reminder);
         }
         const updates = document.createElement('div');
         item.append(updates);
@@ -822,7 +855,10 @@ if (profile.role === 'client') void loadClientSpecialties();
           '\nDescargo profesional: ' +
           (claim.professional_responded_at
             ? 'Presentado · '+new Date(claim.professional_responded_at).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false})
-            : 'Pendiente');
+            : 'Pendiente')+
+          (claim.response_window
+            ? '\nSeguimiento del plazo: '+claimResponseNotice(claim.response_window)
+            : '');
 
         item.append(info);
         const professionalUpdates = document.createElement('div');
