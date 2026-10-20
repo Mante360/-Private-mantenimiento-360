@@ -9,14 +9,18 @@ const ARG_OFFSET=3*HOUR; // Argentina, UTC-03:00 durante el calendario 2026.
 
 // Feriados nacionales de 2026 y días turísticos no laborables incluidos para
 // no acortar el tiempo de respuesta. Verificar y actualizar por año.
+// Calendario piloto de Provincia de Buenos Aires; incluye el feriado local
+// de 11/11/2026. En producción será configurable por jurisdicción.
 // https://www.argentina.gob.ar/feriados
+// https://www.argentina.gob.ar/normativa/nacional/norma-430580/texto
 const LAB_CLOSED_DAYS:Record<number,ReadonlySet<string>>={
   2026:new Set([
     '2026-01-01','2026-02-16','2026-02-17',
     '2026-03-23','2026-03-24','2026-04-02','2026-04-03',
     '2026-05-01','2026-05-25','2026-06-15','2026-06-20',
     '2026-07-09','2026-07-10','2026-08-17','2026-10-12',
-    '2026-11-23','2026-12-07','2026-12-08','2026-12-25'
+    '2026-11-09','2026-11-11','2026-11-23',
+    '2026-12-07','2026-12-08','2026-12-25'
   ])
 };
 
