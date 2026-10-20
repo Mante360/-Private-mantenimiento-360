@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db.js';
 import { requireAuth, requireRole } from '../security.js';
+import { getLabClaimReminder } from '../lab-claim-deadlines.js';
 
 export const claimsRouter = Router();
 claimsRouter.use(requireAuth);
@@ -138,7 +139,10 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
         LIMIT $2 OFFSET $3`,
       [search,pageSize,(page-1)*pageSize]
     );
-    res.json({items:items.rows,total,page,pageSize,hasMore:page*pageSize<total,statusTotals});
+    res.json({items:items.rows.map(claim=>({
+      ...claim,
+      response_window:getLabClaimReminder(claim.created_at,claim.professional_responded_at)
+    })),total,page,pageSize,hasMore:page*pageSize<total,statusTotals});
   }catch(error){next(error);}
 });
 
@@ -172,7 +176,12 @@ claimsRouter.get('/', async (req, res, next) => {
        ORDER BY c.created_at DESC LIMIT 100`,
       params
     );
-    res.json(result.rows);
+    res.json(result.rows.map(claim=>({
+      ...claim,
+      response_window: ['open','in_review'].includes(claim.status)
+        ? getLabClaimReminder(claim.created_at,claim.professional_responded_at)
+        : null
+    })));
   } catch (error) {
     next(error);
   }
