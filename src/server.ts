@@ -12,6 +12,7 @@ import { pool } from './db.js';
 import { bootstrapTestSchemaIfRequested } from './test-db-bootstrap.js';
 import { seedLabAdminIfRequested } from './test-admin-seed.js';
 import { adminRouter } from './routes/admin.js';
+import { claimPerformanceRouter } from './routes/claim-performance.js';
 
 checkJwtConfiguration(); // Fail closed on weak/missing secret.
 const app = express();
@@ -71,6 +72,7 @@ app.use('/api/jobs', photosRouter);
 app.use('/api/jobs', technicalRouter);
 app.use('/api/claims', claimsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/admin/claim-performance', claimPerformanceRouter);
 
 app.use((
   error: unknown,
