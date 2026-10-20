@@ -74,3 +74,15 @@ body.photo-viewer-open{overflow:hidden}
 .admin-claim-stat strong{font-size:28px;color:#091b36;line-height:1.1}
 .admin-claim-stat small{font-size:11px;color:#56647b;line-height:1.4}
 @media(max-width:380px){.admin-claim-stats{gap:7px}.admin-claim-stat{padding:9px}.admin-claim-stat strong{font-size:24px}}
+
+/* Liquidaciones: control administrativo previo, sin calcular dinero. */
+.admin-performance-toolbar{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:14px 0}
+.admin-performance-toolbar label{margin:0}
+.admin-performance-toolbar input{max-width:200px}
+.admin-performance-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px}
+.admin-performance-person{background:#fff;border:1px solid #cbd9e9;border-radius:9px;padding:12px}
+.admin-performance-person strong{font-size:14px;color:#142944}
+.admin-performance-person p{margin:8px 0 0;color:#53627a;font-size:13px;line-height:1.6}
+.claim-performance-review{padding:12px;border:1px solid #d6dfeb;border-radius:9px;background:#fff}
+.claim-performance-review select,.claim-performance-review textarea{display:block;width:100%;border:1px solid #bdc9db;border-radius:9px;padding:11px;font:inherit}
+.claim-performance-review textarea{resize:vertical}
