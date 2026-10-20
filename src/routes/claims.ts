@@ -121,6 +121,14 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
     const items=await pool.query(
       `SELECT c.id,c.job_id,c.warranty_visit_id,c.reason,c.description,
           c.status,c.resolution_note,c.created_at,c.resolved_at,
+          (SELECT MIN(a.created_at) FROM audit_events a
+           WHERE a.resource_type='claim' AND a.resource_id=c.id::text
+             AND a.action='claim_professional_acknowledged'
+             AND a.actor_id=c.professional_id) AS professional_acknowledged_at,
+          (SELECT MIN(a.created_at) FROM audit_events a
+           WHERE a.resource_type='claim' AND a.resource_id=c.id::text
+             AND a.action='claim_professional_response'
+             AND a.actor_id=c.professional_id) AS professional_responded_at,
           pro.name AS professional_name,j.public_code AS job_public_code,
           (SELECT q.warranty_days FROM job_contracts jc
            JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=jc.job_id
@@ -148,6 +156,14 @@ claimsRouter.get('/', async (req, res, next) => {
     const result = await pool.query(
       `SELECT c.id,c.job_id,c.warranty_visit_id,c.reason,c.description,
               c.status,c.resolution_note,c.created_at,c.resolved_at,
+          (SELECT MIN(a.created_at) FROM audit_events a
+           WHERE a.resource_type='claim' AND a.resource_id=c.id::text
+             AND a.action='claim_professional_acknowledged'
+             AND a.actor_id=c.professional_id) AS professional_acknowledged_at,
+          (SELECT MIN(a.created_at) FROM audit_events a
+           WHERE a.resource_type='claim' AND a.resource_id=c.id::text
+             AND a.action='claim_professional_response'
+             AND a.actor_id=c.professional_id) AS professional_responded_at,
               (SELECT q.warranty_days
                FROM job_contracts jc JOIN job_quotes q
                  ON q.id=jc.quote_id AND q.job_id=jc.job_id
@@ -215,6 +231,53 @@ claimsRouter.post('/:id/professional-response', requireRole('professional'), asy
     if(db) await db.query('ROLLBACK').catch(()=>undefined);
     next(error);
   } finally {db?.release();}
+});
+
+// In-app acknowledgement only: an explicit professional action, not a
+// WhatsApp delivery/read receipt and not proof of a legal notification.
+// Unique for each claim/professional through a row-locked idempotent operation.
+claimsRouter.post('/:id/acknowledge',requireRole('professional'),async(req,res,next)=>{
+  const id=z.coerce.number().int().positive().safeParse(req.params.id);
+  if(!id.success){res.status(400).json({error:'invalid_claim_id'});return;}
+  const db=await pool.connect();
+  try{
+    await db.query('BEGIN');
+    const claim=await db.query(
+      `SELECT id,job_id FROM claims
+       WHERE id=$1 AND professional_id=$2 AND status IN ('open','in_review')
+       FOR UPDATE`,
+      [id.data,req.authUser!.id]
+    );
+    if(!claim.rows[0]){
+      await db.query('ROLLBACK');
+      res.status(404).json({error:'claim_not_open_or_unavailable'});return;
+    }
+    const prior=await db.query(
+      `SELECT created_at FROM audit_events
+       WHERE resource_type='claim' AND resource_id=$1
+         AND action='claim_professional_acknowledged' AND actor_id=$2
+       ORDER BY id ASC LIMIT 1`,
+      [String(id.data),req.authUser!.id]
+    );
+    if(prior.rows[0]){
+      await db.query('COMMIT');
+      res.json({acknowledged:true,alreadyAcknowledged:true,acknowledgedAt:prior.rows[0].created_at});
+      return;
+    }
+    const event=await db.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       VALUES($1,'claim_professional_acknowledged','claim',$2,$3::jsonb)
+       RETURNING created_at`,
+      [req.authUser!.id,String(id.data),JSON.stringify({
+        source:'lab_web',jobId:String(claim.rows[0].job_id)
+      })]
+    );
+    await db.query('COMMIT');
+    res.json({acknowledged:true,alreadyAcknowledged:false,acknowledgedAt:event.rows[0].created_at});
+  }catch(error){
+    await db.query('ROLLBACK').catch(()=>undefined);
+    next(error);
+  }finally{db.release();}
 });
 
 // Client, assigned professional and Administration see the same recorded responses.
