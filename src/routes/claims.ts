@@ -141,7 +141,9 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
     );
     res.json({items:items.rows.map(claim=>({
       ...claim,
-      response_window:getLabClaimReminder(claim.created_at,claim.professional_responded_at)
+      response_window:['open','in_review'].includes(claim.status)
+        ? getLabClaimReminder(claim.created_at,claim.professional_responded_at)
+        : null
     })),total,page,pageSize,hasMore:page*pageSize<total,statusTotals});
   }catch(error){next(error);}
 });
