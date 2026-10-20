@@ -83,7 +83,7 @@
 el('clientRequestSection').hidden = profile.role !== 'client';
 if (profile.role === 'client') void loadClientSpecialties();
 
-    if(profile.role === 'admin') { void loadProfessionals(); void loadAdminClaims(); }
+    if(profile.role === 'admin') { void loadProfessionals(); void loadAdminClaims(); void loadClaimPerformance(); }
   }
   async function activate(data) {
     token = data.token;
@@ -636,6 +636,134 @@ if (profile.role === 'client') void loadClientSpecialties();
     }catch(error){panel.textContent='No se pudieron cargar reclamos: '+error.message;}
   }
 
+  // Liquidaciones, etapa 1: cierres reales y validación documental.
+  // No se calculan ni generan transferencias ni descuentos.
+  let claimPerformancePage=1;
+  let claimPerformanceVersion=0;
+  const complexityNames={
+    simple:'Simple',intermediate:'Intermedio',complex:'Complejo'
+  };
+
+  async function loadClaimPerformance(){
+    if(profile?.role!=='admin')return;
+    const month=el('claimPerformanceMonth');
+    if(!month.value){
+      const now=new Date();
+      month.value=String(now.getFullYear())+'-'+String(now.getMonth()+1).padStart(2,'0');
+    }
+    const currentMonth=month.value;
+    const version=++claimPerformanceVersion;
+    const status=el('claimPerformanceStatus');
+    const summary=el('claimPerformanceSummary');
+    const cases=el('claimPerformanceCases');
+    status.textContent='Consultando cierres registrados...';
+    summary.replaceChildren();
+    cases.replaceChildren();
+    try{
+      const params=new URLSearchParams({month:currentMonth,page:String(claimPerformancePage)});
+      const data=await api('GET','/api/admin/claim-performance?'+params.toString());
+      if(version!==claimPerformanceVersion||profile?.role!=='admin'||month.value!==currentMonth)return;
+      status.textContent='Cierres del mes: '+data.total+'. La validación NO genera un pago.';
+      el('claimPerformancePageInfo').textContent='Página '+data.page+' de '+Math.max(1,Math.ceil(data.total/data.pageSize));
+      el('claimPerformancePrev').disabled=claimPerformancePage<=1;
+      el('claimPerformanceNext').disabled=!data.hasMore;
+      if(!data.people.length){
+        summary.textContent='No hay reclamos cerrados en este mes.';
+      }
+      for(const person of data.people){
+        const item=document.createElement('div');
+        item.className='admin-performance-person';
+        const heading=document.createElement('strong');
+        heading.textContent=person.administrator_name+' · Cerrados: '+person.closed;
+        const details=document.createElement('p');
+        details.textContent='Validados: '+person.validated+
+          ' (simples '+person.simple+', intermedios '+person.intermediate+
+          ', complejos '+person.complex+') · Sin validar: '+person.unvalidated;
+        item.append(heading,details);
+        summary.append(item);
+      }
+      if(!data.items.length&&data.total&&claimPerformancePage>1){
+        claimPerformancePage--;
+        void loadClaimPerformance();
+        return;
+      }
+      if(!data.items.length){
+        cases.textContent='No hay expedientes para revisar.';
+        return;
+      }
+      for(const claim of data.items){
+        const detail=document.createElement('details');
+        detail.className='admin-archive-item';
+        const head=document.createElement('summary');
+        head.textContent='Reclamo N.º '+claim.id+' · Trabajo '+claim.job_public_code+
+          ' · '+(claim.complexity?'Validado: '+complexityNames[claim.complexity]:'Pendiente de validar');
+        detail.append(head);
+        const owner=document.createElement('p');
+        owner.className='hint';
+        owner.textContent='Cierre registrado por: '+claim.administrator_name+
+          ' · Fecha: '+new Date(claim.resolved_at).toLocaleString('es-AR');
+        detail.append(owner);
+        if(claim.complexity){
+          const note=document.createElement('p');
+          note.textContent='Complejidad validada: '+complexityNames[claim.complexity]+
+            '. Sin tarifa ni pago asignado.';
+          detail.append(note);
+        }else{
+          const form=document.createElement('form');
+          form.className='claim-performance-review';
+          const label=document.createElement('label');
+          const select=document.createElement('select');
+          select.required=true;
+          select.id='performanceComplexity'+claim.id;
+          label.htmlFor=select.id;
+          label.textContent='Nivel de complejidad';
+          const placeholder=document.createElement('option');
+          placeholder.value='';placeholder.textContent='Elegir nivel';
+          select.append(placeholder);
+          for(const [value,text] of Object.entries(complexityNames)){
+            const opt=document.createElement('option');
+            opt.value=value;opt.textContent=text;
+            select.append(opt);
+          }
+          const why=document.createElement('label');
+          const rationale=document.createElement('textarea');
+          rationale.id='performanceRationale'+claim.id;
+          rationale.required=true;rationale.minLength=8;rationale.maxLength=800;
+          rationale.rows=3;
+          why.htmlFor=rationale.id;
+          why.textContent='Motivo de la validación (mínimo 8 caracteres)';
+          const button=document.createElement('button');
+          button.type='submit';button.className='secondary';
+          button.textContent='Validar resolución y complejidad';
+          const result=document.createElement('p');
+          result.className='hint';
+          form.append(label,select,why,rationale,button,result);
+          form.addEventListener('submit',async event=>{
+            event.preventDefault();
+            if(!confirm('¿Validar el reclamo N.º '+claim.id+' como '+complexityNames[select.value]+'? No se generará ningún pago.'))return;
+            button.disabled=true;
+            result.textContent='Guardando validación...';
+            try{
+              await api('POST','/api/admin/claim-performance/'+claim.id+'/validate',{
+                complexity:select.value,rationale:rationale.value.trim()
+              });
+              result.textContent='Validación registrada.';
+              void loadClaimPerformance();
+            }catch(error){
+              result.textContent='No se pudo validar: '+error.message;
+              button.disabled=false;
+            }
+          });
+          detail.append(form);
+        }
+        cases.append(detail);
+      }
+    }catch(error){
+      if(version===claimPerformanceVersion)status.textContent=
+        'No se pudo consultar el control de cierres: '+error.message;
+    }
+  }
+
   let adminPendingPage=1;
   let adminArchivePage=1;
   let adminPendingVersion=0;
@@ -1164,6 +1292,17 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
   el('clientReviewForm').addEventListener('submit',submitClientReview);
   el('clientClaimForm').addEventListener('submit',submitClientClaim);
+  el('refreshClaimPerformance').addEventListener('click',()=>{
+    claimPerformancePage=1;
+    void loadClaimPerformance();
+  });
+  el('claimPerformancePrev').addEventListener('click',()=>{
+    if(claimPerformancePage>1){claimPerformancePage--;void loadClaimPerformance();}
+  });
+  el('claimPerformanceNext').addEventListener('click',()=>{
+    claimPerformancePage++;
+    void loadClaimPerformance();
+  });
   el('refreshAdminClaims').addEventListener('click',()=>{adminPendingPage=1;void loadAdminClaims();});
   el('adminPendingPrev').addEventListener('click',()=>{if(adminPendingPage>1){adminPendingPage--;void loadAdminClaims();}});
   el('adminPendingNext').addEventListener('click',()=>{adminPendingPage++;void loadAdminClaims();});
