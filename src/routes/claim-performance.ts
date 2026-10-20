@@ -47,7 +47,9 @@ const sourceSql=`
 
 claimPerformanceRouter.get('/',async(req,res,next)=>{
   const parsed=monthInput.safeParse(req.query);
-  if(!parsed.success){res.status(400).json({error:'invalid_filter'});return;}
+  if(!parsed.success || Number(parsed.data.month.slice(0,4))<2026 || Number(parsed.data.month.slice(0,4))>2099){
+    res.status(400).json({error:'invalid_filter'});return;
+  }
   const {month,page}=parsed.data;
   const [start,end]=monthBounds(month);
   const pageSize=20;
