@@ -92,3 +92,9 @@ body.photo-viewer-open{overflow:hidden}
 .claim-receipt strong{display:block;margin-bottom:4px;font-size:14px;color:#194c38}
 .claim-receipt .hint{margin:8px 0;white-space:normal}
 .claim-receipt button{margin:7px 0 4px}
+
+/* Seguimiento informativo de 4/8/12 horas hábiles: visible, no push. */
+.claim-response-clock{margin:10px 0;padding:12px;background:#f2f6fc;border:1px solid #b7c9e2;border-left:5px solid #315d9a;border-radius:9px}
+.claim-response-clock.overdue{background:#fff2ed;border-color:#e2a18e;border-left-color:#ad3e25}
+.claim-response-clock p{margin:0 0 7px;line-height:1.6;font-size:13px;font-weight:700;white-space:normal}
+.claim-response-clock small{display:block;color:#52637a;line-height:1.5}
