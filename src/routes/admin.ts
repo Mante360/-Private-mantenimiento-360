@@ -123,12 +123,16 @@ adminRouter.post('/professionals/:id/approve', async(req,res,next)=>{
        VALUES($1,$2) ON CONFLICT DO NOTHING`,
       [id.data,category.rows[0].id]
     );
+    // Nunca atribuir todos los trabajos del rubro por defecto.
+    // Solo los servicios declarados individualmente y revisados se habilitan.
     await db.query(
       `INSERT INTO professional_services(professional_id,specialty_id,service_id)
-       SELECT $1,ss.specialty_id,ss.id FROM specialty_services ss
-       WHERE ss.specialty_id=$2 AND ss.active=true
+       SELECT $1,ss.specialty_id,ss.id
+       FROM lab_service_declarations d
+       JOIN specialty_services ss ON ss.id=d.service_id
+       WHERE d.professional_id=$1 AND d.status='approved'
        ON CONFLICT DO NOTHING`,
-      [id.data,category.rows[0].id]
+      [id.data]
     );
     await db.query(
       `UPDATE professional_profiles
