@@ -182,6 +182,13 @@
     <input id="requestSpecialtySearch" type="search" maxlength="100" autocomplete="off" required
       placeholder="Ej.: fontanero, reparar una canilla, fuente de agua"
       aria-describedby="requestSpecialtyMatch" aria-controls="requestSpecialtyMatches">
+    <fieldset id="requestHeaterGuide" class="heater-guide" hidden>
+      <legend>¿El termotanque es a gas o eléctrico?</legend>
+      <p class="hint" id="requestHeaterHint">Elegí una opción para recibir recomendaciones más precisas. Si no lo sabés, también podés continuar.</p>
+      <label><input type="radio" name="requestHeaterType" value="gas"> Es a gas</label>
+      <label><input type="radio" name="requestHeaterType" value="electrico"> Es eléctrico</label>
+      <label><input type="radio" name="requestHeaterType" value="no_se"> No sé</label>
+    </fieldset>
     <div id="requestSpecialtyMatch" class="specialty-match" role="status" aria-live="polite">
       Escribí un oficio o problema y verás las especialidades sugeridas.
     </div>
@@ -189,7 +196,7 @@
     <input id="requestSpecialty" type="hidden" value="">
 
     <label for="requestDescription">Descripción del trabajo</label>
-    <textarea id="requestDescription" minlength="3" maxlength="3000" required
+    <textarea id="requestDescription" rows="5" minlength="3" maxlength="3000" required
       placeholder="Ejemplo: Aire acondicionado de prueba que no enfría"></textarea>
 
     <label for="requestLocality">Localidad ficticia</label>
