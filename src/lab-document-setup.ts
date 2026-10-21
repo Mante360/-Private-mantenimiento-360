@@ -39,12 +39,41 @@ export async function ensureLabDocumentSchema():Promise<void>{
     fictional_reference varchar(120) NOT NULL,
     expires_on date,
     status varchar(24) NOT NULL DEFAULT 'pending'
-      CHECK(status IN('pending','needs_more','reviewed_test_only','rejected')),
+      CHECK(status IN('pending','needs_more','reviewed_test_only','rejected','superseded')),
     reviewer_note varchar(600),
     reviewed_by bigint REFERENCES users(id),
     reviewed_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now()
   )`);
+  // In a previous lab test, a double click created two identical pending entries.
+  // Keep the history, but mark older identical submissions as superseded so
+  // Administration has only ONE active review per same fictional document.
+  await client.query('ALTER TABLE lab_document_entries DROP CONSTRAINT IF EXISTS lab_document_entries_status_check');
+  await client.query(`ALTER TABLE lab_document_entries ADD CONSTRAINT lab_document_entries_status_check
+    CHECK(status IN('pending','needs_more','reviewed_test_only','rejected','superseded'))`);
+  await client.query(`
+    WITH ranked AS (
+      SELECT id,ROW_NUMBER() OVER(
+        PARTITION BY professional_id,document_type,fictional_reference,expires_on
+        ORDER BY id DESC
+      ) AS rn FROM lab_document_entries WHERE status='pending'
+    ), older AS (
+      UPDATE lab_document_entries d
+         SET status='superseded',
+             reviewer_note='Duplicado de prueba: revisar la presentacion mas reciente.'
+        FROM ranked r WHERE d.id=r.id AND r.rn>1
+      RETURNING d.id
+    )
+    INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+    SELECT NULL,'lab_doc_duplicate_superseded','lab_document',
+      older.id::text,'{"scope":"lab","reason":"same_pending_submission"}'::jsonb
+    FROM older`);
+  // Protect even against concurrent requests; NULL expiry is treated as equal.
+  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS lab_document_pending_unique
+    ON lab_document_entries(
+      professional_id,document_type,fictional_reference,
+      COALESCE(expires_on,DATE '9999-12-31')
+    ) WHERE status='pending'`);
   await client.query(`CREATE INDEX IF NOT EXISTS lab_documents_professional_idx
     ON lab_document_entries(professional_id,document_type,created_at DESC)`);
   await client.query(`CREATE INDEX IF NOT EXISTS lab_documents_pending_idx
