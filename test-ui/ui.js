@@ -381,7 +381,7 @@
       return {service,score};
     }).filter(entry=>entry.score>0)
       .sort((a,b)=>
-        Number(b.service.approved_professional_count>0)-Number(a.service.approved_professional_count>0)||
+        Number(Number(b.service.eligible_professional_count)>0)-Number(Number(a.service.eligible_professional_count)>0)||
         b.score-a.score||
         a.service.service_name.localeCompare(b.service.service_name,'es-AR'));
     return rows.slice(0,10).map(x=>x.service);
@@ -389,28 +389,31 @@
   function renderClientServiceChoices(phrase,heaterType,notice,options,hidden){
     const suggestions=matchedLabServices(phrase,heaterType);
     if(!suggestions.length)return false;
-    const available=suggestions.filter(s=>Number(s.approved_professional_count)>0).length;
+    const available=suggestions.filter(s=>Number(s.eligible_professional_count)>0).length;
     notice.textContent=available
       ? 'Encontramos '+suggestions.length+' tipos de servicio relacionados. '+available+
-        ' cuentan con profesionales aprobados que declararon realizarlos. Elegí el que necesitás:'
-      : 'Encontramos estos tipos de trabajo, pero todavía no hay profesionales aprobados en el laboratorio que hayan declarado realizarlos.';
+        ' cuentan con profesionales habilitados actualmente para recibir presupuestos. Elegí el que necesitás:'
+      : 'Encontramos estos tipos de trabajo, pero por ahora no hay profesionales habilitados para recibir nuevas solicitudes. Los servicios pueden estar aprobados sin estar disponibles.';
     if(heaterType==='gas'||heaterType==='electrico'){
       notice.textContent+=' Según la falla podría intervenir más de un oficio; el diagnóstico lo confirma el profesional.';
     }
     for(const service of suggestions){
       const choice=document.createElement('button');choice.type='button';
       choice.className='specialty-choice';
-      const count=Number(service.approved_professional_count)||0;
+      const count=Number(service.eligible_professional_count)||0;
+      const approved=Number(service.approved_professional_count)||0;
       choice.disabled=count===0;choice.setAttribute('aria-pressed','false');
       const title=document.createElement('strong');
       title.textContent=service.service_name+' · '+service.profession_name;
       const caption=document.createElement('small');
       caption.textContent=count
-        ? count+' profesional(es) aprobado(s) que declararon este servicio en el laboratorio.'
-        : 'Sin profesionales aprobados que ofrezcan este trabajo todavía.';
+        ? count+' profesional(es) aprobado(s) disponible(s) para nuevas cotizaciones en el laboratorio.'
+        : approved
+          ? 'Este servicio está aprobado, pero ningún profesional puede presupuestarlo actualmente.'
+          : 'Todavía no hay profesionales aprobados que ofrezcan este trabajo.';
       const action=document.createElement('span');
       action.className='specialty-choice-action';
-      action.textContent=count?'Elegir este servicio':'No disponible todavía';
+      action.textContent=count?'Elegir este servicio':'No disponible actualmente';
       choice.append(title,caption,action);
       choice.addEventListener('click',()=>{
         hidden.value=String(service.specialty_id);
@@ -432,7 +435,7 @@
       notice.classList.add('specialty-warning');
       const hint=document.createElement('p');
       hint.className='hint';
-      hint.textContent='La sugerencia no significa que haya alguien disponible. Primero un profesional debe declarar ese trabajo y Administración aprobarlo.';
+      hint.textContent='Una especialidad puede estar registrada y aprobada sin tener profesionales disponibles para presupuestar. Cuando haya uno habilitado, aparecerá como disponible.';
       options.append(hint);
     }
     return true;
