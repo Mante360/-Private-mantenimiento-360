@@ -38,6 +38,21 @@ jobsRouter.post('/', requireRole('client'), async (req, res, next) => {
   }
   const d = parsed.data;
   try {
+    // For a specifically selected service, do not advertise availability when
+    // no approved professional explicitly offers it.
+    if(d.serviceId!=null){
+      const available=await pool.query(
+        `SELECT 1 FROM lab_service_declarations offer
+         JOIN professional_profiles pp ON pp.user_id=offer.professional_id
+         JOIN users u ON u.id=offer.professional_id
+         JOIN specialty_services ss ON ss.id=offer.service_id
+         WHERE offer.service_id=$1 AND ss.specialty_id=$2 AND ss.active=true
+           AND offer.status='approved' AND pp.verification_status='approved'
+           AND pp.available=true AND u.status='active'
+         LIMIT 1`,[d.serviceId,d.specialtyId]
+      );
+      if(!available.rows.length){res.status(409).json({error:'no_approved_professionals_for_service'});return;}
+    }
     const result = await pool.query(
       `INSERT INTO jobs(client_id,specialty_id,service_id,description,locality,status)
        SELECT $1,s.id,ss.id,$4,$5,'requested'
@@ -82,6 +97,8 @@ jobsRouter.get('/', async (req, res, next) => {
          WHERE j.status IN ('requested','quoted')
            AND (j.service_id IS NULL OR EXISTS(
              SELECT 1 FROM professional_services pts
+             JOIN lab_service_declarations d ON d.professional_id=pts.professional_id
+               AND d.service_id=pts.service_id AND d.status='approved'
              WHERE pts.professional_id=$1 AND pts.service_id=j.service_id
            ))
            AND NOT EXISTS(
