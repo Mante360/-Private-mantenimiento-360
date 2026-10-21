@@ -69,7 +69,9 @@ labServicesRouter.post('/mine',requireRole('professional'),async(req,res,next)=>
   }
   for(const id of ids){
     await db.query(`INSERT INTO lab_service_declarations(professional_id,service_id,status)
-      VALUES($1,$2,'pending') ON CONFLICT(professional_id,service_id) DO NOTHING`,
+      VALUES($1,$2,'pending') ON CONFLICT(professional_id,service_id)
+      DO UPDATE SET status='pending',requested_at=now(),reviewed_by=NULL,reviewed_at=NULL
+      WHERE lab_service_declarations.status='rejected'`,
       [req.authUser!.id,id]);
   }
   const statuses=await db.query('SELECT status,count(*)::integer n FROM lab_service_declarations WHERE professional_id=$1 GROUP BY status',[req.authUser!.id]);
