@@ -133,17 +133,23 @@
         return score;
       },0);
       let score=exact?180:includesPhrase?100:tokenScore;
-      // Un termotanque puede involucrar agua, gas o electricidad.
-      // Sin dato adicional sugerimos Plomero para el circuito de agua,
-      // pero nunca asumimos que un plomero está habilitado para intervenir gas.
+      // Para equipos de agua caliente la consulta es orientativa, NO un diagnóstico.
+      // Gasista es prioritario para artefactos a gas; plomero para circuito de agua.
       if(heater){
         if(gas&&profession.profession_key==='gasista')score+=200;
         else if(electric&&profession.profession_key==='electricista')score+=200;
-        else if(!gas&&!electric&&profession.profession_key==='plomero')score+=75;
       }
       return {profession,score};
     }).filter(item=>item.score>0)
       .sort((a,b)=>b.score-a.score||a.profession.title.localeCompare(b.profession.title,'es-AR'));
+    if(heater){
+      // Nunca ocultar al segundo oficio por tener menor puntuación.
+      const keys=gas?['gasista','plomero']:
+        electric?['electricista','plomero']:
+          ['gasista','plomero','electricista'];
+      return keys.map(key=>labProfessionCatalog.find(p=>p.profession_key===key))
+        .filter(Boolean);
+    }
     if(!ranked.length)return [];
     const floor=Math.max(12,ranked[0].score-43);
     return ranked.filter(item=>item.score>=floor).slice(0,6).map(item=>item.profession);
@@ -172,20 +178,40 @@
         '". Contanos qué elemento no funciona (por ejemplo: canilla, heladera o techo).';
       return;
     }
-    notice.textContent=found.length===1
-      ? 'Para "'+phrase+'" te sugerimos esta especialidad. Tocá «Elegir» para confirmarla:'
-      : 'Para "'+phrase+'" hay '+found.length+
-        ' especialidades posibles. Elegí la que mejor describa el problema:';
-    const heater=/termotanque|calef[oó]n/i.test(phrase);
+    const normalizedQuery=professionNormalized(phrase);
+    const heater=/termotanque|calefon/.test(normalizedQuery);
+    const heaterGas=heater&&/(?:^|\\s)gas(?:$|\\s)|gasista/.test(normalizedQuery);
+    const heaterElectric=heater&&/electri/.test(normalizedQuery);
+    if(heater){
+      notice.textContent=heaterGas
+        ? 'Un termotanque a gas que no enciende puede necesitar un Gasista habilitado para revisar el artefacto, o un Plomero para problemas de agua. No podemos diagnosticar la causa por el texto.'
+        : heaterElectric
+          ? 'Si el termotanque es eléctrico, puede corresponder a Electricidad o Plomería según dónde esté la falla.'
+          : '¿El termotanque es a gas o eléctrico? Podés aclararlo en tu descripción. Mientras tanto, estas son las especialidades posibles:';
+    }else{
+      notice.textContent=found.length===1
+        ? 'Por lo que escribiste, te sugerimos esta especialidad:'
+        : 'Por lo que escribiste, hay varias especialidades posibles. Elegí la que mejor corresponda:';
+    }
     for(const [index,profession] of found.entries()){
       const choice=document.createElement('button');
       choice.className='specialty-choice';
       choice.type='button';
       choice.setAttribute('aria-pressed','false');
       const label=document.createElement('strong');
-      label.textContent=(index===0?'Sugerencia principal: ':'Otra opción: ')+profession.title;
+      label.textContent=heater&&!heaterGas&&!heaterElectric
+        ? 'Opción posible: '+profession.title
+        : (index===0?'Sugerencia principal: ':'Otra opción: ')+profession.title;
       const desc=document.createElement('small');
-      desc.textContent=profession.description;
+      if(heater&&profession.profession_key==='gasista'){
+        desc.textContent='Artefacto a gas, encendido, quemador y conexiones de gas. Requiere habilitación correspondiente.';
+      }else if(heater&&profession.profession_key==='plomero'){
+        desc.textContent='Cañerías, pérdidas, presión y abastecimiento de agua. No habilita a trabajar sobre instalaciones de gas.';
+      }else if(heater&&profession.profession_key==='electricista'){
+        desc.textContent='Alimentación y controles eléctricos de un equipo eléctrico, según la habilitación que corresponda.';
+      }else{
+        desc.textContent=profession.description;
+      }
       const action=document.createElement('span');
       action.className='specialty-choice-action';
       action.textContent='Elegir '+profession.title;
@@ -204,10 +230,10 @@
       });
       options.append(choice);
     }
-    if(heater&&!/a gas|gasista|electri/i.test(phrase)){
+    if(heater){
       const hint=document.createElement('p');
       hint.className='hint';
-      hint.textContent='Importante: si la falla involucra gas, debe intervenir un gasista habilitado. Si no sabés cuál es el problema, indicá si el termotanque es a gas o eléctrico.';
+      hint.textContent='Un mismo problema puede requerir más de un oficio. En esta etapa del laboratorio la solicitud comienza con uno solo: explicá los síntomas en la descripción. La revisión técnica determinará si debe intervenir otro especialista. Si hay olor a gas, no uses esta solicitud como vía de emergencia: comunicate con el servicio de emergencias de gas.';
       options.append(hint);
     }
   }
