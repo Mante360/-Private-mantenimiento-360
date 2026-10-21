@@ -102,14 +102,114 @@
       panel.append(item);
     }
   }
+  // El cliente describe el problema: primero recomendamos, luego elige.
+  // No se asigna una especialidad ni se crea una solicitud sin confirmación.
+  function clientProfessionMatches(query){
+    const phrase=professionNormalized(query).replace(/[^\p{L}\p{N}\s]/gu,' ')
+      .replace(/\s+/g,' ').trim();
+    if(phrase.length<2)return [];
+    const common=new Set(['una','uno','con','del','por','para','este','esta',
+      'necesito','quiero','tengo','tiene','hay','mis','sus','las','los',
+      'el','la','en','al','un','mi','se','me','que','como','no','de',
+      'falla','fallo','funciona','funcionar','funcionan','arreglar',
+      'reparar','reparacion','roto','rota','rompio','rompió',
+      'problema','anda','hacer','estoy','servicio','servicios','y']);
+    const terms=phrase.split(' ').filter(word=>word.length>=2&&!common.has(word));
+    if(!terms.length)return [];
+    const heater=terms.some(term=>term.startsWith('termotanque')||term.startsWith('calefon'));
+    const gas=terms.some(term=>term==='gas'||term==='gasista');
+    const electric=terms.some(term=>term.startsWith('electri'));
+    const ranked=labProfessionCatalog.map(profession=>{
+      const title=professionNormalized(profession.title);
+      const aliases=(profession.aliases||[]).map(professionNormalized);
+      const labels=[title,...aliases];
+      const desc=professionNormalized(profession.description);
+      const exact=labels.some(label=>label===phrase);
+      const includesPhrase=phrase.length>=3&&labels.some(label=>label.includes(phrase));
+      const tokenScore=terms.reduce((score,term)=>{
+        if(title.includes(term))return score+22;
+        if(aliases.some(alias=>alias.includes(term)))return score+18;
+        if(desc.includes(term))return score+3;
+        return score;
+      },0);
+      let score=exact?180:includesPhrase?100:tokenScore;
+      // Un termotanque puede involucrar agua, gas o electricidad.
+      // Sin dato adicional sugerimos Plomero para el circuito de agua,
+      // pero nunca asumimos que un plomero está habilitado para intervenir gas.
+      if(heater){
+        if(gas&&profession.profession_key==='gasista')score+=200;
+        else if(electric&&profession.profession_key==='electricista')score+=200;
+        else if(!gas&&!electric&&profession.profession_key==='plomero')score+=75;
+      }
+      return {profession,score};
+    }).filter(item=>item.score>0)
+      .sort((a,b)=>b.score-a.score||a.profession.title.localeCompare(b.profession.title,'es-AR'));
+    if(!ranked.length)return [];
+    const floor=Math.max(12,ranked[0].score-43);
+    return ranked.filter(item=>item.score>=floor).slice(0,6).map(item=>item.profession);
+  }
   function renderClientSpecialtyOptions(){
-    const select=el('requestSpecialty');
-    const saved=select.value;
-    const rows=labProfessionCatalog.filter(p=>
-      professionMatches(p,el('requestSpecialtySearch').value));
-    select.replaceChildren(new Option('Seleccionar especialidad',''));
-    rows.forEach(c=>select.add(new Option(c.title,String(c.specialty_id))));
-    if(rows.some(c=>String(c.specialty_id)===saved))select.value=saved;
+    const input=el('requestSpecialtySearch');
+    const hidden=el('requestSpecialty');
+    const notice=el('requestSpecialtyMatch');
+    const options=el('requestSpecialtyMatches');
+    const phrase=input.value.trim();
+    hidden.value='';
+    notice.classList.remove('specialty-found','specialty-warning');
+    options.replaceChildren();
+    if(!phrase){
+      notice.textContent='Contanos qué necesitás reparar y te sugerimos quién puede ayudarte.';
+      return;
+    }
+    if(!labProfessionCatalog.length){
+      notice.textContent='Cargando las especialidades...';
+      return;
+    }
+    const found=clientProfessionMatches(phrase);
+    if(!found.length){
+      notice.classList.add('specialty-warning');
+      notice.textContent='Todavía no encontramos un oficio claro para "'+phrase+
+        '". Contanos qué elemento no funciona (por ejemplo: canilla, heladera o techo).';
+      return;
+    }
+    notice.textContent=found.length===1
+      ? 'Para "'+phrase+'" te sugerimos esta especialidad. Tocá «Elegir» para confirmarla:'
+      : 'Para "'+phrase+'" hay '+found.length+
+        ' especialidades posibles. Elegí la que mejor describa el problema:';
+    const heater=/termotanque|calef[oó]n/i.test(phrase);
+    for(const [index,profession] of found.entries()){
+      const choice=document.createElement('button');
+      choice.className='specialty-choice';
+      choice.type='button';
+      choice.setAttribute('aria-pressed','false');
+      const label=document.createElement('strong');
+      label.textContent=(index===0?'Sugerencia principal: ':'Otra opción: ')+profession.title;
+      const desc=document.createElement('small');
+      desc.textContent=profession.description;
+      const action=document.createElement('span');
+      action.className='specialty-choice-action';
+      action.textContent='Elegir '+profession.title;
+      choice.append(label,desc,action);
+      choice.addEventListener('click',()=>{
+        hidden.value=String(profession.specialty_id);
+        notice.classList.remove('specialty-warning');
+        notice.classList.add('specialty-found');
+        notice.textContent='Elegiste: '+profession.title+
+          '. Completá la descripción y la localidad para crear la solicitud.';
+        for(const button of options.querySelectorAll('button')){
+          const selected=button===choice;
+          button.classList.toggle('selected',selected);
+          button.setAttribute('aria-pressed',String(selected));
+        }
+      });
+      options.append(choice);
+    }
+    if(heater&&!/a gas|gasista|electri/i.test(phrase)){
+      const hint=document.createElement('p');
+      hint.className='hint';
+      hint.textContent='Importante: si la falla involucra gas, debe intervenir un gasista habilitado. Si no sabés cuál es el problema, indicá si el termotanque es a gas o eléctrico.';
+      options.append(hint);
+    }
   }
 
   function select(role) {
@@ -1319,7 +1419,12 @@ async function createLabRequest(event) {
   const description = el('requestDescription').value.trim();
   const locality = el('requestLocality').value.trim();
 
-  if (!specialtyId || description.length < 3 || locality.length < 2) return;
+  if(!specialtyId){
+    el('requestResult').textContent='Primero elegí una de las especialidades sugeridas para tu problema.';
+    el('requestSpecialtySearch').focus();
+    return;
+  }
+  if(description.length<3 || locality.length<2)return;
   const photos=window.labPhotos.getStagedPhotos();
   if (photos.length>5) { el('requestResult').textContent='Elegí hasta 5 fotografías.'; return; }
 
