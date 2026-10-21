@@ -105,6 +105,12 @@ jobsRouter.get('/', async (req, res, next) => {
              SELECT 1 FROM professional_restrictions pr
              WHERE pr.professional_id=$1 AND pr.lifted_at IS NULL
            )
+           -- Account-wide: an active claim blocks ALL new quoting across services.
+           -- Removing the specialty or declaring new work never lifts this block.
+           AND NOT EXISTS(
+             SELECT 1 FROM claims c
+             WHERE c.professional_id=$1 AND c.status IN ('open','in_review')
+           )
            AND NOT EXISTS(
              SELECT 1 FROM job_quotes q
              WHERE q.job_id=j.id AND q.professional_id=$1
