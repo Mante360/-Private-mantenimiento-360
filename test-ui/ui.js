@@ -228,7 +228,8 @@
       pending:'Pendiente de revisión',
       needs_more:'Documentación adicional solicitada',
       rejected:'Rechazado para la prueba',
-      reviewed_test_only:'Revisado (SOLO datos ficticios)'
+      reviewed_test_only:'Revisado (SOLO datos ficticios)',
+      superseded:'Presentación duplicada anterior (conservada en historial)'
     }[item.status]||item.status;
     if(item.status!=='reviewed_test_only')return state;
     const days=item.days_until_expiry;
@@ -280,12 +281,18 @@
     if(!/^SIM-[A-Za-z0-9-]{3,100}$/.test(reference)){
       status.textContent='Solo referencias inventadas que comiencen con SIM-; nunca documentos reales.';return;
     }
+    const button=el('proLabDocForm').querySelector('button[type="submit"]');
+    if(button.disabled)return;
+    button.disabled=true;
     try{
-      await api('POST','/api/lab-documents/mine',{type,reference,expiresOn});
-      status.textContent='Datos ficticios enviados. Administración o un revisor autorizado podrá solicitar correcciones.';
+      const result=await api('POST','/api/lab-documents/mine',{type,reference,expiresOn});
+      status.textContent=result.alreadyPending
+        ? 'Este mismo documento ya estaba pendiente. No se creó un duplicado.'
+        : 'Datos ficticios enviados. Administración o un revisor autorizado podrá solicitar correcciones.';
       el('labDocReference').value='';el('labDocExpiry').value='';
       await loadMyLabDocuments();
     }catch(error){status.textContent='No se pudo registrar la simulación: '+error.message;}
+    finally{button.disabled=false;}
   }
   async function loadLabDocumentsQueue(){
     if(!['admin','subadmin'].includes(profile?.role))return;
