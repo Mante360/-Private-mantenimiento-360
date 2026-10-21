@@ -13,6 +13,8 @@ import { bootstrapTestSchemaIfRequested } from './test-db-bootstrap.js';
 import { seedLabAdminIfRequested } from './test-admin-seed.js';
 import { adminRouter } from './routes/admin.js';
 import { claimPerformanceRouter } from './routes/claim-performance.js';
+import { claimRemindersRouter } from './routes/claim-reminders.js';
+import { ensureLabClaimReminderSchema } from './lab-claim-reminders.js';
 
 checkJwtConfiguration(); // Fail closed on weak/missing secret.
 const app = express();
@@ -73,6 +75,7 @@ app.use('/api/jobs', technicalRouter);
 app.use('/api/claims', claimsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/admin/claim-performance', claimPerformanceRouter);
+app.use('/api/admin/claim-reminders', claimRemindersRouter);
 
 app.use((
   error: unknown,
@@ -91,6 +94,7 @@ app.use((
 await bootstrapTestSchemaIfRequested();
 await ensureLabPhotoSchema();
 await ensureLabTechnicalSchema();
+await ensureLabClaimReminderSchema();
 await seedLabAdminIfRequested();
 
 app.listen(port, '0.0.0.0', () => {
