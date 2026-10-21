@@ -29,6 +29,7 @@ const reminderSql=`CASE WHEN d.expires_on IS NULL THEN NULL
  ELSE d.expires_on - ${argToday} END AS days_until_expiry`;
 
 function reminder(days:number|null,status:string):string{
+  if(status==='superseded')return 'superseded';
   if(status!=='reviewed_test_only')return 'pending_review';
   if(days===null)return 'no_expiry_recorded';
   if(days<0)return 'expired';
@@ -82,16 +83,32 @@ labDocumentsRouter.post('/mine',requireRole('professional'),async(req,res,next)=
   await tx.query('BEGIN');active=true;
   const db=await tx.query('SELECT current_database() name');
   if(db.rows[0]?.name!==LAB_DOCUMENT_DB)throw Error('lab_only');
-  // A new version does not silently overwrite, approve or delete the old version.
+  // Idempotent double click: identical pending entries are uniquely indexed.
+  // Keep previous reviewed versions; retrying the same pending submission is safe.
   const result=await tx.query(`INSERT INTO lab_document_entries
     (professional_id,document_type,fictional_reference,expires_on,status)
-    VALUES($1,$2,$3,$4,'pending') RETURNING id::text,document_type,status,expires_on::text,created_at`,
+    VALUES($1,$2,$3,$4,'pending') ON CONFLICT DO NOTHING
+    RETURNING id::text,document_type,status,expires_on::text,created_at`,
     [req.authUser!.id,data.data.type,data.data.reference,expiry]);
+  if(!result.rows[0]){
+    const existing=await tx.query(`SELECT id::text,document_type,status,expires_on::text,created_at
+      FROM lab_document_entries
+      WHERE professional_id=$1 AND document_type=$2 AND fictional_reference=$3
+        AND expires_on IS NOT DISTINCT FROM $4::date AND status='pending'
+      ORDER BY id DESC LIMIT 1`,
+      [req.authUser!.id,data.data.type,data.data.reference,expiry]);
+    await tx.query('COMMIT');active=false;
+    if(!existing.rows[0]){res.status(409).json({error:'submission_conflict'});return;}
+    res.json({item:existing.rows[0],alreadyPending:true,
+      message:'Ya existia un registro pendiente identico. No se creo otra presentacion.'});
+    return;
+  }
   await tx.query(`INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
     VALUES($1,'lab_doc_submitted','lab_document',$2,$3::jsonb)`,
     [req.authUser!.id,result.rows[0].id,JSON.stringify({type:data.data.type,mode:'fictitious_metadata_only'})]);
   await tx.query('COMMIT');active=false;
-  res.status(201).json({item:result.rows[0],message:'Datos ficticios enviados a revisión. No se verificó documentación real.'});
+  res.status(201).json({item:result.rows[0],alreadyPending:false,
+    message:'Datos ficticios enviados a revisión. No se verificó documentación real.'});
  }catch(e){if(active)await tx.query('ROLLBACK').catch(()=>undefined);next(e);}
  finally{tx.release();}
 });
