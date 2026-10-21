@@ -11,7 +11,7 @@ const types=documentKinds.map(x=>x.key) as [typeof documentKinds[number]['key'],
 const dateRE=/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const submission=z.object({
   type:z.enum(types),
-  reference:z.string().trim().min(5).max(120),
+  reference:z.string().trim().regex(/^SIM-[A-Za-z0-9-]{3,100}$/),
   expiresOn:z.string().regex(dateRE).nullable()
 }).strict();
 const review=z.object({
