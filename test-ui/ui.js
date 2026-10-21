@@ -222,10 +222,13 @@
         ? 'Por lo que escribiste, te sugerimos esta especialidad:'
         : 'Por lo que escribiste, hay varias especialidades posibles. Elegí la que mejor corresponda:';
     }
+    // Una sugerencia NO es una selección: el usuario debe pulsar Elegir.
+    notice.textContent+=' Todavía no elegiste ninguna especialidad. Tocá «Elegir» para confirmarla.';
     for(const [index,profession] of found.entries()){
       const choice=document.createElement('button');
       choice.className='specialty-choice';
       choice.type='button';
+      choice.dataset.professionTitle=profession.title;
       choice.setAttribute('aria-pressed','false');
       const label=document.createElement('strong');
       label.textContent=heater&&heaterType==='no_se'
@@ -249,12 +252,19 @@
         hidden.value=String(profession.specialty_id);
         notice.classList.remove('specialty-warning');
         notice.classList.add('specialty-found');
-        notice.textContent='Elegiste: '+profession.title+
-          '. Completá la descripción y la localidad para crear la solicitud.';
-        for(const button of options.querySelectorAll('button')){
+        notice.textContent='✓ Especialidad seleccionada: '+profession.title+
+          '. La selección quedó confirmada. Ahora completá los datos para crear la solicitud.';
+        for(const button of options.querySelectorAll('button.specialty-choice')){
           const selected=button===choice;
           button.classList.toggle('selected',selected);
           button.setAttribute('aria-pressed',String(selected));
+          const buttonAction=button.querySelector('.specialty-choice-action');
+          const buttonTitle=button.dataset.professionTitle||'';
+          if(buttonAction){
+            buttonAction.textContent=selected
+              ? '✓ Seleccionaste '+buttonTitle
+              : 'Elegir '+buttonTitle;
+          }
         }
       });
       options.append(choice);
