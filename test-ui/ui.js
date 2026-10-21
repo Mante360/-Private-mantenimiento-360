@@ -216,6 +216,158 @@
     }catch(error){panel.textContent='No se pudieron cargar las declaraciones: '+error.message;}
   }
 
+
+  // Legajos ficticios: NO reciben archivos, DNI, biometría ni números fiscales.
+  // Los recordatorios se calculan cuando el usuario consulta la plataforma.
+  let labDocRequirements=[];
+  function labDocLabel(key){
+    return labDocRequirements.find(d=>d.key===key)?.label||key;
+  }
+  function labDocumentStatus(item){
+    const state={
+      pending:'Pendiente de revisión',
+      needs_more:'Documentación adicional solicitada',
+      rejected:'Rechazado para la prueba',
+      reviewed_test_only:'Revisado (SOLO datos ficticios)'
+    }[item.status]||item.status;
+    if(item.status!=='reviewed_test_only')return state;
+    const days=item.days_until_expiry;
+    if(days==null)return state+' · sin vencimiento cargado';
+    if(days<0)return state+' · VENCIDO hace '+Math.abs(days)+' día(s)';
+    if(days===0)return state+' · VENCE HOY';
+    if(days<=7)return state+' · vence en '+days+' día(s) (último aviso)';
+    if(days<=15)return state+' · vence en '+days+' día(s)';
+    if(days<=30)return state+' · vence en '+days+' día(s)';
+    return state+' · vigente hasta '+item.expires_on;
+  }
+  async function loadLabDocumentRequirements(){
+    if(labDocRequirements.length)return;
+    const data=await api('GET','/api/lab-documents/requirements');
+    labDocRequirements=data.types||[];
+    const select=el('labDocType');
+    select.replaceChildren(new Option('Seleccionar',''));
+    for(const kind of labDocRequirements)select.add(new Option(kind.label,kind.key));
+  }
+  async function loadMyLabDocuments(){
+    if(profile?.role!=='professional')return;
+    const list=el('proDocExpiryList');
+    try{
+      await loadLabDocumentRequirements();
+      const results=await api('GET','/api/lab-documents/mine');
+      list.replaceChildren();
+      if(!results.items?.length){
+        list.textContent='Todavía no hay documentos de prueba. Podés enviar una referencia SIM- para simular una renovación.';
+        return;
+      }
+      const heading=document.createElement('p');heading.className='hint';
+      heading.textContent='Historial de registros ficticios; las actualizaciones no borran las versiones anteriores.';
+      list.append(heading);
+      for(const entry of results.items){
+        const item=document.createElement('div');item.className='service-review-item';
+        const title=document.createElement('strong');title.textContent=labDocLabel(entry.document_type)+' · '+entry.fictional_reference;
+        const body=document.createElement('p');
+        body.textContent=labDocumentStatus(entry)+(entry.reviewer_note?'\nRevisión: '+entry.reviewer_note:'');
+        item.append(title,body);list.append(item);
+      }
+    }catch(error){list.textContent='Error al consultar la documentación de prueba: '+error.message;}
+  }
+  async function submitLabDocument(event){
+    event.preventDefault();
+    if(profile?.role!=='professional')return;
+    const type=el('labDocType').value,reference=el('labDocReference').value.trim();
+    const expiresOn=el('labDocExpiry').value||null;
+    const status=el('proLabDocStatus');
+    if(!/^SIM-[A-Za-z0-9-]{3,100}$/.test(reference)){
+      status.textContent='Solo referencias inventadas que comiencen con SIM-; nunca documentos reales.';return;
+    }
+    try{
+      await api('POST','/api/lab-documents/mine',{type,reference,expiresOn});
+      status.textContent='Datos ficticios enviados. Administración o un revisor autorizado podrá solicitar correcciones.';
+      el('labDocReference').value='';el('labDocExpiry').value='';
+      await loadMyLabDocuments();
+    }catch(error){status.textContent='No se pudo registrar la simulación: '+error.message;}
+  }
+  async function loadLabDocumentsQueue(){
+    if(!['admin','subadmin'].includes(profile?.role))return;
+    const panel=el('labDocsQueue'),status=el('labDocsQueueStatus');
+    panel.textContent='Consultando expedientes de prueba...';
+    try{
+      const result=await api('GET','/api/lab-documents/queue');
+      panel.replaceChildren();
+      status.textContent=result.items?.length
+        ? result.items.length+' registro(s) ficticio(s) a revisar. No se han verificado documentos reales.'
+        : 'No hay nuevas declaraciones documentales pendientes.';
+      if(!result.items?.length){panel.textContent='Sin registros pendientes.';return;}
+      for(const doc of result.items){
+        const article=document.createElement('div');article.className='service-review-item';
+        const title=document.createElement('strong');
+        title.textContent=doc.professional_name+' · '+labDocLabel(doc.document_type);
+        const info=document.createElement('p');
+        info.textContent='Referencia ficticia: '+doc.fictional_reference+
+          (doc.expires_on?'\nVencimiento informado: '+doc.expires_on:'\nSin fecha de vencimiento');
+        const label=document.createElement('label');
+        label.textContent='Observación para el profesional';
+        const note=document.createElement('textarea');
+        note.rows=2;note.maxLength=600;
+        note.placeholder='Ej.: SIMULACIÓN: falta indicar la vigencia del seguro.';
+        const buttons=document.createElement('div');buttons.className='actions';
+        for(const [value,name] of [
+          ['needs_more','Solicitar corrección'],
+          ['reviewed_test_only','Revisado para prueba'],
+          ['rejected','Rechazar registro ficticio']
+        ]){
+          const btn=document.createElement('button');
+          btn.type='button';btn.className='secondary';btn.textContent=name;
+          btn.addEventListener('click',async()=>{
+            if(note.value.trim().length<8){
+              status.textContent='Escribí una observación de al menos 8 caracteres.';
+              note.focus();return;
+            }
+            if(!confirm('¿Registrar decisión sobre datos SIMULADOS? Esto no aprueba identidad ni documentación real.'))return;
+            btn.disabled=true;
+            try{
+              await api('POST','/api/lab-documents/queue/'+encodeURIComponent(doc.id)+'/review',
+                {decision:value,note:note.value.trim()});
+              await loadLabDocumentsQueue();
+            }catch(error){status.textContent='Error: '+error.message;btn.disabled=false;}
+          });
+          buttons.append(btn);
+        }
+        article.append(title,info,label,note,buttons);
+        panel.append(article);
+      }
+    }catch(error){panel.textContent='Error al consultar revisión: '+error.message;}
+  }
+  async function createLabSubadmin(event){
+    event.preventDefault();
+    if(profile?.role!=='admin')return;
+    const status=el('labStaffCreateStatus');
+    const email=el('labStaffEmail').value.trim().toLowerCase();
+    if(!email.endsWith('@test.invalid')){
+      status.textContent='Usá un correo ficticio terminado en @test.invalid.';return;
+    }
+    try{
+      const data=await api('POST','/api/lab-documents/staff',{
+        name:el('labStaffName').value.trim(),
+        email,password:el('labStaffPassword').value
+      });
+      el('labStaffPassword').value='';
+      status.textContent='Subadministrador de prueba creado, ID '+data.user.id+
+        '. Accede únicamente a la revisión de documentos ficticios.';
+      await loadLabStaff();
+    }catch(error){el('labStaffPassword').value='';status.textContent='No se creó la cuenta: '+error.message;}
+  }
+  async function loadLabStaff(){
+    if(profile?.role!=='admin')return;
+    const list=el('labStaffList');
+    try{
+      const result=await api('GET','/api/lab-documents/staff');
+      list.textContent=(result.items||[]).length
+        ? result.items.map(x=>x.name+' (ID '+x.id+') · '+(x.document_review?'Permiso: revisión documental':'Sin permiso')+' · '+x.status).join('\n')
+        : 'No hay subadministradores de prueba creados.';
+    }catch(error){list.textContent='No se pudieron listar revisores: '+error.message;}
+  }
+
   function renderProfessionFinder(panelId,searchId){
     const panel=el(panelId);
     if(!panel)return;
@@ -577,21 +729,28 @@
     el('signedIn').hidden = !profile;
     if (!profile) return;
     el('profileName').textContent = profile.name || '—';
-    el('profileRole').textContent = profile.role === 'professional' ? 'Profesional' : profile.role === 'client' ? 'Cliente' : 'Administrador';
+    el('profileRole').textContent = profile.role === 'professional' ? 'Profesional' : profile.role === 'client' ? 'Cliente' : profile.role === 'subadmin' ? 'Subadministrador documental' : 'Administrador';
     el('profileId').textContent = String(profile.id || '—');
     el('roleNotice').textContent = profile.role === 'admin'
       ? 'Administración de laboratorio: sólo aprobación ficticia, sin documentos personales.'
       : profile.role === 'professional'
       ? 'Cuenta profesional de laboratorio. Consultá solicitudes disponibles y tus trabajos contratados. No hay datos reales.'
+      : profile.role === 'subadmin'
+      ? 'Revisor limitado de documentación ficticia. No tenés acceso a reclamos ni a aprobación general.'
       : 'Tu cuenta ficticia ya puede iniciar sesión. Las solicitudes serán exclusivamente de prueba.';
     el('jobsPanel').textContent = '';
     el('adminSection').hidden = profile.role !== 'admin';
+    el('documentReviewSection').hidden=!['admin','subadmin'].includes(profile.role);
+    el('labSubadminManagement').hidden=profile.role!=='admin';
+    el('proDocExpirySection').hidden=profile.role!=='professional';
+    if(['admin','subadmin'].includes(profile.role))void loadLabDocumentsQueue();
+    if(profile.role==='professional')void loadMyLabDocuments();
     el('contractsSection').hidden = profile.role !== 'professional';
     el('myQuotesSection').hidden = profile.role !== 'professional';
     el('proProfessionCatalogSection').hidden=profile.role!=='professional';
     if(profile.role==='professional'){renderProfessionFinder('proProfessionList','proProfessionSearch');void loadMyDeclaredServices();}
     if(profile.role === 'professional') void loadMyQuotes();
-    void loadClaimInbox();
+    if(profile.role!=='subadmin')void loadClaimInbox();
     if (profile.role === 'professional') void loadContracts();
     
 el('clientRequestSection').hidden = profile.role !== 'client';
@@ -1946,6 +2105,11 @@ async function createLabRequest(event) {
   el('showRegister').addEventListener('click',()=>view('register'));
   el('showLogin').addEventListener('click',()=>view('login'));
   el('registerForm').addEventListener('submit',handleRegistration);
+  el('refreshMyLabDocuments').addEventListener('click',loadMyLabDocuments);
+  el('proLabDocForm').addEventListener('submit',submitLabDocument);
+  el('refreshLabDocsQueue').addEventListener('click',loadLabDocumentsQueue);
+  el('labSubadminForm').addEventListener('submit',createLabSubadmin);
+  el('refreshLabStaff').addEventListener('click',loadLabStaff);
   el('regServiceSearch').addEventListener('input',()=>renderServiceChecklist('regServiceChoices','regServiceSearch',registrationServiceIds));
   el('proServiceSearch').addEventListener('input',()=>renderServiceChecklist('proServiceChoices','proServiceSearch',proServiceIds,proServiceStatuses));
   el('saveProServices').addEventListener('click',saveMyDeclaredServices);
