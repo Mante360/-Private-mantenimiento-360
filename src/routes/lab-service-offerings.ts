@@ -5,7 +5,6 @@ import {requireAuth,requireRole} from '../security.js';
 import {LAB_SERVICE_DB} from '../lab-service-offerings.js';
 
 export const labServicesRouter=Router();
-labServicesRouter.use(requireAuth);
 
 const selectedSchema=z.object({serviceIds:z.array(z.number().int().positive()).max(60)}).strict();
 const decisionSchema=z.object({decision:z.enum(['approved','rejected'])}).strict();
@@ -32,6 +31,7 @@ labServicesRouter.get('/catalog',async(_req,res,next)=>{
  }catch(error){next(error);}
 });
 
+labServicesRouter.use(requireAuth);
 labServicesRouter.get('/mine',requireRole('professional'),async(req,res,next)=>{
  try{
    const data=await pool.query(`SELECT d.id::text,d.service_id::text,d.status,d.requested_at,d.reviewed_at,
