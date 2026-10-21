@@ -151,7 +151,9 @@
         .filter(Boolean);
     }
     if(!ranked.length)return [];
-    const floor=Math.max(12,ranked[0].score-43);
+    // Las palabras genéricas ("agua", "reparar") no deben poner a un
+    // piletero a la par de un plomero si el cliente especificó una canilla.
+    const floor=Math.max(12,Math.ceil(ranked[0].score*0.68));
     return ranked.filter(item=>item.score>=floor).slice(0,6).map(item=>item.profession);
   }
   function renderClientSpecialtyOptions(){
