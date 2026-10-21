@@ -1,6 +1,6 @@
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 
-export type Role = 'client' | 'professional' | 'admin';
+export type Role = 'client' | 'professional' | 'admin' | 'subadmin';
 
 const ISSUER = 'mantenimiento-360';
 const AUDIENCE = 'mantenimiento-360-api';
