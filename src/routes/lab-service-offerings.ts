@@ -25,6 +25,9 @@ const catalogSql=`SELECT ss.id::text AS service_id,ss.specialty_id::text AS spec
         WHERE d.service_id=ss.id AND d.status='approved'
           AND pp.verification_status='approved' AND pp.available=true
           AND u.status='active'
+          AND EXISTS(SELECT 1 FROM professional_services active_service
+            WHERE active_service.professional_id=d.professional_id
+              AND active_service.service_id=d.service_id)
           AND NOT EXISTS (SELECT 1 FROM claims claim
              WHERE claim.professional_id=d.professional_id
              AND claim.status IN ('open','in_review'))
