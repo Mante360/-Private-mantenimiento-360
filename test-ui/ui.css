@@ -137,3 +137,19 @@ body.photo-viewer-open{overflow:hidden}
 .heater-guide input[type="radio"]{width:auto;min-width:18px;height:18px;margin:0;accent-color:#194f88}
 #requestDescription{width:100%;min-height:135px;display:block;padding:12px;border-radius:9px;
   border:1px solid #bdc9db;font:inherit;line-height:1.5;resize:vertical}
+
+/* Selección granular de trabajos declarados por profesionales (solo laboratorio). */
+.service-select-list{display:flex;flex-direction:column;gap:5px;max-height:310px;overflow:auto;
+  border:1px solid #cbd9e9;border-radius:10px;background:#fff;padding:8px;margin:10px 0}
+.service-checkbox{display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid #e4ebf3;
+  padding:9px 6px;margin:0;font-size:13px;cursor:pointer}
+.service-checkbox:last-child{border-bottom:0}
+.service-checkbox:hover{background:#f2f7ff}
+.service-checkbox input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;margin:2px 0 0;accent-color:#23794b}
+.service-checkbox span{display:flex;flex-direction:column;gap:4px}
+.service-checkbox small{color:#56647b;font-size:12px}
+.service-review-item{border:1px solid #cbd9e9;background:#fff;border-radius:9px;
+  padding:11px;margin:10px 0;white-space:pre-wrap}
+.service-review-item p{margin:0 0 9px}
+.specialty-choice:disabled{opacity:.72;cursor:not-allowed;border-style:dashed}
+.specialty-choice:disabled:hover{background:#fff;border-color:#c5d7eb}
