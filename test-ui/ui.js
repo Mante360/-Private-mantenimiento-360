@@ -185,7 +185,9 @@
       }
     }else if(/canilla|plomer|fontaner|perdida de agua|falta de agua|sin agua/.test(normalized)){
       field.placeholder='Ejemplo: La canilla pierde agua aunque está cerrada. Contá dónde ocurre y desde cuándo.';
-    }else if(/heladera|refriger|aire acondicionado|freezer/.test(normalized)){
+    }else if(/aire acondicionado|acondicionador de aire|split/.test(normalized)){
+      field.placeholder='Ejemplo: Mi aire acondicionado no enfría bien. Contá qué sucede y desde cuándo pasa.';
+    }else if(/heladera|refriger|freezer/.test(normalized)){
       field.placeholder='Ejemplo: Mi heladera no enfría bien. Describí qué sucede y desde cuándo ocurre.';
     }else if(/electric|luz|enchufe|termica|cable/.test(normalized)){
       field.placeholder='Ejemplo: Un enchufe dejó de funcionar. Describí el problema sin manipular la instalación.';
