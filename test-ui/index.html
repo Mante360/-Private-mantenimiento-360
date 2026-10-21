@@ -48,6 +48,11 @@
             <input id="guestProfessionSearch" type="search" maxlength="100" placeholder="Ej.: gasista, durlock, paseador, heladeras">
             <p class="hint">Catálogo orientativo. La búsqueda no asigna automáticamente especialidades ni acredita habilitaciones; Administración revisa cada alta.</p>
             <div id="guestProfessionList" class="jobspanel" role="status"></div>
+            <h4>Marcá los trabajos que realizás</h4>
+            <p class="hint">Podés seleccionar servicios de distintos oficios. Quedarán pendientes de revisión por Administración y no constituyen acreditación profesional.</p>
+            <label for="regServiceSearch">Buscar trabajo concreto</label>
+            <input id="regServiceSearch" type="search" placeholder="Ej.: lavarropas, heladera, secarropas" maxlength="100">
+            <div id="regServiceChoices" class="service-select-list" aria-label="Servicios declarados al registrarse"></div>
           </section>
           <button class="primary" type="submit" id="registerButton">Crear cuenta de prueba</button>
         </form>
@@ -84,6 +89,12 @@
             <label for="adminSpecialtySelect">Especialidad para aprobar</label>
             <select id="adminSpecialtySelect"><option value="">Seleccionar especialidad</option></select>
             <div id="adminTarget" class="jobspanel">Esperando consulta.</div>
+            <section class="service-admin-review">
+              <h4>Declaraciones de servicios pendientes de revisión</h4>
+              <p class="hint">Administración revisa los servicios solicitados por cada profesional. Esta es una simulación con cuentas ficticias; no se verifica documentación real.</p>
+              <button type="button" class="secondary" id="refreshServiceDeclarations">Actualizar declaraciones</button>
+              <div id="adminServiceDeclarations" class="jobspanel" role="status"></div>
+            </section>
             <button type="button" id="approveSelected" class="primary" disabled>Aprobar profesional seleccionado para la prueba</button>
             <section class="admin-section">
               <h3>Reclamos de trabajos · Laboratorio</h3>
@@ -194,6 +205,7 @@
     </div>
     <div id="requestSpecialtyMatches" class="specialty-matches" aria-label="Especialidades sugeridas"></div>
     <input id="requestSpecialty" type="hidden" value="">
+    <input id="requestServiceId" type="hidden" value="">
 
     <label for="requestDescription">Descripción del trabajo</label>
     <textarea id="requestDescription" rows="5" minlength="3" maxlength="3000" required
@@ -227,6 +239,13 @@
             <label for="proProfessionSearch">Buscar oficio</label>
             <input id="proProfessionSearch" type="search" maxlength="100" placeholder="Ej.: cerrajería, mecánico, peluquería canina">
             <div id="proProfessionList" class="jobspanel" role="status"></div>
+            <h4>Mis trabajos y especialidades declaradas</h4>
+            <p class="hint">Marcá exactamente los servicios que realizás, incluso de más de un oficio. Los cambios se envían a revisión. Los trabajos retirados dejan de ofrecerse, sin borrar el historial.</p>
+            <label for="proServiceSearch">Buscar servicios</label>
+            <input id="proServiceSearch" type="search" maxlength="100" placeholder="Ej.: lavarropas, secarropas, electricidad">
+            <div id="proServiceChoices" class="service-select-list" aria-label="Servicios que ofrece el profesional"></div>
+            <button type="button" class="primary" id="saveProServices">Guardar mis servicios para revisión</button>
+            <p class="hint" id="proServicesStatus" role="status"></p>
           </section>
           <section id="claimInboxSection" class="admin-section" hidden>
             <h3>Reclamos de mis trabajos</h3>
