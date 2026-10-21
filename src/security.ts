@@ -41,7 +41,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
       res.status(403).json({ error: 'account_unavailable' });
       return;
     }
-    if (!['client', 'professional', 'admin'].includes(user.role)) {
+    if (!['client', 'professional', 'admin', 'subadmin'].includes(user.role)) {
       res.status(403).json({ error: 'role_forbidden' });
       return;
     }
