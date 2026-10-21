@@ -170,6 +170,32 @@
     return /termotanque|calefon/.test(professionNormalized(phrase));
   }
 
+  // El ejemplo se adapta al problema sin modificar lo que el cliente escribió.
+  function updateRequestDescriptionExample(phrase,heaterType=''){
+    const field=el('requestDescription');
+    if(!field)return;
+    const normalized=professionNormalized(phrase);
+    if(requestIsHeater(phrase)){
+      if(heaterType==='gas'){
+        field.placeholder='Ejemplo: Mi termotanque a gas no calienta el agua. Indicá qué sucede cuando intentás usarlo y desde cuándo ocurre.';
+      }else if(heaterType==='electrico'){
+        field.placeholder='Ejemplo: Mi termotanque eléctrico no calienta el agua. Contá desde cuándo pasa y qué síntomas observaste.';
+      }else{
+        field.placeholder='Ejemplo: Mi termotanque no calienta el agua. No sé si es a gas o eléctrico. Contá qué sucede y desde cuándo.';
+      }
+    }else if(/canilla|plomer|fontaner|perdida de agua|falta de agua|sin agua/.test(normalized)){
+      field.placeholder='Ejemplo: La canilla pierde agua aunque está cerrada. Contá dónde ocurre y desde cuándo.';
+    }else if(/heladera|refriger|aire acondicionado|freezer/.test(normalized)){
+      field.placeholder='Ejemplo: Mi heladera no enfría bien. Describí qué sucede y desde cuándo ocurre.';
+    }else if(/electric|luz|enchufe|termica|cable/.test(normalized)){
+      field.placeholder='Ejemplo: Un enchufe dejó de funcionar. Describí el problema sin manipular la instalación.';
+    }else if(phrase){
+      field.placeholder='Ejemplo: '+phrase.slice(0,80)+'. Agregá qué sucede, dónde y desde cuándo.';
+    }else{
+      field.placeholder='Describí el problema, qué sucede y desde cuándo. Ejemplo: La canilla pierde agua.';
+    }
+  }
+
   function renderClientSpecialtyOptions(){
     const input=el('requestSpecialtySearch');
     const hidden=el('requestSpecialty');
@@ -178,6 +204,7 @@
     const guide=el('requestHeaterGuide');
     const phrase=input.value.trim();
     const heater=requestIsHeater(phrase);
+    updateRequestDescriptionExample(phrase,heater?(manualHeaterType||heaterTypeFromDescription(phrase)):'');
     guide.hidden=!heater;
     if(!heater)manualHeaterType='';
     hidden.value='';
