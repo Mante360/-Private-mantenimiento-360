@@ -124,3 +124,14 @@ body.photo-viewer-open{overflow:hidden}
 .specialty-choice.selected{border-color:#23794b;background:#eef9f3}
 .specialty-choice.selected .specialty-choice-action{color:#176940}
 .specialty-matches>.hint{margin:2px 0 7px}
+
+/* Consulta guiada por el tipo de termotanque (solo cliente del laboratorio). */
+.heater-guide{border:1px solid #afc9e4;background:#f8fbff;border-radius:11px;padding:12px 14px;margin:15px 0}
+.heater-guide legend{font-weight:800;color:#17375b;font-size:14px;padding:0 5px}
+.heater-guide .hint{margin:5px 0 10px}
+.heater-guide label{display:flex;align-items:center;gap:10px;margin:0;padding:9px 7px;
+  border-radius:7px;cursor:pointer;font-size:14px;font-weight:600}
+.heater-guide label:hover{background:#eaf3ff}
+.heater-guide input[type="radio"]{width:auto;min-width:18px;height:18px;margin:0;accent-color:#194f88}
+#requestDescription{width:100%;min-height:135px;display:block;padding:12px;border-radius:9px;
+  border:1px solid #bdc9db;font:inherit;line-height:1.5;resize:vertical}
