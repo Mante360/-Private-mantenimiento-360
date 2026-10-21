@@ -42,6 +42,13 @@
           <label for="regPassword">Contraseña de prueba (mínimo 12 caracteres)</label>
           <input id="regPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
           <p class="hint">Usá un correo inventado con terminación <code>@test.invalid</code> y una contraseña exclusiva para pruebas. No emplees contraseñas reales.</p>
+          <section id="registerProfessionSearchBox" hidden>
+            <h4>Encontrá tu oficio</h4>
+            <label for="guestProfessionSearch">Buscar profesión o trabajo relacionado</label>
+            <input id="guestProfessionSearch" type="search" maxlength="100" placeholder="Ej.: gasista, durlock, paseador, heladeras">
+            <p class="hint">Catálogo orientativo. La búsqueda no asigna automáticamente especialidades ni acredita habilitaciones; Administración revisa cada alta.</p>
+            <div id="guestProfessionList" class="jobspanel" role="status"></div>
+          </section>
           <button class="primary" type="submit" id="registerButton">Crear cuenta de prueba</button>
         </form>
         <form id="loginForm" autocomplete="off" hidden>
@@ -72,6 +79,8 @@
             <button type="button" id="showPending" class="secondary">Actualizar profesionales</button>
             <label for="adminProfessionalSelect">Profesional pendiente</label>
             <select id="adminProfessionalSelect"><option value="">Seleccionar profesional</option></select>
+            <label for="adminSpecialtySearch">Buscar oficio para aprobación</label>
+            <input id="adminSpecialtySearch" type="search" maxlength="100" placeholder="Ej.: sanitarista, refrigeración, jardinería">
             <label for="adminSpecialtySelect">Especialidad para aprobar</label>
             <select id="adminSpecialtySelect"><option value="">Seleccionar especialidad</option></select>
             <div id="adminTarget" class="jobspanel">Esperando consulta.</div>
@@ -169,6 +178,8 @@
   <p class="hint">Solo datos de prueba. No ingreses direcciones ni datos personales reales.</p>
 
   <form id="labRequestForm">
+    <label for="requestSpecialtySearch">Buscar oficio o servicio</label>
+    <input id="requestSpecialtySearch" type="search" maxlength="100" placeholder="Ej.: electricista, techos, computadoras">
     <label for="requestSpecialty">Especialidad</label>
     <select id="requestSpecialty" required>
       <option value="">Seleccionar especialidad</option>
@@ -200,6 +211,13 @@
             <button type="button" id="logout" class="secondary">Cerrar sesión</button>
           </div>
           <div id="jobsPanel" class="jobspanel"></div>
+          <section id="proProfessionCatalogSection" class="admin-section" hidden>
+            <h3>Consultar profesiones disponibles</h3>
+            <p class="hint">Buscá tus oficios por nombre o palabra relacionada. La incorporación a tu perfil requiere una gestión de Administración; el catálogo no certifica matrículas.</p>
+            <label for="proProfessionSearch">Buscar oficio</label>
+            <input id="proProfessionSearch" type="search" maxlength="100" placeholder="Ej.: cerrajería, mecánico, peluquería canina">
+            <div id="proProfessionList" class="jobspanel" role="status"></div>
+          </section>
           <section id="claimInboxSection" class="admin-section" hidden>
             <h3>Reclamos de mis trabajos</h3>
             <p class="hint">Los reclamos y el seguimiento del plazo se actualizan al ingresar o presionar «Actualizar reclamos». Podés confirmar su recepción sin enviar todavía el descargo. Los avisos de 4, 8 y 12 horas hábiles son internos; todavía no se envían WhatsApp ni correos.</p>
