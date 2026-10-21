@@ -297,6 +297,100 @@
     }
   }
 
+
+  // Recomendaciones precisas: se basan en la oferta declarada, NO solo en el
+  // rubro general. Una opción sin profesionales aprobados no se ofrece para contratar.
+  function matchedLabServices(phrase,heaterType=''){
+    const query=professionNormalized(phrase);
+    if(query.length<3||!labServiceCatalog.length)return [];
+    const kind=/termotanque|calefon/.test(query)?'heater':
+      /lavasecarropas|secarropas|secadora/.test(query)?'dryer':
+      /lavarropas|lavadora/.test(query)?'washer':
+      /heladera|freezer/.test(query)?'fridge':
+      /aire acondicionado|acondicionador de aire|\baire\b|\bsplit\b/.test(query)?'air':'other';
+    if(kind==='heater'&&!heaterType)return [];
+    const stopwords=new Set(['mi','mis','el','la','los','las','se','no','que','tengo','tiene','un','una',
+      'me','de','a','en','por','con','para','del','anda','funciona','averio','roto','rompio',
+      'necesito','quiero','reparar','arreglar','esta','hace','hizo','mal']);
+    const tokens=query.replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/)
+      .filter(x=>x.length>2&&!stopwords.has(x));
+    const rows=labServiceCatalog.map(service=>{
+      const title=professionNormalized(service.service_name);
+      const keywords=(service.keywords||[]).map(professionNormalized);
+      if(kind==='washer'&&!/lavarropas/.test(title))return {service,score:0};
+      if(kind==='dryer'&&!/secarropas/.test(title))return {service,score:0};
+      if(kind==='fridge'&&!/heladera/.test(title))return {service,score:0};
+      if(kind==='air'&&!/aires acondicionados/.test(title))return {service,score:0};
+      if(kind==='heater'){
+        if(!/termotanque|calefon/.test(title))return {service,score:0};
+        if(heaterType==='gas'&&/electric/.test(title))return {service,score:0};
+        if(heaterType==='electrico'&&/a gas/.test(title))return {service,score:0};
+      }
+      let score=0;
+      for(const word of tokens){
+        if(title.includes(word))score+=22;
+        else if(keywords.some(k=>k.includes(word)))score+=15;
+      }
+      if(kind!=='other')score+=70;
+      return {service,score};
+    }).filter(entry=>entry.score>0)
+      .sort((a,b)=>b.score-a.score||
+        Number(b.service.approved_professional_count)-Number(a.service.approved_professional_count)||
+        a.service.service_name.localeCompare(b.service.service_name,'es-AR'));
+    return rows.slice(0,10).map(x=>x.service);
+  }
+  function renderClientServiceChoices(phrase,heaterType,notice,options,hidden){
+    const suggestions=matchedLabServices(phrase,heaterType);
+    if(!suggestions.length)return false;
+    const available=suggestions.filter(s=>Number(s.approved_professional_count)>0).length;
+    notice.textContent=available
+      ? 'Encontramos '+suggestions.length+' tipos de servicio relacionados. '+available+
+        ' cuentan con profesionales aprobados que declararon realizarlos. Elegí el que necesitás:'
+      : 'Encontramos estos tipos de trabajo, pero todavía no hay profesionales aprobados en el laboratorio que hayan declarado realizarlos.';
+    if(heaterType==='gas'||heaterType==='electrico'){
+      notice.textContent+=' Según la falla podría intervenir más de un oficio; el diagnóstico lo confirma el profesional.';
+    }
+    for(const service of suggestions){
+      const choice=document.createElement('button');choice.type='button';
+      choice.className='specialty-choice';
+      const count=Number(service.approved_professional_count)||0;
+      choice.disabled=count===0;choice.setAttribute('aria-pressed','false');
+      const title=document.createElement('strong');
+      title.textContent=service.service_name+' · '+service.profession_name;
+      const caption=document.createElement('small');
+      caption.textContent=count
+        ? count+' profesional(es) aprobado(s) que declararon este servicio en el laboratorio.'
+        : 'Sin profesionales aprobados que ofrezcan este trabajo todavía.';
+      const action=document.createElement('span');
+      action.className='specialty-choice-action';
+      action.textContent=count?'Elegir este servicio':'No disponible todavía';
+      choice.append(title,caption,action);
+      choice.addEventListener('click',()=>{
+        hidden.value=String(service.specialty_id);
+        el('requestServiceId').value=String(service.service_id);
+        notice.classList.remove('specialty-warning');
+        notice.classList.add('specialty-found');
+        notice.textContent='✓ Servicio seleccionado: '+service.service_name+
+          ' ('+service.profession_name+'). Solo podrá recibirlo alguien aprobado que declaró este servicio.';
+        for(const button of options.querySelectorAll('button.specialty-choice')){
+          const selected=button===choice;
+          button.classList.toggle('selected',selected);
+          button.setAttribute('aria-pressed',String(selected));
+          button.querySelector('.specialty-choice-action').textContent=selected?'✓ Servicio elegido':'Elegir este servicio';
+        }
+      });
+      options.append(choice);
+    }
+    if(!available){
+      notice.classList.add('specialty-warning');
+      const hint=document.createElement('p');
+      hint.className='hint';
+      hint.textContent='La sugerencia no significa que haya alguien disponible. Primero un profesional debe declarar ese trabajo y Administración aprobarlo.';
+      options.append(hint);
+    }
+    return true;
+  }
+
   function renderClientSpecialtyOptions(){
     const input=el('requestSpecialtySearch');
     const hidden=el('requestSpecialty');
@@ -309,6 +403,7 @@
     guide.hidden=!heater;
     if(!heater)manualHeaterType='';
     hidden.value='';
+    el('requestServiceId').value='';
     notice.classList.remove('specialty-found','specialty-warning');
     options.replaceChildren();
     if(!phrase){
@@ -330,6 +425,8 @@
         return;
       }
     }
+    // Prefer precise services if the catalog recognizes the customer's problem.
+    if(renderClientServiceChoices(phrase,heaterType,notice,options,hidden))return;
     const found=clientProfessionMatches(phrase,heaterType);
     if(!found.length){
       notice.classList.add('specialty-warning');
@@ -1617,6 +1714,7 @@ async function createLabRequest(event) {
   if (!profile || profile.role !== 'client') return;
 
   const specialtyId = Number(el('requestSpecialty').value);
+  const serviceId = Number(el('requestServiceId').value)||null;
   const description = el('requestDescription').value.trim();
   const locality = el('requestLocality').value.trim();
 
@@ -1635,6 +1733,7 @@ async function createLabRequest(event) {
   try {
     const job = await api('POST', '/api/jobs', {
       specialtyId,
+      serviceId,
       description,
       locality
     });
