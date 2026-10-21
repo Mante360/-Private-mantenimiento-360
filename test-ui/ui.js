@@ -442,7 +442,7 @@
     el('contractsSection').hidden = profile.role !== 'professional';
     el('myQuotesSection').hidden = profile.role !== 'professional';
     el('proProfessionCatalogSection').hidden=profile.role!=='professional';
-    if(profile.role==='professional')renderProfessionFinder('proProfessionList','proProfessionSearch');
+    if(profile.role==='professional'){renderProfessionFinder('proProfessionList','proProfessionSearch');void loadMyDeclaredServices();}
     if(profile.role === 'professional') void loadMyQuotes();
     void loadClaimInbox();
     if (profile.role === 'professional') void loadContracts();
@@ -450,7 +450,7 @@
 el('clientRequestSection').hidden = profile.role !== 'client';
 if (profile.role === 'client') void loadClientSpecialties();
 
-    if(profile.role === 'admin') { void loadProfessionals(); void loadAdminClaims(); void loadLabReminderLedger(); void loadClaimPerformance(); }
+    if(profile.role === 'admin') { void loadProfessionals(); void loadServiceReviews(); void loadAdminClaims(); void loadLabReminderLedger(); void loadClaimPerformance(); }
   }
   async function activate(data) {
     token = data.token;
@@ -470,11 +470,19 @@ if (profile.role === 'client') void loadClientSpecialties();
       feedback('Para esta prueba usá un correo inventado terminado en @test.invalid.',true);
       return;
     }
+    const selectedServices=choice==='professional'?[...registrationServiceIds].map(Number):[];
     const button=el('registerButton');
     button.disabled = true;
     try {
       const data=await api('POST','/api/auth/register',{ name,email,password,role:choice },'');
       await activate(data);
+      if(choice==='professional'&&selectedServices.length){
+        try{
+          await api('POST','/api/lab-services/mine',{serviceIds:selectedServices},data.token);
+          registrationServiceIds.clear();await loadMyDeclaredServices();
+          feedback('Cuenta creada. Tus trabajos declarados quedaron pendientes de revisión.');
+        }catch(error){feedback('Cuenta creada, pero no se guardaron los trabajos: '+error.message,true);}
+      }
     } catch(err) {
       feedback(err.message,true);
     } finally {
@@ -1789,6 +1797,10 @@ async function createLabRequest(event) {
   el('showRegister').addEventListener('click',()=>view('register'));
   el('showLogin').addEventListener('click',()=>view('login'));
   el('registerForm').addEventListener('submit',handleRegistration);
+  el('regServiceSearch').addEventListener('input',()=>renderServiceChecklist('regServiceChoices','regServiceSearch',registrationServiceIds));
+  el('proServiceSearch').addEventListener('input',()=>renderServiceChecklist('proServiceChoices','proServiceSearch',proServiceIds,proServiceStatuses));
+  el('saveProServices').addEventListener('click',saveMyDeclaredServices);
+  el('refreshServiceDeclarations').addEventListener('click',loadServiceReviews);
   el('guestProfessionSearch').addEventListener('input',()=>renderProfessionFinder('guestProfessionList','guestProfessionSearch'));
   el('proProfessionSearch').addEventListener('input',()=>renderProfessionFinder('proProfessionList','proProfessionSearch'));
   el('requestSpecialtySearch').addEventListener('input',renderClientSpecialtyOptions);
@@ -1873,6 +1885,7 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
   select('client');
   view('register');
   render();
+  void fetchLabServiceCatalog().catch(error=>{el('regServiceChoices').textContent='No se pudo consultar el catálogo de servicios: '+error.message;});
   void fetchLabProfessionCatalog().catch(error=>{
     el('guestProfessionList').textContent='No se pudo consultar el catálogo: '+error.message;
   });
