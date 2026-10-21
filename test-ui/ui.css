@@ -120,9 +120,11 @@ body.photo-viewer-open{overflow:hidden}
 .specialty-choice strong{font-size:14px;line-height:1.4}
 .specialty-choice small{font-size:12px;color:#475a73;line-height:1.5}
 .specialty-choice-action{font-size:12px;font-weight:800;color:#20559c}
-.specialty-choice:hover,.specialty-choice:focus-visible{border-color:#2c679e}
-.specialty-choice.selected{border-color:#23794b;background:#eef9f3}
-.specialty-choice.selected .specialty-choice-action{color:#176940}
+/* Hover es solo señal del cursor; selección real permanece verde. */
+.specialty-choice:hover:not(.selected){background:#f7f9fc;border-color:#c5d7eb}
+.specialty-choice:focus-visible{outline:3px solid #2c679e;outline-offset:2px}
+.specialty-choice.selected,.specialty-choice.selected:hover{border-color:#23794b;background:#e8f7ee;box-shadow:inset 0 0 0 1px #23794b}
+.specialty-choice.selected .specialty-choice-action{color:#176940;font-weight:900}
 .specialty-matches>.hint{margin:2px 0 7px}
 
 /* Consulta guiada por el tipo de termotanque (solo cliente del laboratorio). */
