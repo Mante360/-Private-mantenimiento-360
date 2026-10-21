@@ -83,7 +83,7 @@
 el('clientRequestSection').hidden = profile.role !== 'client';
 if (profile.role === 'client') void loadClientSpecialties();
 
-    if(profile.role === 'admin') { void loadProfessionals(); void loadAdminClaims(); void loadClaimPerformance(); }
+    if(profile.role === 'admin') { void loadProfessionals(); void loadAdminClaims(); void loadLabReminderLedger(); void loadClaimPerformance(); }
   }
   async function activate(data) {
     token = data.token;
@@ -970,6 +970,52 @@ if (profile.role === 'client') void loadClientSpecialties();
     }
   }
 
+  async function loadLabReminderLedger(){
+    if(profile?.role!=='admin')return;
+    const panel=el('labReminderLedger');
+    panel.textContent='Consultando historial interno...';
+    try{
+      const data=await api('GET','/api/admin/claim-reminders');
+      panel.replaceChildren();
+      if(!data.items?.length){
+        panel.textContent='Todavía no se registraron recordatorios. El proceso programado no está activado.';
+        return;
+      }
+      const intro=document.createElement('p');
+      intro.textContent='Registros internos: '+data.totals.recorded+
+        ' · Alertas de 12 horas: '+data.totals.overdue+
+        '. No indica mensajes enviados ni confirmaciones de lectura.';
+      panel.append(intro);
+      for(const notice of data.items){
+        const item=document.createElement('p');
+        item.textContent='Reclamo '+notice.claim_id+
+          ' · Trabajo '+notice.job_public_code+
+          ' · '+notice.milestone_hours+' horas hábiles'+
+          '\nProgramado para: '+displayArgDate(notice.scheduled_at)+
+          '\nRegistrado: '+displayArgDate(notice.recorded_at)+
+          ' · '+(notice.origin==='manual'?'Comprobación manual':'Tarea programada');
+        panel.append(item);
+      }
+    }catch(error){panel.textContent='No se pudo consultar el historial: '+error.message;}
+  }
+  async function runLabReminders(){
+    if(profile?.role!=='admin')return;
+    const button=el('runLabReminders'),status=el('labReminderRunResult');
+    if(!confirm('¿Comprobar ahora los plazos y registrar los recordatorios internos que correspondan? Esta operación no envía WhatsApp ni correo.'))return;
+    button.disabled=true;status.textContent='Comprobando recordatorios...';
+    try{
+      const result=await api('POST','/api/admin/claim-reminders/run');
+      status.textContent=result.busy
+        ? 'Ya hay otra comprobación ejecutándose. Volvé a intentar luego.'
+        : 'Comprobación finalizada. Reclamos examinados: '+result.scanned+
+          '. Nuevos registros internos: '+result.recorded+
+          '. Calendarios pendientes: '+result.calendarPending+
+          '. Sin envíos externos.';
+      await loadLabReminderLedger();
+    }catch(error){status.textContent='No se pudo ejecutar la comprobación: '+error.message;}
+    finally{button.disabled=false;}
+  }
+
   async function loadArchivedClaims() {
     if(profile?.role!=='admin' || el('claimArchiveSection').hidden) return;
     const version=++adminArchiveVersion;
@@ -1384,6 +1430,8 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
     void loadClaimPerformance();
   });
   el('refreshAdminClaims').addEventListener('click',()=>{adminPendingPage=1;void loadAdminClaims();});
+  el('refreshLabReminders').addEventListener('click',loadLabReminderLedger);
+  el('runLabReminders').addEventListener('click',runLabReminders);
   el('adminPendingPrev').addEventListener('click',()=>{if(adminPendingPage>1){adminPendingPage--;void loadAdminClaims();}});
   el('adminPendingNext').addEventListener('click',()=>{adminPendingPage++;void loadAdminClaims();});
   el('toggleClaimArchive').addEventListener('click',()=>{
