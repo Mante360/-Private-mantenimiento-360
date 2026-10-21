@@ -178,12 +178,15 @@
   <p class="hint">Solo datos de prueba. No ingreses direcciones ni datos personales reales.</p>
 
   <form id="labRequestForm">
-    <label for="requestSpecialtySearch">Buscar oficio o servicio</label>
-    <input id="requestSpecialtySearch" type="search" maxlength="100" placeholder="Ej.: electricista, techos, computadoras">
-    <label for="requestSpecialty">Especialidad</label>
-    <select id="requestSpecialty" required>
-      <option value="">Seleccionar especialidad</option>
-    </select>
+    <label for="requestSpecialtySearch">¿Qué profesional o reparación necesitás?</label>
+    <input id="requestSpecialtySearch" type="search" maxlength="100" autocomplete="off" required
+      placeholder="Ej.: fontanero, reparar una canilla, fuente de agua"
+      aria-describedby="requestSpecialtyMatch" aria-controls="requestSpecialtyMatches">
+    <div id="requestSpecialtyMatch" class="specialty-match" role="status" aria-live="polite">
+      Escribí un oficio o problema y verás las especialidades sugeridas.
+    </div>
+    <div id="requestSpecialtyMatches" class="specialty-matches" aria-label="Especialidades sugeridas"></div>
+    <input id="requestSpecialty" type="hidden" value="">
 
     <label for="requestDescription">Descripción del trabajo</label>
     <textarea id="requestDescription" minlength="3" maxlength="3000" required
