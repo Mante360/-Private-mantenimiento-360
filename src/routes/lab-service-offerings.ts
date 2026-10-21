@@ -18,7 +18,20 @@ const catalogSql=`SELECT ss.id::text AS service_id,ss.specialty_id::text AS spec
         JOIN users u ON u.id=d.professional_id
         WHERE d.service_id=ss.id AND d.status='approved'
           AND pp.verification_status='approved' AND pp.available=true
-          AND u.status='active') AS approved_professional_count
+          AND u.status='active') AS approved_professional_count,
+     (SELECT count(*)::integer FROM lab_service_declarations d
+        JOIN professional_profiles pp ON pp.user_id=d.professional_id
+        JOIN users u ON u.id=d.professional_id
+        WHERE d.service_id=ss.id AND d.status='approved'
+          AND pp.verification_status='approved' AND pp.available=true
+          AND u.status='active'
+          AND NOT EXISTS (SELECT 1 FROM claims claim
+             WHERE claim.professional_id=d.professional_id
+             AND claim.status IN ('open','in_review'))
+          AND NOT EXISTS (SELECT 1 FROM professional_restrictions restriction
+             WHERE restriction.professional_id=d.professional_id
+               AND restriction.lifted_at IS NULL)
+        ) AS eligible_professional_count
    FROM specialty_services ss
    JOIN specialties s ON s.id=ss.specialty_id AND s.active=true
    LEFT JOIN lab_profession_catalog c ON c.specialty_id=s.id
@@ -27,7 +40,7 @@ const catalogSql=`SELECT ss.id::text AS service_id,ss.specialty_id::text AS spec
 
 labServicesRouter.get('/catalog',async(_req,res,next)=>{
  try{const data=await pool.query(catalogSql);
-   res.json({items:data.rows,notice:'Solo se cuentan profesionales aprobados que declararon expresamente este servicio y fueron autorizados por Administración. No acredita matrículas.'});
+   res.json({items:data.rows,notice:'Aprobado indica servicio declarado y revisado. Habilitado para presupuestar excluye profesionales con reclamos activos o restricciones pendientes, sin importar sus especialidades. No acredita matrículas reales.'});
  }catch(error){next(error);}
 });
 
