@@ -14,6 +14,8 @@ import { seedLabAdminIfRequested } from './test-admin-seed.js';
 import { adminRouter } from './routes/admin.js';
 import { claimPerformanceRouter } from './routes/claim-performance.js';
 import { claimRemindersRouter } from './routes/claim-reminders.js';
+import { professionsRouter } from './routes/professions.js';
+import { ensureLabProfessionCatalog } from './lab-professions.js';
 import { ensureLabClaimReminderSchema } from './lab-claim-reminders.js';
 
 checkJwtConfiguration(); // Fail closed on weak/missing secret.
@@ -76,6 +78,7 @@ app.use('/api/claims', claimsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/admin/claim-performance', claimPerformanceRouter);
 app.use('/api/admin/claim-reminders', claimRemindersRouter);
+app.use('/api/catalog/professions', professionsRouter);
 
 app.use((
   error: unknown,
@@ -95,6 +98,7 @@ await bootstrapTestSchemaIfRequested();
 await ensureLabPhotoSchema();
 await ensureLabTechnicalSchema();
 await ensureLabClaimReminderSchema();
+await ensureLabProfessionCatalog();
 await seedLabAdminIfRequested();
 
 app.listen(port, '0.0.0.0', () => {
