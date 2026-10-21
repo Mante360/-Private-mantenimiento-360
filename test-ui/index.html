@@ -99,6 +99,14 @@
                 </div>
               </div>
               <button type="button" id="refreshAdminClaims" class="secondary">Actualizar pendientes</button>
+              <section class="admin-claim-reminders">
+                <h4>Registro interno de recordatorios · Laboratorio</h4>
+                <p class="hint">Las comprobaciones guardan avisos de las 4, 8 y 12 horas hábiles sin duplicarlos. Todavía no hay envíos automáticos, WhatsApp ni correo; el trabajador programado está preparado, pero no activado.</p>
+                <button type="button" id="runLabReminders" class="secondary">Comprobar avisos ahora (manual)</button>
+                <button type="button" id="refreshLabReminders" class="secondary">Actualizar historial de avisos</button>
+                <p id="labReminderRunResult" class="hint" role="status"></p>
+                <div id="labReminderLedger" class="jobspanel"></div>
+              </section>
               <p id="adminPendingCount" class="hint" role="status"></p>
               <div id="adminClaimsPanel" role="status"></div>
               <div class="admin-claim-pagination">
