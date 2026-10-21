@@ -106,3 +106,21 @@ body.photo-viewer-open{overflow:hidden}
 .profession-result p{margin:7px 0 0;font-size:13px;white-space:normal}
 #guestProfessionList,#proProfessionList{max-height:420px;overflow:auto}
 #registerProfessionSearchBox,#proProfessionCatalogSection{margin-top:16px}
+
+
+/* Orientación para clientes: sugerencias a la vista, sin desplegable. */
+.specialty-match{margin:12px 0 10px;padding:11px 13px;border-radius:9px;
+  border:1px solid #c4d5e9;background:#fff;color:#20334e;font-size:13px;line-height:1.55}
+.specialty-match.specialty-found{border-left:4px solid #20794c;background:#edf8f1}
+.specialty-match.specialty-warning{border-left:4px solid #b8721d;background:#fff6e7}
+.specialty-matches{display:grid;gap:10px}
+.specialty-choice{width:100%;text-align:left;display:flex;flex-direction:column;gap:6px;
+  background:#fff;border:2px solid #c5d7eb;border-radius:11px;padding:12px;color:#162942;
+  white-space:normal;cursor:pointer}
+.specialty-choice strong{font-size:14px;line-height:1.4}
+.specialty-choice small{font-size:12px;color:#475a73;line-height:1.5}
+.specialty-choice-action{font-size:12px;font-weight:800;color:#20559c}
+.specialty-choice:hover,.specialty-choice:focus-visible{border-color:#2c679e}
+.specialty-choice.selected{border-color:#23794b;background:#eef9f3}
+.specialty-choice.selected .specialty-choice-action{color:#176940}
+.specialty-matches>.hint{margin:2px 0 7px}
