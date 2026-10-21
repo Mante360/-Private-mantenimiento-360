@@ -71,6 +71,105 @@
     }
     return labProfessionCatalogPromise;
   }
+
+  // Cada servicio depende de una declaración del profesional y de revisión.
+  let labServiceCatalog=[],labServiceCatalogPromise=null;
+  const registrationServiceIds=new Set(),proServiceIds=new Set(),proServiceStatuses=new Map();
+  const serviceSearchMatch=(service,query)=>!query||
+    professionNormalized([service.service_name,service.profession_name,...(service.keywords||[])].join(' ')).includes(professionNormalized(query));
+  async function fetchLabServiceCatalog(){
+    if(!labServiceCatalogPromise){
+      labServiceCatalogPromise=api('GET','/api/lab-services/catalog',null,'')
+        .then(response=>{
+          labServiceCatalog=response.items||[];
+          renderServiceChecklist('regServiceChoices','regServiceSearch',registrationServiceIds);
+          renderServiceChecklist('proServiceChoices','proServiceSearch',proServiceIds,proServiceStatuses);
+          if(profile?.role==='client')renderClientSpecialtyOptions();
+          return labServiceCatalog;
+        }).catch(error=>{labServiceCatalogPromise=null;throw error;});
+    }
+    return labServiceCatalogPromise;
+  }
+  function renderServiceChecklist(panelId,searchId,chosen,statuses=new Map()){
+    const panel=el(panelId);
+    if(!panel)return;
+    panel.replaceChildren();
+    if(!labServiceCatalog.length){panel.textContent='Consultando servicios disponibles...';return;}
+    const rows=labServiceCatalog.filter(service=>serviceSearchMatch(service,el(searchId)?.value||''));
+    if(!rows.length){panel.textContent='No encontramos ese trabajo. Podés sugerir un servicio nuevo a Administración.';return;}
+    const heading=document.createElement('p');heading.className='hint';
+    heading.textContent='Trabajos disponibles para declarar: '+rows.length+'. Marcá solo los que sabés realizar.';
+    panel.append(heading);
+    for(const service of rows){
+      const id=String(service.service_id),label=document.createElement('label');
+      label.className='service-checkbox';
+      const input=document.createElement('input');input.type='checkbox';input.value=id;input.checked=chosen.has(id);
+      const description=document.createElement('span'),title=document.createElement('strong'),subtitle=document.createElement('small');
+      title.textContent=service.service_name;
+      const status=statuses.get(id);
+      subtitle.textContent=service.profession_name+(status?' · '+(
+        status==='approved'?'Aprobado para pruebas':
+        status==='pending'?'Pendiente de revisión':'Rechazado; puede volver a solicitarlo'
+      ):'');
+      description.append(title,subtitle);label.append(input,description);
+      input.addEventListener('change',()=>{if(input.checked)chosen.add(id);else chosen.delete(id);});
+      panel.append(label);
+    }
+  }
+  async function loadMyDeclaredServices(){
+    if(profile?.role!=='professional')return;
+    const status=el('proServicesStatus');
+    try{
+      const [_,result]=await Promise.all([fetchLabServiceCatalog(),api('GET','/api/lab-services/mine')]);
+      proServiceIds.clear();proServiceStatuses.clear();
+      for(const entry of result.items||[]){
+        const id=String(entry.service_id);proServiceIds.add(id);proServiceStatuses.set(id,entry.status);
+      }
+      renderServiceChecklist('proServiceChoices','proServiceSearch',proServiceIds,proServiceStatuses);
+      status.textContent='Declarados: '+proServiceIds.size+'. Los nuevos servicios requieren revisión de Administración.';
+    }catch(error){status.textContent='No se pudieron consultar tus servicios: '+error.message;}
+  }
+  async function saveMyDeclaredServices(){
+    if(profile?.role!=='professional')return;
+    if(!confirm('¿Guardar los servicios que realmente realizás? Los nuevos quedarán pendientes de revisión y los retirados dejarán de ofrecerse.'))return;
+    const button=el('saveProServices');button.disabled=true;
+    try{
+      await api('POST','/api/lab-services/mine',{serviceIds:[...proServiceIds].map(Number)});
+      await loadMyDeclaredServices();
+      el('proServicesStatus').textContent='Guardado. Administración revisará los servicios nuevos.';
+    }catch(error){el('proServicesStatus').textContent='No se pudo guardar: '+error.message;}
+    finally{button.disabled=false;}
+  }
+  async function loadServiceReviews(){
+    if(profile?.role!=='admin')return;
+    const panel=el('adminServiceDeclarations');panel.textContent='Cargando declaraciones...';
+    try{
+      const records=await api('GET','/api/lab-services/pending');panel.replaceChildren();
+      if(!records.items?.length){panel.textContent='No hay nuevas declaraciones pendientes.';return;}
+      for(const record of records.items){
+        const item=document.createElement('div');item.className='service-review-item';
+        const details=document.createElement('p');
+        details.textContent=record.professional_name+' · '+record.profession_name+
+          ' · '+record.service_name+'\nProfesional: '+record.verification_status+
+          (record.credential_note?'\nAtención: puede necesitar documentación habilitante.':'');
+        item.append(details);
+        for(const decision of ['approved','rejected']){
+          const button=document.createElement('button');button.type='button';button.className='secondary';
+          button.textContent=decision==='approved'?'Aprobar servicio (prueba)':'Rechazar servicio';
+          button.addEventListener('click',async()=>{
+            if(!confirm('¿'+(decision==='approved'?'Aprobar':'Rechazar')+' '+record.service_name+
+              ' para '+record.professional_name+'? Simulación sin verificación real de identidad ni matrícula.'))return;
+            button.disabled=true;
+            try{
+              await api('POST','/api/lab-services/pending/'+encodeURIComponent(record.id)+'/decision',{decision});
+              labServiceCatalogPromise=null;await fetchLabServiceCatalog();await loadServiceReviews();
+            }catch(error){feedback('No se completó la revisión: '+error.message,true);button.disabled=false;}
+          });item.append(button);
+        }panel.append(item);
+      }
+    }catch(error){panel.textContent='No se pudieron cargar las declaraciones: '+error.message;}
+  }
+
   function renderProfessionFinder(panelId,searchId){
     const panel=el(panelId);
     if(!panel)return;
