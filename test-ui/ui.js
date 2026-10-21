@@ -42,6 +42,76 @@
     }
     return body;
   }
+
+  // A single source of truth for browsing (guest/pro/client/admin).
+  // Browsing does not update professional verification or assigned specialties.
+  let labProfessionCatalog=[];
+  let labProfessionCatalogPromise=null;
+  const professionNormalized=value=>String(value||'').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-AR').trim();
+  const professionSearchable=p=>professionNormalized([
+    p.title,p.category,p.description,...(Array.isArray(p.aliases)?p.aliases:[])
+  ].join(' '));
+  const professionMatches=(p,query)=>!query||professionSearchable(p).includes(professionNormalized(query));
+  function catalogTitle(id,fallback){
+    return labProfessionCatalog.find(p=>String(p.specialty_id)===String(id))?.title||fallback;
+  }
+  async function fetchLabProfessionCatalog(){
+    if(!labProfessionCatalogPromise){
+      labProfessionCatalogPromise=api('GET','/api/catalog/professions',null,'')
+        .then(rows=>{
+          if(!Array.isArray(rows))throw new Error('Catálogo de formato inválido');
+          labProfessionCatalog=rows;
+          renderProfessionFinder('guestProfessionList','guestProfessionSearch');
+          renderProfessionFinder('proProfessionList','proProfessionSearch');
+          if(profile?.role==='client')renderClientSpecialtyOptions();
+          if(profile?.role==='admin'&&labCategories.length)renderAdminSpecialtyOptions();
+          return rows;
+        }).catch(error=>{labProfessionCatalogPromise=null;throw error;});
+    }
+    return labProfessionCatalogPromise;
+  }
+  function renderProfessionFinder(panelId,searchId){
+    const panel=el(panelId);
+    if(!panel)return;
+    const query=el(searchId).value;
+    const found=labProfessionCatalog.filter(p=>professionMatches(p,query));
+    panel.replaceChildren();
+    if(!labProfessionCatalog.length){
+      panel.textContent='Cargando catálogo de profesiones...';return;
+    }
+    if(!found.length){
+      panel.textContent='No encontramos ese oficio en el catálogo. Podrá solicitarse su incorporación a Administración.';return;
+    }
+    const count=document.createElement('p');
+    count.className='hint';
+    count.textContent=found.length+' oficio(s) encontrado(s).';
+    panel.append(count);
+    for(const profession of found.slice(0,35)){
+      const item=document.createElement('div');
+      item.className='profession-result';
+      const title=document.createElement('strong');title.textContent=profession.title;
+      const category=document.createElement('small');category.textContent=profession.category;
+      const description=document.createElement('p');description.textContent=profession.description;
+      item.append(title,category,description);
+      if(profession.credential_note){
+        const note=document.createElement('p');
+        note.className='hint';note.textContent=profession.credential_note;
+        item.append(note);
+      }
+      panel.append(item);
+    }
+  }
+  function renderClientSpecialtyOptions(){
+    const select=el('requestSpecialty');
+    const saved=select.value;
+    const rows=labProfessionCatalog.filter(p=>
+      professionMatches(p,el('requestSpecialtySearch').value));
+    select.replaceChildren(new Option('Seleccionar especialidad',''));
+    rows.forEach(c=>select.add(new Option(c.title,String(c.specialty_id))));
+    if(rows.some(c=>String(c.specialty_id)===saved))select.value=saved;
+  }
+
   function select(role) {
     choice = role;
     el('roleClient').classList.toggle('active', role === 'client');
@@ -51,6 +121,8 @@
     el('registerHeading').textContent = role === 'client' ? 'Registrar cliente de prueba' : 'Registrar profesional de prueba';
     el('regName').placeholder = role === 'client' ? 'Ejemplo: Cliente de Prueba' : 'Ejemplo: Profesional de Prueba';
     el('regEmail').placeholder = role === 'client' ? 'cliente360@test.invalid' : 'profesional360@test.invalid';
+    el('registerProfessionSearchBox').hidden=role!=='professional';
+    if(role==='professional')renderProfessionFinder('guestProfessionList','guestProfessionSearch');
   }
   function view(tab) {
     const isReg = tab === 'register';
@@ -76,6 +148,8 @@
     el('adminSection').hidden = profile.role !== 'admin';
     el('contractsSection').hidden = profile.role !== 'professional';
     el('myQuotesSection').hidden = profile.role !== 'professional';
+    el('proProfessionCatalogSection').hidden=profile.role!=='professional';
+    if(profile.role==='professional')renderProfessionFinder('proProfessionList','proProfessionSearch');
     if(profile.role === 'professional') void loadMyQuotes();
     void loadClaimInbox();
     if (profile.role === 'professional') void loadContracts();
@@ -1228,17 +1302,11 @@ if (profile.role === 'client') void loadClientSpecialties();
   }
 
 async function loadClientSpecialties() {
-  const select = el('requestSpecialty');
-  select.replaceChildren(new Option('Seleccionar especialidad', ''));
-
   try {
-    const categories = await api('GET', '/api/jobs/specialties');
-    categories.forEach(c => {
-      select.add(new Option(c.name, String(c.id)));
-    });
-  } catch (error) {
-    el('requestResult').textContent =
-      'No se pudieron cargar especialidades: ' + error.message;
+    await fetchLabProfessionCatalog();
+    renderClientSpecialtyOptions();
+  } catch(error) {
+    el('requestResult').textContent='No se pudo cargar el catálogo de oficios: '+error.message;
   }
 }
 
@@ -1294,6 +1362,20 @@ async function createLabRequest(event) {
 
   let labProfessionals = [];
   let labCategories = [];
+  function renderAdminSpecialtyOptions(preferred=null){
+    const selection=el('adminSpecialtySelect');
+    const keep=preferred===null?selection.value:String(preferred);
+    const query=professionNormalized(el('adminSpecialtySearch').value);
+    const found=labCategories.filter(c=>{
+      const entry=labProfessionCatalog.find(p=>String(p.specialty_id)===String(c.id));
+      return !query || professionNormalized(c.name).includes(query) ||
+        (entry&&professionMatches(entry,query));
+    });
+    selection.replaceChildren(new Option('Seleccionar especialidad',''));
+    found.forEach(c=>selection.add(new Option(catalogTitle(c.id,c.name),String(c.id))));
+    if(found.some(c=>String(c.id)===keep))selection.value=keep;
+    updateAdminSelection();
+  }
   function selectedProfessional() {
     return labProfessionals.find(p => String(p.id) === el('adminProfessionalSelect').value) || null;
   }
@@ -1328,10 +1410,7 @@ async function createLabRequest(event) {
       proSelect.replaceChildren(new Option('Seleccionar profesional', ''));
       pending.forEach(p => proSelect.add(new Option(p.name + ' (ID ' + p.id + ')', String(p.id))));
       if (pending.some(p => String(p.id) === previousPro)) proSelect.value = previousPro;
-      const specialtySelect = el('adminSpecialtySelect');
-      specialtySelect.replaceChildren(new Option('Seleccionar especialidad', ''));
-      categories.forEach(c => specialtySelect.add(new Option(c.name, String(c.id))));
-      if (categories.some(c => String(c.id) === previousSpecialty)) specialtySelect.value = previousSpecialty;
+      renderAdminSpecialtyOptions(previousSpecialty);
       target.textContent = pending.length
         ? 'Profesionales pendientes: ' + pending.length + '. Seleccioná uno y elegí su especialidad.'
         : 'No hay profesionales pendientes de aprobación.';
@@ -1409,6 +1488,10 @@ async function createLabRequest(event) {
   el('showRegister').addEventListener('click',()=>view('register'));
   el('showLogin').addEventListener('click',()=>view('login'));
   el('registerForm').addEventListener('submit',handleRegistration);
+  el('guestProfessionSearch').addEventListener('input',()=>renderProfessionFinder('guestProfessionList','guestProfessionSearch'));
+  el('proProfessionSearch').addEventListener('input',()=>renderProfessionFinder('proProfessionList','proProfessionSearch'));
+  el('requestSpecialtySearch').addEventListener('input',renderClientSpecialtyOptions);
+  el('adminSpecialtySearch').addEventListener('input',()=>renderAdminSpecialtyOptions());
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
   el('refreshContracts').addEventListener('click',loadContracts);
@@ -1483,5 +1566,8 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
   select('client');
   view('register');
   render();
+  void fetchLabProfessionCatalog().catch(error=>{
+    el('guestProfessionList').textContent='No se pudo consultar el catálogo: '+error.message;
+  });
   void restore();
 })();
