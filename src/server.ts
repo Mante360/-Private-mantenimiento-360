@@ -15,6 +15,8 @@ import { adminRouter } from './routes/admin.js';
 import { claimPerformanceRouter } from './routes/claim-performance.js';
 import { claimRemindersRouter } from './routes/claim-reminders.js';
 import { professionsRouter } from './routes/professions.js';
+import {labServicesRouter} from './routes/lab-service-offerings.js';
+import {ensureLabServiceOfferings} from './lab-service-offerings.js';
 import { ensureLabProfessionCatalog } from './lab-professions.js';
 import { ensureLabClaimReminderSchema } from './lab-claim-reminders.js';
 
@@ -79,6 +81,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/admin/claim-performance', claimPerformanceRouter);
 app.use('/api/admin/claim-reminders', claimRemindersRouter);
 app.use('/api/catalog/professions', professionsRouter);
+app.use('/api/lab-services', labServicesRouter);
 
 app.use((
   error: unknown,
@@ -99,6 +102,7 @@ await ensureLabPhotoSchema();
 await ensureLabTechnicalSchema();
 await ensureLabClaimReminderSchema();
 await ensureLabProfessionCatalog();
+await ensureLabServiceOfferings();
 await seedLabAdminIfRequested();
 
 app.listen(port, '0.0.0.0', () => {
