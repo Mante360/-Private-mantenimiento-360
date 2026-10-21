@@ -104,7 +104,7 @@
   }
   // El cliente describe el problema: primero recomendamos, luego elige.
   // No se asigna una especialidad ni se crea una solicitud sin confirmación.
-  function clientProfessionMatches(query){
+  function clientProfessionMatches(query,heaterType=''){
     const phrase=professionNormalized(query).replace(/[^\p{L}\p{N}\s]/gu,' ')
       .replace(/\s+/g,' ').trim();
     if(phrase.length<2)return [];
@@ -117,8 +117,8 @@
     const terms=phrase.split(' ').filter(word=>word.length>=2&&!common.has(word));
     if(!terms.length)return [];
     const heater=terms.some(term=>term.startsWith('termotanque')||term.startsWith('calefon'));
-    const gas=terms.some(term=>term==='gas'||term==='gasista');
-    const electric=terms.some(term=>term.startsWith('electri'));
+    const gas=heaterType==='gas';
+    const electric=heaterType==='electrico';
     const ranked=labProfessionCatalog.map(profession=>{
       const title=professionNormalized(profession.title);
       const aliases=(profession.aliases||[]).map(professionNormalized);
@@ -156,12 +156,30 @@
     const floor=Math.max(12,Math.ceil(ranked[0].score*0.68));
     return ranked.filter(item=>item.score>=floor).slice(0,6).map(item=>item.profession);
   }
+  // Una respuesta elegida por el cliente tiene prioridad sobre lo escrito.
+  // Si el cliente ya puso "a gas" o "eléctrico", preseleccionamos la opción
+  // correspondiente, pero puede corregirla antes de elegir al profesional.
+  let manualHeaterType='';
+  function heaterTypeFromDescription(phrase){
+    const normalized=professionNormalized(phrase);
+    if(/\b(?:a|de) gas\b|\bgasista\b/.test(normalized))return 'gas';
+    if(/\belectric[oa]s?\b/.test(normalized))return 'electrico';
+    return '';
+  }
+  function requestIsHeater(phrase){
+    return /termotanque|calefon/.test(professionNormalized(phrase));
+  }
+
   function renderClientSpecialtyOptions(){
     const input=el('requestSpecialtySearch');
     const hidden=el('requestSpecialty');
     const notice=el('requestSpecialtyMatch');
     const options=el('requestSpecialtyMatches');
+    const guide=el('requestHeaterGuide');
     const phrase=input.value.trim();
+    const heater=requestIsHeater(phrase);
+    guide.hidden=!heater;
+    if(!heater)manualHeaterType='';
     hidden.value='';
     notice.classList.remove('specialty-found','specialty-warning');
     options.replaceChildren();
@@ -173,23 +191,32 @@
       notice.textContent='Cargando las especialidades...';
       return;
     }
-    const found=clientProfessionMatches(phrase);
+    let heaterType='';
+    if(heater){
+      heaterType=manualHeaterType||heaterTypeFromDescription(phrase);
+      for(const radio of guide.querySelectorAll('input[type="radio"]')){
+        radio.checked=radio.value===heaterType;
+      }
+      if(!heaterType){
+        notice.textContent='Elegí si es a gas, eléctrico o si no sabés. Así podemos orientar mejor tu solicitud.';
+        return;
+      }
+    }
+    const found=clientProfessionMatches(phrase,heaterType);
     if(!found.length){
       notice.classList.add('specialty-warning');
       notice.textContent='Todavía no encontramos un oficio claro para "'+phrase+
         '". Contanos qué elemento no funciona (por ejemplo: canilla, heladera o techo).';
       return;
     }
-    const normalizedQuery=professionNormalized(phrase);
-    const heater=/termotanque|calefon/.test(normalizedQuery);
-    const heaterGas=heater&&/(?:^|\\s)gas(?:$|\\s)|gasista/.test(normalizedQuery);
-    const heaterElectric=heater&&/electri/.test(normalizedQuery);
     if(heater){
-      notice.textContent=heaterGas
-        ? 'Un termotanque a gas que no enciende puede necesitar un Gasista habilitado para revisar el artefacto, o un Plomero para problemas de agua. No podemos diagnosticar la causa por el texto.'
-        : heaterElectric
-          ? 'Si el termotanque es eléctrico, puede corresponder a Electricidad o Plomería según dónde esté la falla.'
-          : '¿El termotanque es a gas o eléctrico? Podés aclararlo en tu descripción. Mientras tanto, estas son las especialidades posibles:';
+      if(heaterType==='gas'){
+        notice.textContent='Para un termotanque a gas, te sugerimos Gasista habilitado para el artefacto y Plomero si el problema está en el agua. No podemos determinar la causa sin revisarlo.';
+      }else if(heaterType==='electrico'){
+        notice.textContent='Para un termotanque eléctrico, te sugerimos Electricista para la alimentación y Plomero para el circuito de agua. Es una orientación, no un diagnóstico.';
+      }else{
+        notice.textContent='No hay problema si no sabés el tipo. Te mostramos los oficios posibles; podés elegir uno o describir más síntomas.';
+      }
     }else{
       notice.textContent=found.length===1
         ? 'Por lo que escribiste, te sugerimos esta especialidad:'
@@ -201,16 +228,16 @@
       choice.type='button';
       choice.setAttribute('aria-pressed','false');
       const label=document.createElement('strong');
-      label.textContent=heater&&!heaterGas&&!heaterElectric
+      label.textContent=heater&&heaterType==='no_se'
         ? 'Opción posible: '+profession.title
         : (index===0?'Sugerencia principal: ':'Otra opción: ')+profession.title;
       const desc=document.createElement('small');
       if(heater&&profession.profession_key==='gasista'){
-        desc.textContent='Artefacto a gas, encendido, quemador y conexiones de gas. Requiere habilitación correspondiente.';
+        desc.textContent='Para el encendido, quemador e instalaciones de gas, con la habilitación correspondiente.';
       }else if(heater&&profession.profession_key==='plomero'){
-        desc.textContent='Cañerías, pérdidas, presión y abastecimiento de agua. No habilita a trabajar sobre instalaciones de gas.';
+        desc.textContent='Para cañerías, pérdidas, presión y abastecimiento de agua. No habilita a intervenir instalaciones de gas.';
       }else if(heater&&profession.profession_key==='electricista'){
-        desc.textContent='Alimentación y controles eléctricos de un equipo eléctrico, según la habilitación que corresponda.';
+        desc.textContent='Para alimentación y controles eléctricos, con la habilitación que corresponda.';
       }else{
         desc.textContent=profession.description;
       }
@@ -235,7 +262,7 @@
     if(heater){
       const hint=document.createElement('p');
       hint.className='hint';
-      hint.textContent='Un mismo problema puede requerir más de un oficio. En esta etapa del laboratorio la solicitud comienza con uno solo: explicá los síntomas en la descripción. La revisión técnica determinará si debe intervenir otro especialista. Si hay olor a gas, no uses esta solicitud como vía de emergencia: comunicate con el servicio de emergencias de gas.';
+      hint.textContent='Un mismo problema puede necesitar más de un oficio. Por ahora, esta solicitud comienza con uno: describí todos los síntomas para facilitar la revisión. Si sentís olor a gas, comunicate directamente con emergencias de la distribuidora; no esperes una respuesta por esta plataforma.';
       options.append(hint);
     }
   }
@@ -1483,6 +1510,9 @@ async function createLabRequest(event) {
 
     el('requestDescription').value = '';
     el('requestLocality').value = '';
+    el('requestSpecialtySearch').value = '';
+    manualHeaterType='';
+    renderClientSpecialtyOptions();
 
     await refreshJobs();
   } catch (error) {
@@ -1624,6 +1654,12 @@ async function createLabRequest(event) {
   el('guestProfessionSearch').addEventListener('input',()=>renderProfessionFinder('guestProfessionList','guestProfessionSearch'));
   el('proProfessionSearch').addEventListener('input',()=>renderProfessionFinder('proProfessionList','proProfessionSearch'));
   el('requestSpecialtySearch').addEventListener('input',renderClientSpecialtyOptions);
+  el('requestHeaterGuide').addEventListener('change',event=>{
+    if(event.target?.name==='requestHeaterType'){
+      manualHeaterType=event.target.value;
+      renderClientSpecialtyOptions();
+    }
+  });
   el('adminSpecialtySearch').addEventListener('input',()=>renderAdminSpecialtyOptions());
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
