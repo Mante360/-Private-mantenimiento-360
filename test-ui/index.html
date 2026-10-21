@@ -184,6 +184,30 @@
             </form>
           </section>
           
+<section id="documentReviewSection" class="admin-section" hidden>
+  <h3>Revisión de documentación · Laboratorio</h3>
+  <p class="hint">Etapa de simulación: solamente nombres y referencias ficticias. No se reciben fotos reales, DNI, antecedentes ni datos biométricos. El subadministrador puede solicitar correcciones; este módulo NO habilita cuentas o servicios profesionales.</p>
+  <button type="button" class="secondary" id="refreshLabDocsQueue">Actualizar documentos pendientes</button>
+  <div id="labDocsQueueStatus" class="hint" role="status"></div>
+  <div id="labDocsQueue" class="jobspanel" role="status"></div>
+  <section id="labSubadminManagement" class="admin-section" hidden>
+    <h4>Crear subadministrador de revisión (solo prueba)</h4>
+    <p class="hint">Cuenta separada con permiso exclusivo para revisar metadatos documentales ficticios. No puede gestionar reclamos, contraseñas ni aprobar profesionales.</p>
+    <form id="labSubadminForm" autocomplete="off">
+      <label for="labStaffName">Nombre ficticio del revisor</label>
+      <input id="labStaffName" minlength="2" maxlength="120" placeholder="Ej.: Revisor de Pruebas" required>
+      <label for="labStaffEmail">Correo ficticio de acceso</label>
+      <input id="labStaffEmail" type="email" placeholder="revisor1@test.invalid" autocomplete="off" required>
+      <label for="labStaffPassword">Contraseña exclusiva de laboratorio</label>
+      <input id="labStaffPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+      <button class="secondary" type="submit">Crear revisor limitado</button>
+    </form>
+    <div id="labStaffCreateStatus" class="hint" role="status"></div>
+    <button type="button" id="refreshLabStaff" class="secondary">Ver revisores de prueba</button>
+    <div id="labStaffList" class="jobspanel"></div>
+  </section>
+</section>
+
 <section id="clientRequestSection" class="admin-section" hidden>
   <h3>Crear solicitud ficticia</h3>
   <p class="hint">Solo datos de prueba. No ingreses direcciones ni datos personales reales.</p>
@@ -246,6 +270,23 @@
             <div id="proServiceChoices" class="service-select-list" aria-label="Servicios que ofrece el profesional"></div>
             <button type="button" class="primary" id="saveProServices">Guardar mis servicios para revisión</button>
             <p class="hint" id="proServicesStatus" role="status"></p>
+          </section>
+          <section id="proDocExpirySection" class="admin-section" hidden>
+            <h3>Mi documentación y vencimientos · Laboratorio</h3>
+            <p class="hint">SIMULACIÓN: no cargues datos ni fotografías reales. Cada envío con referencia SIM- queda pendiente de revisión. Si un documento vence, se informa dentro del laboratorio al consultar.</p>
+            <button type="button" id="refreshMyLabDocuments" class="secondary">Actualizar mis documentos</button>
+            <div id="proDocExpiryList" class="jobspanel" role="status"></div>
+            <form id="proLabDocForm">
+              <h4>Simular una renovación o documento</h4>
+              <label for="labDocType">Tipo de documento</label>
+              <select id="labDocType" required><option value="">Seleccionar</option></select>
+              <label for="labDocReference">Referencia ficticia</label>
+              <input id="labDocReference" placeholder="SIM-MATRICULA-01" pattern="SIM-[A-Za-z0-9-]{3,100}" maxlength="120" required>
+              <label for="labDocExpiry">Fecha de vencimiento del ejemplo (opcional si no aplica)</label>
+              <input id="labDocExpiry" type="date" min="2020-01-01" max="2100-12-31">
+              <button type="submit" class="secondary">Enviar datos ficticios a revisión</button>
+            </form>
+            <div id="proLabDocStatus" class="hint" role="status"></div>
           </section>
           <section id="claimInboxSection" class="admin-section" hidden>
             <h3>Reclamos de mis trabajos</h3>
