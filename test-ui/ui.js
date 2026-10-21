@@ -75,6 +75,22 @@
   // Cada servicio depende de una declaración del profesional y de revisión.
   let labServiceCatalog=[],labServiceCatalogPromise=null;
   const registrationServiceIds=new Set(),proServiceIds=new Set(),proServiceStatuses=new Map();
+  // Keep the last server-confirmed selection separate from checkboxes being edited.
+  const persistedProServiceIds=new Set();
+  function serviceSelectionFeedback(){
+    if(profile?.role!=='professional')return;
+    const status=el('proServicesStatus');
+    const additions=[...proServiceIds].filter(id=>!persistedProServiceIds.has(id));
+    const removals=[...persistedProServiceIds].filter(id=>!proServiceIds.has(id));
+    const unsaved=additions.length>0||removals.length>0;
+    status.classList.toggle('services-unsaved',unsaved);
+    status.textContent=unsaved
+      ? 'CAMBIOS SIN GUARDAR: '+additions.length+' servicio(s) para agregar y '+
+        removals.length+' para retirar. Administración todavía ve la selección anterior. '+
+        'Presioná «Guardar mis servicios para revisión» para confirmar.'
+      : 'Selección guardada: '+persistedProServiceIds.size+
+        ' servicio(s). Los pendientes siguen a la espera de Administración.';
+  }
   const serviceSearchMatch=(service,query)=>!query||
     professionNormalized([service.service_name,service.profession_name,...(service.keywords||[])].join(' ')).includes(professionNormalized(query));
   async function fetchLabServiceCatalog(){
@@ -107,12 +123,25 @@
       const description=document.createElement('span'),title=document.createElement('strong'),subtitle=document.createElement('small');
       title.textContent=service.service_name;
       const status=statuses.get(id);
-      subtitle.textContent=service.profession_name+(status?' · '+(
-        status==='approved'?'Aprobado para pruebas':
-        status==='pending'?'Pendiente de revisión':'Rechazado; puede volver a solicitarlo'
-      ):'');
+      const refreshLabel=()=>{
+        let text=status==='approved'?'Aprobado para pruebas':
+          status==='pending'?'Pendiente de revisión':
+          status==='rejected'?'Rechazado (podés volver a solicitarlo)':'';
+        if(panelId==='proServiceChoices'){
+          if(!chosen.has(id)&&persistedProServiceIds.has(id))
+            text='DESMARCADO · retiro sin guardar (aún figura en Administración)';
+          else if(chosen.has(id)&&!persistedProServiceIds.has(id))
+            text='MARCADO · alta sin guardar';
+        }
+        subtitle.textContent=service.profession_name+(text?' · '+text:'');
+      };
+      refreshLabel();
       description.append(title,subtitle);label.append(input,description);
-      input.addEventListener('change',()=>{if(input.checked)chosen.add(id);else chosen.delete(id);});
+      input.addEventListener('change',()=>{
+        if(input.checked)chosen.add(id);else chosen.delete(id);
+        refreshLabel();
+        if(panelId==='proServiceChoices')serviceSelectionFeedback();
+      });
       panel.append(label);
     }
   }
@@ -121,24 +150,41 @@
     const status=el('proServicesStatus');
     try{
       const [_,result]=await Promise.all([fetchLabServiceCatalog(),api('GET','/api/lab-services/mine')]);
-      proServiceIds.clear();proServiceStatuses.clear();
+      proServiceIds.clear();proServiceStatuses.clear();persistedProServiceIds.clear();
       for(const entry of result.items||[]){
-        const id=String(entry.service_id);proServiceIds.add(id);proServiceStatuses.set(id,entry.status);
+        const id=String(entry.service_id);
+        proServiceIds.add(id);persistedProServiceIds.add(id);
+        proServiceStatuses.set(id,entry.status);
       }
       renderServiceChecklist('proServiceChoices','proServiceSearch',proServiceIds,proServiceStatuses);
-      status.textContent='Declarados: '+proServiceIds.size+'. Los nuevos servicios requieren revisión de Administración.';
+      serviceSelectionFeedback();
     }catch(error){status.textContent='No se pudieron consultar tus servicios: '+error.message;}
   }
   async function saveMyDeclaredServices(){
     if(profile?.role!=='professional')return;
-    if(!confirm('¿Guardar los servicios que realmente realizás? Los nuevos quedarán pendientes de revisión y los retirados dejarán de ofrecerse.'))return;
+    const serviceIds=[...proServiceIds].map(Number);
+    const removals=[...persistedProServiceIds].filter(id=>!proServiceIds.has(id)).length;
+    if(!confirm('¿Guardar '+serviceIds.length+' servicio(s) declarados y retirar '+removals+
+      '? Los nuevos quedarán pendientes y los retirados desaparecerán de la cola de Administración.'))return;
     const button=el('saveProServices');button.disabled=true;
     try{
-      await api('POST','/api/lab-services/mine',{serviceIds:[...proServiceIds].map(Number)});
+      await api('POST','/api/lab-services/mine',{serviceIds});
       await loadMyDeclaredServices();
-      el('proServicesStatus').textContent='Guardado. Administración revisará los servicios nuevos.';
-    }catch(error){el('proServicesStatus').textContent='No se pudo guardar: '+error.message;}
-    finally{button.disabled=false;}
+      const actual=[...persistedProServiceIds].map(Number);
+      const requested=new Set(serviceIds);
+      if(actual.length!==requested.size||actual.some(id=>!requested.has(id))){
+        el('proServicesStatus').textContent='La selección enviada no coincide con lo que devolvió el servidor. Revisá antes de continuar.';
+        return;
+      }
+      el('proServicesStatus').textContent='GUARDADO EN LA BASE DE PRUEBAS: '+actual.length+
+        ' servicio(s). Retirados: '+removals+
+        '. Actualizá Administración para ver las declaraciones pendientes reales.';
+      el('proServicesStatus').classList.remove('services-unsaved');
+    }catch(error){
+      el('proServicesStatus').classList.add('services-unsaved');
+      el('proServicesStatus').textContent='NO SE GUARDARON LOS CAMBIOS: '+error.message+
+        '. Administración todavía ve los servicios anteriores.';
+    }finally{button.disabled=false;}
   }
   async function loadServiceReviews(){
     if(profile?.role!=='admin')return;
