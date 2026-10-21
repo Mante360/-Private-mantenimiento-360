@@ -350,8 +350,8 @@
     const query=professionNormalized(phrase);
     if(query.length<3||!labServiceCatalog.length)return [];
     const kind=/termotanque|calefon/.test(query)?'heater':
-      /lavasecarropas|secarropas|secadora/.test(query)?'dryer':
-      /lavarropas|lavadora/.test(query)?'washer':
+      /lavasecarropas?|secarropas?|secadora/.test(query)?'dryer':
+      /lavarropas?|lavadora/.test(query)?'washer':
       /heladera|freezer/.test(query)?'fridge':
       /aire acondicionado|acondicionador de aire|\baire\b|\bsplit\b/.test(query)?'air':'other';
     if(kind==='heater'&&!heaterType)return [];
@@ -380,8 +380,9 @@
       if(kind!=='other')score+=70;
       return {service,score};
     }).filter(entry=>entry.score>0)
-      .sort((a,b)=>b.score-a.score||
-        Number(b.service.approved_professional_count)-Number(a.service.approved_professional_count)||
+      .sort((a,b)=>
+        Number(b.service.approved_professional_count>0)-Number(a.service.approved_professional_count>0)||
+        b.score-a.score||
         a.service.service_name.localeCompare(b.service.service_name,'es-AR'));
     return rows.slice(0,10).map(x=>x.service);
   }
