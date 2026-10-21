@@ -153,3 +153,7 @@ body.photo-viewer-open{overflow:hidden}
 .service-review-item p{margin:0 0 9px}
 .specialty-choice:disabled{opacity:.72;cursor:not-allowed;border-style:dashed}
 .specialty-choice:disabled:hover{background:#fff;border-color:#c5d7eb}
+
+/* Diferenciar edición local de datos persistidos (laboratorio). */
+#proServicesStatus.services-unsaved{background:#fff2d9;border-left:4px solid #b86816;
+  border-radius:7px;padding:10px 12px;color:#703b00;font-weight:700}
