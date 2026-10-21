@@ -49,9 +49,16 @@ jobsRouter.post('/', requireRole('client'), async (req, res, next) => {
          WHERE offer.service_id=$1 AND ss.specialty_id=$2 AND ss.active=true
            AND offer.status='approved' AND pp.verification_status='approved'
            AND pp.available=true AND u.status='active'
+           AND EXISTS (SELECT 1 FROM professional_services active_service
+             WHERE active_service.professional_id=offer.professional_id
+               AND active_service.service_id=offer.service_id)
+           AND NOT EXISTS (SELECT 1 FROM claims c
+             WHERE c.professional_id=offer.professional_id AND c.status IN ('open','in_review'))
+           AND NOT EXISTS (SELECT 1 FROM professional_restrictions restriction
+             WHERE restriction.professional_id=offer.professional_id AND restriction.lifted_at IS NULL)
          LIMIT 1`,[d.serviceId,d.specialtyId]
       );
-      if(!available.rows.length){res.status(409).json({error:'no_approved_professionals_for_service'});return;}
+      if(!available.rows.length){res.status(409).json({error:'no_eligible_professionals_for_service'});return;}
     }
     const result = await pool.query(
       `INSERT INTO jobs(client_id,specialty_id,service_id,description,locality,status)
