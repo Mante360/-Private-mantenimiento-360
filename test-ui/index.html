@@ -190,6 +190,13 @@
   <button type="button" class="secondary" id="refreshLabDocsQueue">Actualizar documentos pendientes</button>
   <div id="labDocsQueueStatus" class="hint" role="status"></div>
   <div id="labDocsQueue" class="jobspanel" role="status"></div>
+  <section id="labAuditSection" class="admin-section" hidden>
+    <h4>Historial de actuaciones documentales · Administración general</h4>
+    <p class="hint">Consulta exclusiva del administrador general. Registra quién revisó documentos ficticios, cuándo, la decisión y su observación. No permite editar el historial.</p>
+    <button type="button" id="refreshLabAudit" class="secondary">Consultar historial de revisiones</button>
+    <div id="labAuditStatus" class="hint" role="status"></div>
+    <div id="labAuditList" class="jobspanel" role="status"></div>
+  </section>
   <section id="labSubadminManagement" class="admin-section" hidden>
     <h4>Crear subadministrador de revisión (solo prueba)</h4>
     <p class="hint">Cuenta separada con permiso exclusivo para revisar metadatos documentales ficticios. No puede gestionar reclamos, contraseñas ni aprobar profesionales.</p>
