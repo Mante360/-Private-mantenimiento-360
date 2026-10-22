@@ -123,6 +123,37 @@ labDocumentsRouter.post('/mine',requireRole('professional'),async(req,res,next)=
  finally{tx.release();}
 });
 
+// Administrative, read-only audit of laboratory document decisions.
+// Subadministrators cannot consult the supervisor's audit history.
+labDocumentsRouter.get('/audit',requireRole('admin'),async(_req,res,next)=>{
+ try{
+  const rows=await pool.query(`SELECT
+    a.id::text AS event_id,a.action,a.created_at,
+    a.actor_id::text,COALESCE(actor.name,'Sistema') AS actor_name,
+    d.id::text AS document_id,d.document_type,d.fictional_reference,
+    d.expires_on::text AS expires_on,
+    pro.name AS professional_name,
+    a.metadata->>'decision' AS decision,
+    COALESCE(a.metadata->>'note',
+      CASE WHEN a.action='lab_doc_reviewed' THEN d.reviewer_note ELSE NULL END
+    ) AS review_note,
+    staff.name AS created_staff_name
+   FROM audit_events a
+   LEFT JOIN users actor ON actor.id=a.actor_id
+   LEFT JOIN lab_document_entries d
+     ON a.resource_type='lab_document' AND a.resource_id=d.id::text
+   LEFT JOIN users pro ON pro.id=d.professional_id
+   LEFT JOIN users staff
+     ON a.resource_type='user' AND a.resource_id=staff.id::text
+   WHERE a.action IN (
+     'lab_doc_reviewed','lab_doc_duplicate_superseded','lab_subadmin_created'
+   )
+   ORDER BY a.created_at DESC,a.id DESC LIMIT 60`);
+  res.json({items:rows.rows,scope:'lab_admin_only',
+    notice:'Actuaciones de laboratorio. No acreditan documentos reales.'});
+ }catch(error){next(error);}
+});
+
 labDocumentsRouter.get('/queue',requireRole('admin','subadmin'),async(req,res,next)=>{
  try{
   if(!await canReview(req.authUser!.role,req.authUser!.id)){res.status(403).json({error:'permission_denied'});return;}
@@ -170,6 +201,7 @@ labDocumentsRouter.post('/queue/:id/review',requireRole('admin','subadmin'),asyn
   await tx.query(`INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
     VALUES($1,'lab_doc_reviewed','lab_document',$2,$3::jsonb)`,
     [req.authUser!.id,String(doc.data),JSON.stringify({decision:decision.data.decision,
+      note:decision.data.note,
       professionalId:String(row.rows[0].professional_id),mode:'test_only'})]);
   await tx.query('COMMIT');active=false;
   res.json({item:edited.rows[0],notice:'Revisión de metadatos ficticios: no verifica documentos reales ni habilita profesionales.'});
