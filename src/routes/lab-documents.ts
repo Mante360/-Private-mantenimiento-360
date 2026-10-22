@@ -52,14 +52,15 @@ function safeSummary(row:Record<string,unknown>){
  return {...row,reminder:reminder(days,String(row.status))};
 }
 labDocumentsRouter.get('/requirements',(_req,res)=>{
- res.json({types:documentKinds,notices:[30,15,7,0],mode:'fictitious_metadata_only',
-  message:'No se solicitan ni almacenan documentos reales ni imágenes. Los avisos solo se calculan al consultar la plataforma.'});
+ res.json({types:documentKinds,notices:[30,15,7,0],mode:'fictitious_documents_with_private_test_evidence',
+  message:'Solo se aceptan archivos PDF o imagen INVENTADOS, nunca DNI, seguros ni comprobantes reales. Los avisos se calculan al consultar.'});
 });
 
 labDocumentsRouter.get('/mine',requireRole('professional'),async(req,res,next)=>{
  try{
   const r=await pool.query(`SELECT d.id::text,d.document_type,d.fictional_reference,
    d.expires_on::text,d.status,d.reviewer_note,d.reviewed_at,d.created_at,
+   EXISTS(SELECT 1 FROM lab_document_evidence e WHERE e.document_id=d.id) AS has_evidence,
    ${reminderSql} FROM lab_document_entries d
    WHERE d.professional_id=$1 ORDER BY d.document_type,d.id DESC LIMIT 100`,[req.authUser!.id]);
   res.json({items:r.rows.map(safeSummary),mode:'fictitious_metadata_only'});
@@ -118,6 +119,7 @@ labDocumentsRouter.get('/queue',requireRole('admin','subadmin'),async(req,res,ne
   if(!await canReview(req.authUser!.role,req.authUser!.id)){res.status(403).json({error:'permission_denied'});return;}
   const r=await pool.query(`SELECT d.id::text,d.document_type,d.fictional_reference,
     d.expires_on::text,d.status,d.created_at,u.name AS professional_name,
+    EXISTS(SELECT 1 FROM lab_document_evidence e WHERE e.document_id=d.id) AS has_evidence,
     d.professional_id::text FROM lab_document_entries d
     JOIN users u ON u.id=d.professional_id
     WHERE d.status='pending'
@@ -138,6 +140,20 @@ labDocumentsRouter.post('/queue/:id/review',requireRole('admin','subadmin'),asyn
     FROM lab_document_entries d WHERE d.id=$1 FOR UPDATE`,[doc.data]);
   if(!row.rows.length||row.rows[0].status!=='pending'){
     await tx.query('ROLLBACK');active=false;res.status(409).json({error:'document_not_pending'});return;
+  }
+  // A date typed by the professional is never proof. The reviewer must open
+  // the current private evidence file before approving even a test record.
+  if(decision.data.decision==='reviewed_test_only'){
+   const evidence=await tx.query('SELECT sha256 FROM lab_document_evidence WHERE document_id=$1',[doc.data]);
+   if(!evidence.rows.length){
+    await tx.query('ROLLBACK');active=false;res.status(409).json({error:'evidence_required'});return;
+   }
+   const viewed=await tx.query(
+    "SELECT 1 FROM audit_events a JOIN lab_document_evidence e ON e.document_id=$1 WHERE a.actor_id=$2 AND a.action='lab_doc_evidence_viewed' AND a.resource_type='lab_document' AND a.resource_id=$3 AND a.metadata->>'sha'=e.sha256 AND a.created_at>=e.created_at LIMIT 1",
+    [doc.data,req.authUser!.id,String(doc.data)]);
+   if(!viewed.rows.length){
+    await tx.query('ROLLBACK');active=false;res.status(409).json({error:'evidence_must_be_viewed'});return;
+   }
   }
   const edited=await tx.query(`UPDATE lab_document_entries SET status=$1,reviewer_note=$2,
     reviewed_by=$3,reviewed_at=now() WHERE id=$4 RETURNING id::text,status,reviewed_at`,
