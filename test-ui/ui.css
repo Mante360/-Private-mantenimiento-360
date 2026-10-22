@@ -157,3 +157,13 @@ body.photo-viewer-open{overflow:hidden}
 /* Diferenciar edición local de datos persistidos (laboratorio). */
 #proServicesStatus.services-unsaved{background:#fff2d9;border-left:4px solid #b86816;
   border-radius:7px;padding:10px 12px;color:#703b00;font-weight:700}
+
+/* Private previews for laboratory-only fictitious document evidence. */
+.lab-doc-evidence-actions{display:grid;gap:9px;border-top:1px solid #dce5f2;padding:10px 0;margin-top:10px}
+.lab-doc-evidence-actions label{display:grid;gap:5px;font-weight:600}
+.lab-doc-evidence-actions input[type="file"]{max-width:100%;font-size:13px;overflow-wrap:anywhere}
+.lab-evidence-holder{max-width:100%;margin-top:10px;overflow:hidden}
+.lab-doc-preview-pdf{width:100%;min-height:430px;height:60vh;max-height:600px;border:1px solid #c8d5e5;border-radius:7px;background:white}
+.lab-doc-preview-image{display:block;max-width:100%;max-height:560px;object-fit:contain;border:1px solid #c8d5e5;background:#fff}
+.lab-doc-evidence-link{display:block;margin:10px 0;overflow-wrap:anywhere}
+.lab-evidence-holder button{margin-top:5px}
