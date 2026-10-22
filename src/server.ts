@@ -19,6 +19,7 @@ import { professionsRouter } from './routes/professions.js';
 import {labServicesRouter} from './routes/lab-service-offerings.js';
 import {ensureLabServiceOfferings} from './lab-service-offerings.js';
 import {labDocumentsRouter} from './routes/lab-documents.js';
+import {labDocumentFilesRouter} from './routes/lab-document-files.js';
 import {ensureLabDocumentSchema} from './lab-document-setup.js';
 import { ensureLabProfessionCatalog } from './lab-professions.js';
 import { ensureLabClaimReminderSchema } from './lab-claim-reminders.js';
@@ -56,7 +57,7 @@ app.get('/', (_req, res) => {
 const serveLab = (filename: string): express.RequestHandler => (_req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   res.setHeader('Content-Security-Policy',
-    "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+    "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; frame-src blob:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
   res.sendFile(process.cwd() + '/test-ui/' + filename);
 };
 app.get('/pruebas', serveLab('index.html'));
@@ -91,6 +92,7 @@ app.use('/api/admin/claim-reminders', claimRemindersRouter);
 app.use('/api/catalog/professions', professionsRouter);
 app.use('/api/lab-services', labServicesRouter);
 app.use('/api/lab-documents', labDocumentsRouter);
+app.use('/api/lab-documents', labDocumentFilesRouter);
 
 app.use((
   error: unknown,
