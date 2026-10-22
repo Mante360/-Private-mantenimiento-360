@@ -74,12 +74,22 @@ export async function ensureLabDocumentSchema():Promise<void>{
       professional_id,document_type,fictional_reference,
       COALESCE(expires_on,DATE '9999-12-31')
     ) WHERE status='pending'`);
+  // Separate private evidence table: never expose it in catalog or client endpoints.
+  await client.query(`CREATE TABLE IF NOT EXISTS lab_document_evidence(
+    document_id bigint PRIMARY KEY REFERENCES lab_document_entries(id) ON DELETE CASCADE,
+    mime_type varchar(40) NOT NULL CHECK(mime_type IN ('application/pdf','image/jpeg','image/png','image/webp')),
+    content bytea NOT NULL,
+    size_bytes integer NOT NULL CHECK(size_bytes BETWEEN 20 AND 1500000),
+    sha256 varchar(64) NOT NULL,
+    uploaded_by bigint NOT NULL REFERENCES users(id),
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`);
   await client.query(`CREATE INDEX IF NOT EXISTS lab_documents_professional_idx
     ON lab_document_entries(professional_id,document_type,created_at DESC)`);
   await client.query(`CREATE INDEX IF NOT EXISTS lab_documents_pending_idx
     ON lab_document_entries(status,created_at) WHERE status='pending'`);
   await client.query('COMMIT');active=false;
-  console.log('Lab-only document expiry ledger and limited reviewer permissions ready. No real files.');
+  console.log('Lab-only private fictitious PDF/photo evidence, expiry ledger and reviewer permissions ready. No real identity files.');
  }catch(error){if(active)await client.query('ROLLBACK').catch(()=>undefined);throw error;}
  finally{client.release();}
 }
