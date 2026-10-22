@@ -459,6 +459,67 @@
       }
     }catch(error){panel.textContent='Error al consultar revisión: '+error.message;}
   }
+  // Only the general administrator may read this immutable-by-UI lab audit view.
+  async function loadLabAuditHistory(){
+    if(profile?.role!=='admin')return;
+    const list=el('labAuditList'),status=el('labAuditStatus');
+    list.textContent='Consultando actuaciones registradas...';
+    try{
+      const result=await api('GET','/api/lab-documents/audit');
+      list.replaceChildren();
+      status.textContent=(result.items||[]).length+
+        ' actuación(es) de laboratorio. Vista de solo lectura.';
+      if(!result.items?.length){
+        list.textContent='Todavía no hay actuaciones documentales registradas.';
+        return;
+      }
+      const names={
+        lab_doc_reviewed:'Revisión documental',
+        lab_doc_duplicate_superseded:'Duplicado conservado',
+        lab_subadmin_created:'Alta de subadministrador'
+      };
+      const decisions={
+        reviewed_test_only:'Revisado para prueba',
+        needs_more:'Corrección solicitada',
+        rejected:'Rechazado'
+      };
+      for(const event of result.items){
+        const row=document.createElement('div');
+        row.className='service-review-item';
+        const heading=document.createElement('strong');
+        let when='Fecha no disponible';
+        if(event.created_at){
+          const date=new Date(event.created_at);
+          if(!Number.isNaN(date.getTime())){
+            when=new Intl.DateTimeFormat('es-AR',{
+              dateStyle:'short',timeStyle:'short',
+              timeZone:'America/Argentina/Buenos_Aires'
+            }).format(date);
+          }
+        }
+        heading.textContent=(names[event.action]||'Actuación administrativa')+' · '+when;
+        const detail=document.createElement('p');
+        const lines=[
+          'Responsable: '+(event.actor_name||'Sistema')+
+            (event.actor_id?' (ID '+event.actor_id+')':''),
+          event.professional_name?'Profesional: '+event.professional_name:null,
+          event.fictional_reference
+            ?'Documento: '+labDocLabel(event.document_type)+' · '+event.fictional_reference:null,
+          event.decision?'Decisión: '+(decisions[event.decision]||event.decision):null,
+          event.created_staff_name
+            ?'Subadministrador creado: '+event.created_staff_name:null,
+          event.review_note?'Observación: '+event.review_note:null
+        ];
+        detail.textContent=lines.filter(Boolean).join('\n');
+        row.append(heading,detail);
+        list.append(row);
+      }
+    }catch(error){
+      list.textContent='No se pudo consultar el historial: '+error.message;
+      status.textContent='';
+    }
+  }
+
   async function createLabSubadmin(event){
     event.preventDefault();
     if(profile?.role!=='admin')return;
@@ -863,6 +924,8 @@
     el('adminSection').hidden = profile.role !== 'admin';
     el('documentReviewSection').hidden=!['admin','subadmin'].includes(profile.role);
     el('labSubadminManagement').hidden=profile.role!=='admin';
+    el('labAuditSection').hidden=profile.role!=='admin';
+    el('refreshJobs').hidden=profile.role==='subadmin';
     el('proDocExpirySection').hidden=profile.role!=='professional';
     if(['admin','subadmin'].includes(profile.role))void loadLabDocumentsQueue();
     if(profile.role==='professional')void loadMyLabDocuments();
@@ -2231,6 +2294,7 @@ async function createLabRequest(event) {
   el('refreshLabDocsQueue').addEventListener('click',loadLabDocumentsQueue);
   el('labSubadminForm').addEventListener('submit',createLabSubadmin);
   el('refreshLabStaff').addEventListener('click',loadLabStaff);
+  el('refreshLabAudit').addEventListener('click',loadLabAuditHistory);
   el('regServiceSearch').addEventListener('input',()=>renderServiceChecklist('regServiceChoices','regServiceSearch',registrationServiceIds));
   el('proServiceSearch').addEventListener('input',()=>renderServiceChecklist('proServiceChoices','proServiceSearch',proServiceIds,proServiceStatuses));
   el('saveProServices').addEventListener('click',saveMyDeclaredServices);
