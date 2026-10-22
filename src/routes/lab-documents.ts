@@ -49,7 +49,8 @@ async function canReview(reqRole:string,userId:string):Promise<boolean>{
 }
 function safeSummary(row:Record<string,unknown>){
  const days=row.days_until_expiry===null?null:Number(row.days_until_expiry);
- return {...row,reminder:reminder(days,String(row.status))};
+ return {...row,reminder:row.status==='reviewed_test_only' && row.is_current_approved===false
+   ? 'historical' : reminder(days,String(row.status))};
 }
 labDocumentsRouter.get('/requirements',(_req,res)=>{
  res.json({types:documentKinds,notices:[30,15,7,0],mode:'fictitious_documents_with_private_test_evidence',
@@ -61,6 +62,14 @@ labDocumentsRouter.get('/mine',requireRole('professional'),async(req,res,next)=>
   const r=await pool.query(`SELECT d.id::text,d.document_type,d.fictional_reference,
    d.expires_on::text,d.status,d.reviewer_note,d.reviewed_at,d.created_at,
    EXISTS(SELECT 1 FROM lab_document_evidence e WHERE e.document_id=d.id) AS has_evidence,
+   (d.status='reviewed_test_only' AND d.id=(
+     SELECT approved.id FROM lab_document_entries approved
+     WHERE approved.professional_id=d.professional_id
+       AND approved.document_type=d.document_type
+       AND approved.status='reviewed_test_only'
+     ORDER BY approved.expires_on DESC NULLS LAST,approved.reviewed_at DESC NULLS LAST,approved.id DESC
+     LIMIT 1
+   )) AS is_current_approved,
    ${reminderSql} FROM lab_document_entries d
    WHERE d.professional_id=$1 ORDER BY d.document_type,d.id DESC LIMIT 100`,[req.authUser!.id]);
   res.json({items:r.rows.map(safeSummary),mode:'fictitious_metadata_only'});
