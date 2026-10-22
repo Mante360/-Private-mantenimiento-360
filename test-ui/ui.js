@@ -34,7 +34,9 @@
         authentication_required: 'Necesitás iniciar sesión.',
         invalid_or_expired_token: 'La sesión venció. Volvé a ingresar.',
         warranty_correction_already_confirmed: 'La corrección en garantía ya fue confirmada por el cliente. No se admiten nuevos descargos sobre este reclamo.',
-        claim_already_open: 'Ya existe un reclamo abierto o en revisión para este trabajo. Esperá su resolución antes de presentar otro.'
+        claim_already_open: 'Ya existe un reclamo abierto o en revisión para este trabajo. Esperá su resolución antes de presentar otro.',
+        evidence_required: 'No se puede revisar sin un PDF o fotografía de respaldo.',
+        evidence_must_be_viewed: 'Antes de revisar, abrí el PDF o imagen de respaldo y compará su fecha con la declaración.'
       };
       const error = new Error(body.error === 'invalid_input' ? 'Los datos de la operación no son válidos.' : (known[body.error] || 'La solicitud no se completó (HTTP ' + response.status + ').'));
       error.code = body.error || '';
@@ -249,6 +251,76 @@
     select.replaceChildren(new Option('Seleccionar',''));
     for(const kind of labDocRequirements)select.add(new Option(kind.label,kind.key));
   }
+
+  async function showLabEvidence(docId,holder,status){
+    if(holder.dataset.open==='true'){
+      holder.replaceChildren();holder.dataset.open='false';return;
+    }
+    status.textContent='Abriendo respaldo privado de prueba...';
+    try{
+      const response=await fetch('/api/lab-documents/'+encodeURIComponent(docId)+'/evidence',{
+        headers:{Authorization:'Bearer '+token},cache:'no-store'
+      });
+      if(!response.ok)throw Error('No se pudo abrir el respaldo (HTTP '+response.status+').');
+      const type=response.headers.get('content-type')?.split(';')[0]||'application/octet-stream';
+      const bytes=await response.blob();
+      const url=URL.createObjectURL(new Blob([bytes],{type}));
+      holder.replaceChildren();
+      const info=document.createElement('p');info.className='hint';
+      info.textContent='Archivo SIMULADO privado. Compará visualmente su fecha con el vencimiento declarado.';
+      let preview;
+      if(type==='application/pdf'){
+        preview=document.createElement('iframe');
+        preview.title='PDF ficticio de respaldo documental';
+        preview.className='lab-doc-preview-pdf';
+      }else{
+        preview=document.createElement('img');
+        preview.alt='Imagen ficticia de respaldo documental';
+        preview.className='lab-doc-preview-image';
+      }
+      preview.src=url;
+      const download=document.createElement('a');
+      download.href=url;download.download='respaldo-ficticio'+(type==='application/pdf'?'.pdf':type==='image/png'?'.png':type==='image/webp'?'.webp':'.jpg');
+      download.textContent='Abrir o guardar copia ficticia';
+      download.className='lab-doc-evidence-link';
+      const close=document.createElement('button');
+      close.className='secondary';close.type='button';close.textContent='Cerrar respaldo';
+      close.addEventListener('click',()=>{
+        holder.replaceChildren();holder.dataset.open='false';
+        URL.revokeObjectURL(url);
+      });
+      holder.append(info,preview,download,close);
+      holder.dataset.open='true';
+      status.textContent='Respaldo de prueba abierto; revisá el contenido antes de decidir.';
+    }catch(error){status.textContent='Error al abrir el respaldo: '+error.message;}
+  }
+  function addLabEvidenceViewer(doc,host,status){
+    if(!doc.has_evidence)return;
+    const button=document.createElement('button');
+    button.type='button';button.className='secondary';button.textContent='Ver respaldo PDF / imagen';
+    const holder=document.createElement('div');holder.className='lab-evidence-holder';
+    button.addEventListener('click',()=>void showLabEvidence(doc.id,holder,status));
+    host.append(button,holder);
+  }
+  async function submitLabEvidenceUpload(docId,file,status){
+    if(!['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type)||
+       file.size<20||file.size>1500000){
+      status.textContent='Usá un PDF/JPG/PNG/WEBP INVENTADO de hasta 1,5 MB.';return;
+    }
+    status.textContent='Adjuntando archivo de prueba privado...';
+    try{
+      const response=await fetch('/api/lab-documents/mine/'+encodeURIComponent(docId)+'/evidence',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token,'Content-Type':file.type},
+        body:file
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(data.error||'No se pudo subir el respaldo.');
+      status.textContent='Respaldo guardado. Administración podrá abrirlo, comparar la fecha y revisarlo.';
+      await loadMyLabDocuments();
+    }catch(error){status.textContent='Error al adjuntar: '+error.message;}
+  }
+
   async function loadMyLabDocuments(){
     if(profile?.role!=='professional')return;
     const list=el('proDocExpiryList');
@@ -268,7 +340,35 @@
         const title=document.createElement('strong');title.textContent=labDocLabel(entry.document_type)+' · '+entry.fictional_reference;
         const body=document.createElement('p');
         body.textContent=labDocumentStatus(entry)+(entry.reviewer_note?'\nRevisión: '+entry.reviewer_note:'');
-        item.append(title,body);list.append(item);
+        item.append(title,body);
+        if(entry.has_evidence)addLabEvidenceViewer(entry,item,el('proLabDocStatus'));
+        if(['pending','needs_more'].includes(entry.status)){
+          const actions=document.createElement('div');actions.className='lab-doc-evidence-actions';
+          const demo=document.createElement('button');
+          demo.type='button';demo.className='secondary';
+          demo.textContent=entry.has_evidence?'Reemplazar con PDF ficticio':'Generar y adjuntar PDF ficticio';
+          demo.addEventListener('click',async()=>{
+            demo.disabled=true;
+            const status=el('proLabDocStatus');
+            try{
+              await api('POST','/api/lab-documents/mine/'+encodeURIComponent(entry.id)+'/evidence/demo');
+              status.textContent='PDF ficticio generado. Volvé a abrirlo para ver la fecha que figura en el documento.';
+              await loadMyLabDocuments();
+            }catch(error){status.textContent='Error generando respaldo: '+error.message;demo.disabled=false;}
+          });
+          const uploadLabel=document.createElement('label');
+          uploadLabel.textContent='O adjuntar una foto / PDF inventado:';
+          const fileInput=document.createElement('input');
+          fileInput.type='file';fileInput.accept='application/pdf,image/jpeg,image/png,image/webp';
+          fileInput.addEventListener('change',()=>{
+            const file=fileInput.files?.[0];
+            if(file)void submitLabEvidenceUpload(entry.id,file,el('proLabDocStatus'));
+          });
+          uploadLabel.append(fileInput);
+          actions.append(demo,uploadLabel);
+          item.append(actions);
+        }
+        list.append(item);
       }
     }catch(error){list.textContent='Error al consultar la documentación de prueba: '+error.message;}
   }
@@ -287,8 +387,8 @@
     try{
       const result=await api('POST','/api/lab-documents/mine',{type,reference,expiresOn});
       status.textContent=result.alreadyPending
-        ? 'Este mismo documento ya estaba pendiente. No se creó un duplicado.'
-        : 'Datos ficticios enviados. Administración o un revisor autorizado podrá solicitar correcciones.';
+        ? 'Ya existía un registro pendiente. Adjuntale un PDF ficticio desde el listado para que pueda revisarse.'
+        : 'Declaración guardada. AHORA adjuntá un PDF o foto ficticios para justificarla; todavía no está verificada.';
       el('labDocReference').value='';el('labDocExpiry').value='';
       await loadMyLabDocuments();
     }catch(error){status.textContent='No se pudo registrar la simulación: '+error.message;}
@@ -312,6 +412,13 @@
         const info=document.createElement('p');
         info.textContent='Referencia ficticia: '+doc.fictional_reference+
           (doc.expires_on?'\nVencimiento informado: '+doc.expires_on:'\nSin fecha de vencimiento');
+        const evidenceNotice=document.createElement('p');
+        evidenceNotice.className='hint';
+        evidenceNotice.textContent=doc.has_evidence
+          ? 'Hay un respaldo privado. Abrilo y compará su fecha antes de aprobar.'
+          : 'FALTA RESPALDO: solo puede solicitarse una corrección o rechazar el registro.';
+        article.append(title,info,evidenceNotice);
+        addLabEvidenceViewer(doc,article,status);
         const label=document.createElement('label');
         label.textContent='Observación para el profesional';
         const note=document.createElement('textarea');
@@ -325,6 +432,8 @@
         ]){
           const btn=document.createElement('button');
           btn.type='button';btn.className='secondary';btn.textContent=name;
+          if(value==='reviewed_test_only'&&!doc.has_evidence){
+            btn.disabled=true;btn.title='Falta PDF o imagen de respaldo.';}
           btn.addEventListener('click',async()=>{
             if(note.value.trim().length<8){
               status.textContent='Escribí una observación de al menos 8 caracteres.';
@@ -340,7 +449,7 @@
           });
           buttons.append(btn);
         }
-        article.append(title,info,label,note,buttons);
+        article.append(label,note,buttons);
         panel.append(article);
       }
     }catch(error){panel.textContent='Error al consultar revisión: '+error.message;}
