@@ -234,6 +234,11 @@
       superseded:'Presentación duplicada anterior (conservada en historial)'
     }[item.status]||item.status;
     if(item.status!=='reviewed_test_only')return state;
+    // An approved renewal supersedes the older version for alerts,
+    // without deleting or altering the original review history.
+    if(item.is_current_approved===false)return state+
+      ' · Histórico, reemplazado por una versión aprobada más vigente'+
+      (item.expires_on?' (vencimiento original: '+item.expires_on+')':'');
     const days=item.days_until_expiry;
     if(days==null)return state+' · sin vencimiento cargado';
     if(days<0)return state+' · VENCIDO hace '+Math.abs(days)+' día(s)';
