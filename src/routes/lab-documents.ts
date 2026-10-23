@@ -134,8 +134,24 @@ labDocumentsRouter.get('/audit',requireRole('admin'),async(_req,res,next)=>{
     d.expires_on::text AS expires_on,
     pro.name AS professional_name,
     a.metadata->>'decision' AS decision,
-    COALESCE(a.metadata->>'note',
-      CASE WHEN a.action='lab_doc_reviewed' THEN d.reviewer_note ELSE NULL END
+    -- Newer audit events own an immutable observation snapshot.
+    -- For legacy events, display the document's current note ONLY when
+    -- the event is demonstrably its latest review by that same reviewer.
+    -- Never attach a later review's note to an older action.
+    COALESCE(NULLIF(a.metadata->>'note',''),
+      CASE WHEN a.action='lab_doc_reviewed'
+        AND a.actor_id=d.reviewed_by
+        AND d.reviewed_at IS NOT NULL
+        AND a.created_at BETWEEN d.reviewed_at - INTERVAL '10 seconds'
+                             AND d.reviewed_at + INTERVAL '10 seconds'
+        AND NOT EXISTS (
+          SELECT 1 FROM audit_events newer
+          WHERE newer.action='lab_doc_reviewed'
+            AND newer.resource_type='lab_document'
+            AND newer.resource_id=a.resource_id
+            AND newer.id>a.id
+        )
+      THEN d.reviewer_note ELSE NULL END
     ) AS review_note,
     staff.name AS created_staff_name
    FROM audit_events a
