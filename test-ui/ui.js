@@ -508,7 +508,9 @@
           event.decision?'Decisión: '+(decisions[event.decision]||event.decision):null,
           event.created_staff_name
             ?'Subadministrador creado: '+event.created_staff_name:null,
-          event.review_note?'Observación: '+event.review_note:null
+          event.review_note?'Observación: '+event.review_note
+            :event.action==='lab_doc_reviewed'
+              ?'Observación original: no consta en este evento histórico':null
         ];
         detail.textContent=lines.filter(Boolean).join('\n');
         row.append(heading,detail);
