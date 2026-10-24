@@ -2116,7 +2116,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         summary.textContent = 'Profesional: ' + quote.professional_name +
           ' · Importe ARS ' + quote.amount +
           ' · Garantía: ' + quote.warranty_days + ' días' +
-          ' · Estado: ' + statusLabel(quote.status) +
+          ' · Estado del presupuesto: ' + statusLabel(quote.status) +
           '\nDetalle: ' + quote.description;
         section.append(summary);
         if (job.status === 'quoted' && quote.status === 'submitted') {
