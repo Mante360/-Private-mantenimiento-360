@@ -933,6 +933,9 @@
     if(profile.role==='professional')void loadMyLabDocuments();
     el('contractsSection').hidden = profile.role !== 'professional';
     el('myQuotesSection').hidden = profile.role !== 'professional';
+    el('myQuotesPanel').hidden=true;
+    el('refreshMyQuotes').textContent='Ver presupuestos';
+    el('refreshMyQuotes').setAttribute('aria-expanded','false');
     el('proProfessionCatalogSection').hidden=profile.role!=='professional';
     if(profile.role==='professional'){renderProfessionFinder('proProfessionList','proProfessionSearch');void loadMyDeclaredServices();}
     if(profile.role === 'professional') void loadMyQuotes();
@@ -1048,36 +1051,112 @@ if (profile.role === 'client') void loadClientSpecialties();
     } catch(error) { panel.textContent = error.message; }
   }
 
-  // Only the authenticated professional's accepted contracts come from /api/jobs/mine.
+  // A compact persistent counter; expand only when the professional wants
+  // to consult own sent, accepted or unselected quotes.
   async function loadMyQuotes() {
-    if(profile?.role !== 'professional') return;
+    if(profile?.role!=='professional')return;
+    const currentUser=String(profile.id);
     const panel=el('myQuotesPanel');
-    panel.textContent='Consultando presupuestos...';
-    try {
+    const summary=el('myQuotesSummary');
+    const counter=el('myQuotesCounter');
+    summary.textContent='Consultando presupuestos enviados...';
+    if(!panel.hidden)panel.textContent='Consultando presupuestos...';
+    try{
       const quotes=await api('GET','/api/jobs/mine/quotes');
+      if(profile?.role!=='professional'||String(profile.id)!==currentUser)return;
+      const first=quotes[0];
+      const pending=Number(first?.awaiting_response_count||0);
+      const accepted=Number(first?.accepted_count||0);
+      const notSelected=Number(first?.not_selected_count||0);
+      const total=Number(first?.total_quotes_count||0);
+      counter.textContent=pending+' esperando respuesta';
+      summary.textContent='En espera: '+pending+' · Aceptados: '+accepted+
+        ' · No seleccionados: '+notSelected;
       panel.replaceChildren();
-      if(!quotes.length){panel.textContent='Todavía no enviaste presupuestos.';return;}
-      for(const quote of quotes){
-        const card=document.createElement('div');card.className='jobspanel';
-        const title=document.createElement('strong');
-        title.textContent='Solicitud '+quote.public_code+' · '+quote.locality;
-        const details=document.createElement('p');
-        details.textContent='Presupuesto N.º '+quote.id+
-          '\nImporte ARS '+quote.amount+' · Garantía '+quote.warranty_days+' días'+
-          '\nEstado del presupuesto: '+statusLabel(quote.status)+
-          '\nEstado del trabajo: '+statusLabel(quote.job_status)+
-          '\nDetalle: '+quote.description;
-        const open=document.createElement('button');
-        open.type='button';open.className='secondary';
-        open.textContent='Ver consultas y preparar visita';
-        open.addEventListener('click',()=>void openJob({
-          id:quote.job_id,public_code:quote.public_code,
-          locality:quote.locality,status:quote.job_status,
-          description:quote.job_description
-        }));
-        card.append(title,details,open);panel.append(card);
+      if(!quotes.length){
+        panel.textContent='Todavía no enviaste presupuestos. Cuando envíes uno, aparecerá aquí.';
+        return;
       }
-    }catch(error){panel.textContent='No se pudieron consultar los presupuestos: '+error.message;}
+      const groups=[
+        {name:'Esperando respuesta',items:quotes.filter(q=>q.status==='submitted'&&['requested','quoted'].includes(q.job_status))},
+        {name:'Aceptados',items:quotes.filter(q=>q.status==='accepted')},
+        {name:'Presupuestos no seleccionados',items:quotes.filter(q=>q.status==='not_selected')},
+        {name:'Otros estados',items:quotes.filter(q=>!(q.status==='accepted'||q.status==='not_selected'||
+          (q.status==='submitted'&&['requested','quoted'].includes(q.job_status))))}
+      ];
+      for(const group of groups){
+        if(!group.items.length)continue;
+        const heading=document.createElement('h4');
+        heading.textContent=group.name+' ('+group.items.length+')';
+        panel.append(heading);
+        for(const quote of group.items){
+          const card=document.createElement('div');
+          card.className='service-review-item';
+          const title=document.createElement('strong');
+          title.textContent='Solicitud '+quote.public_code+' · '+quote.locality;
+          const details=document.createElement('p');
+          const state=quote.status==='not_selected'?'Presupuesto no seleccionado'
+            :quote.status==='accepted'?'Aceptado'
+            :quote.status==='submitted'&&['requested','quoted'].includes(quote.job_status)
+              ?'Enviado · esperando respuesta del cliente'
+              :statusLabel(quote.status);
+          details.textContent='Presupuesto N.º '+quote.id+
+            '\nImporte ARS '+Number(quote.amount).toLocaleString('es-AR')+
+            ' · Garantía '+quote.warranty_days+' días'+
+            '\nEstado del presupuesto: '+state+
+            '\nEstado del trabajo: '+statusLabel(quote.job_status)+
+            '\nDetalle: '+quote.description;
+          card.append(title,details);
+          if(quote.status==='submitted'&&['requested','quoted'].includes(quote.job_status)){
+            const open=document.createElement('button');
+            open.type='button';open.className='secondary';
+            open.textContent='Ver consultas y preparar visita';
+            open.addEventListener('click',()=>void openJob({
+              id:quote.job_id,public_code:quote.public_code,
+              locality:quote.locality,status:quote.job_status,
+              description:quote.job_description
+            }));
+            card.append(open);
+          }else if(quote.status==='accepted'){
+            const open=document.createElement('button');
+            open.type='button';open.className='secondary';
+            open.textContent='Ver trabajo contratado';
+            open.addEventListener('click',async()=>{
+              open.disabled=true;
+              try{
+                const jobs=await api('GET','/api/jobs/mine');
+                const job=jobs.find(j=>String(j.id)===String(quote.job_id));
+                if(job)await openJob(job);
+                else feedback('No se pudo encontrar el trabajo contratado en tu cuenta.',true);
+              }catch(error){feedback('No se pudo abrir el trabajo: '+error.message,true);}
+              finally{open.disabled=false;}
+            });
+            card.append(open);
+          }
+          panel.append(card);
+        }
+      }
+      if(total>quotes.length){
+        const note=document.createElement('p');
+        note.className='hint';
+        note.textContent='Se muestran los primeros '+quotes.length+
+          ' de '+total+' presupuestos. El contador incluye todos.';
+        panel.append(note);
+      }
+    }catch(error){
+      if(profile?.role!=='professional'||String(profile.id)!==currentUser)return;
+      summary.textContent='No se pudo actualizar el contador: '+error.message;
+      counter.textContent='Sin datos';
+      if(!panel.hidden)panel.textContent='No se pudieron consultar los presupuestos: '+error.message;
+    }
+  }
+  function toggleMyQuotes(){
+    if(profile?.role!=='professional')return;
+    const panel=el('myQuotesPanel'),button=el('refreshMyQuotes');
+    panel.hidden=!panel.hidden;
+    button.textContent=panel.hidden?'Ver presupuestos':'Ocultar presupuestos';
+    button.setAttribute('aria-expanded',String(!panel.hidden));
+    if(!panel.hidden)void loadMyQuotes();
   }
 
   async function loadContracts() {
@@ -2314,7 +2393,7 @@ async function createLabRequest(event) {
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
   el('refreshContracts').addEventListener('click',loadContracts);
-  el('refreshMyQuotes').addEventListener('click',loadMyQuotes);
+  el('refreshMyQuotes').addEventListener('click',toggleMyQuotes);
   
 el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
