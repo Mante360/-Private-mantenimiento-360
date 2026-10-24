@@ -131,6 +131,9 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
              AND a.action='claim_professional_response'
              AND a.actor_id=c.professional_id) AS professional_responded_at,
           pro.name AS professional_name,j.public_code AS job_public_code,
+          EXISTS(SELECT 1 FROM warranty_visits prior
+            WHERE prior.original_job_id=c.job_id AND prior.status <> 'cancelled')
+            AS job_has_prior_warranty,
           (SELECT q.warranty_days FROM job_contracts jc
            JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=jc.job_id
            WHERE jc.job_id=c.job_id) AS warranty_days
