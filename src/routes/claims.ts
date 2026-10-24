@@ -404,6 +404,9 @@ claimsRouter.post('/:id/authorize-warranty', requireRole('admin'), async (req,re
   } catch(error){if(db)await db.query('ROLLBACK').catch(()=>undefined);next(error);}finally{db?.release();}
 });
 
+// A warranty visit belongs to the complaint that authorized it, not every
+// complaint sharing the original job. The authorization audit was committed
+// with the warranty row. Preserve that scope for reads and mutations.
 // Only claim participants can inspect the linked warranty.
 claimsRouter.get('/:id/warranty',async(req,res,next)=>{
   const id=warrantyId(req.params.id);
@@ -417,6 +420,11 @@ claimsRouter.get('/:id/warranty',async(req,res,next)=>{
                   AND a.action='warranty_client_confirmed'
                   AND a.metadata->>'warrantyId'=w.id::text) AS client_confirmed_at
        FROM claims c JOIN warranty_visits w ON w.original_job_id=c.job_id
+          AND EXISTS (SELECT 1 FROM audit_events linked
+        WHERE linked.resource_type='claim'
+          AND linked.action='claim_warranty_authorized'
+          AND linked.resource_id=c.id::text
+          AND linked.metadata->>'warrantyId'=w.id::text)
        JOIN jobs j ON j.id=c.job_id
        WHERE c.id=$1 AND ($2='admin' OR c.created_by=$3 OR c.professional_id=$3)
        ORDER BY w.id DESC LIMIT 10`,[id.data,req.authUser!.role,req.authUser!.id]);
@@ -431,6 +439,11 @@ claimsRouter.post('/:id/warranty/:visitId/report-completed',requireRole('profess
     const result=await pool.query(
       `UPDATE warranty_visits w SET status='completed',resolution_note=$4,completed_at=now()
        FROM claims c WHERE c.id=$1 AND w.id=$2 AND w.original_job_id=c.job_id
+          AND EXISTS (SELECT 1 FROM audit_events linked
+        WHERE linked.resource_type='claim'
+          AND linked.action='claim_warranty_authorized'
+          AND linked.resource_id=c.id::text
+          AND linked.metadata->>'warrantyId'=w.id::text)
          AND w.assigned_professional_id=$3 AND c.professional_id=$3
          AND c.status IN ('open','in_review') AND w.status IN ('requested','scheduled','in_progress')
        RETURNING w.id,w.status,w.resolution_note`,
@@ -450,6 +463,11 @@ claimsRouter.post('/:id/warranty/:visitId/client-confirm',requireRole('client'),
     const result=await db.query(
       `SELECT c.id,w.id AS visit_id,w.status FROM claims c
        JOIN warranty_visits w ON w.original_job_id=c.job_id
+          AND EXISTS (SELECT 1 FROM audit_events linked
+        WHERE linked.resource_type='claim'
+          AND linked.action='claim_warranty_authorized'
+          AND linked.resource_id=c.id::text
+          AND linked.metadata->>'warrantyId'=w.id::text)
        WHERE c.id=$1 AND w.id=$2 AND c.created_by=$3 AND c.status='in_review'
          AND w.status='completed' FOR UPDATE OF c,w`,
       [id.data,visit.data,req.authUser!.id]);
@@ -483,6 +501,11 @@ claimsRouter.get('/:id/warranty/:visitId/rating',async(req,res,next)=>{
  try{
   const result=await pool.query(`SELECT r.stars,r.comment,r.created_at FROM claims c
    JOIN warranty_visits w ON w.original_job_id=c.job_id AND w.id=$2
+      AND EXISTS (SELECT 1 FROM audit_events linked
+        WHERE linked.resource_type='claim'
+          AND linked.action='claim_warranty_authorized'
+          AND linked.resource_id=c.id::text
+          AND linked.metadata->>'warrantyId'=w.id::text)
    LEFT JOIN ratings r ON r.warranty_visit_id=w.id
    WHERE c.id=$1 AND ($3='admin' OR c.created_by=$4 OR c.professional_id=$4)`,
    [id.data,visit.data,req.authUser!.role,req.authUser!.id]);
@@ -497,6 +520,11 @@ claimsRouter.post('/:id/warranty/:visitId/rating',requireRole('client'),async(re
   const result=await pool.query(`INSERT INTO ratings(warranty_visit_id,client_id,stars,comment)
    SELECT w.id,c.created_by,$4,$5 FROM claims c
    JOIN warranty_visits w ON w.original_job_id=c.job_id AND w.id=$2
+      AND EXISTS (SELECT 1 FROM audit_events linked
+        WHERE linked.resource_type='claim'
+          AND linked.action='claim_warranty_authorized'
+          AND linked.resource_id=c.id::text
+          AND linked.metadata->>'warrantyId'=w.id::text)
    WHERE c.id=$1 AND c.created_by=$3 AND w.status='completed'
     AND EXISTS(SELECT 1 FROM audit_events a WHERE a.resource_type='claim'
        AND a.resource_id=c.id::text AND a.action='warranty_client_confirmed'
