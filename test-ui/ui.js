@@ -1829,6 +1829,14 @@ if (profile.role === 'client') void loadClientSpecialties();
             summary.textContent=visits.map(v=>'Garantía '+v.code+' · '+warrantyStatusLabel(v.status)+
               (v.resolution_note?' · Corrección: '+v.resolution_note:'')).join('\n');
             item.append(summary);
+          } else if(['open','in_review'].includes(claim.status) && claim.job_has_prior_warranty){
+            // Server disallows a second active warranty visit for the same original job.
+            // Do not offer an action that would fail, nor show the earlier visit as
+            // though the current complaint had authorized it.
+            const notice=document.createElement('p');
+            notice.className='hint';
+            notice.textContent='Este trabajo ya tiene una intervención en garantía vinculada a un reclamo anterior. No se puede autorizar otra desde este reclamo con las reglas actuales. Administración puede solicitar una revisión técnica o resolver este expediente.';
+            item.append(notice);
           } else if(['open','in_review'].includes(claim.status) && Number(claim.warranty_days) > 0){
             const authorize=document.createElement('button');
             authorize.type='button';authorize.className='secondary';authorize.textContent='Autorizar intervención en garantía';
