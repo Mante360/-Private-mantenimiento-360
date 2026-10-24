@@ -118,12 +118,21 @@ quotesRouter.get('/mine/quotes', requireRole('professional'), async (req,res,nex
     const result=await pool.query(
       `SELECT q.id,q.job_id,j.public_code,j.locality,j.status AS job_status,
               j.description AS job_description,j.specialty_id,j.service_id,
-              q.amount,q.description,q.warranty_days,q.status,q.submitted_at
+              q.amount,q.description,q.warranty_days,q.status,q.submitted_at,
+              COUNT(*) FILTER (WHERE q.status='submitted' AND j.status IN ('requested','quoted'))
+                OVER ()::int AS awaiting_response_count,
+              COUNT(*) FILTER (WHERE q.status='accepted')
+                OVER ()::int AS accepted_count,
+              COUNT(*) FILTER (WHERE q.status='not_selected')
+                OVER ()::int AS not_selected_count,
+              COUNT(*) OVER ()::int AS total_quotes_count
        FROM job_quotes q JOIN jobs j ON j.id=q.job_id
        WHERE q.professional_id=$1
-         AND q.status='submitted'
-         AND j.status IN ('requested','quoted')
-       ORDER BY q.submitted_at DESC,q.id DESC LIMIT 100`,
+       ORDER BY
+         CASE WHEN q.status='submitted' AND j.status IN ('requested','quoted') THEN 0
+              WHEN q.status='accepted' THEN 1
+              WHEN q.status='not_selected' THEN 2 ELSE 3 END,
+         q.submitted_at DESC,q.id DESC LIMIT 100`,
       [req.authUser!.id]
     );
     res.json(result.rows);
