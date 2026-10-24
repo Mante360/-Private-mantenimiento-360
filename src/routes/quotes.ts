@@ -118,6 +118,7 @@ quotesRouter.get('/mine/quotes', requireRole('professional'), async (req,res,nex
     const result=await pool.query(
       `SELECT q.id,q.job_id,j.public_code,j.locality,j.status AS job_status,
               j.description AS job_description,j.specialty_id,j.service_id,
+              EXISTS(SELECT 1 FROM ratings r WHERE r.job_id=j.id) AS client_approved,
               q.amount,q.description,q.warranty_days,q.status,q.submitted_at,
               COUNT(*) FILTER (WHERE q.status='submitted' AND j.status IN ('requested','quoted'))
                 OVER ()::int AS awaiting_response_count,
