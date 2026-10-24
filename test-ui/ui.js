@@ -1104,7 +1104,7 @@ if (profile.role === 'client') void loadClientSpecialties();
             '\nImporte ARS '+Number(quote.amount).toLocaleString('es-AR')+
             ' · Garantía '+quote.warranty_days+' días'+
             '\nEstado del presupuesto: '+state+
-            '\nEstado del trabajo: '+statusLabel(quote.job_status)+
+            '\nEstado del trabajo: '+statusLabel(quote.job_status,quote)+
             '\nDetalle: '+quote.description;
           card.append(title,details);
           if(quote.status==='submitted'&&['requested','quoted'].includes(quote.job_status)){
