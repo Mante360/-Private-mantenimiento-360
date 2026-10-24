@@ -1220,8 +1220,13 @@ if (profile.role === 'client') void loadClientSpecialties();
     if(window.state==='calendar_pending'){
       return 'Plazo sin calcular: falta configurar el calendario hábil correspondiente. Administración debe revisarlo.';
     }
+    if(window.state==='responded_late'){
+      return 'DESCARGO RECIBIDO FUERA DE PLAZO. El plazo original de 12 horas hábiles venció el '+
+        displayArgDate(window.dueAt)+' (hora Argentina). Respuesta registrada el '+
+        displayArgDate(window.responseAt)+'. Administración debe evaluar el retraso y resolver el reclamo.';
+    }
     if(window.state==='responded'){
-      return 'Descargo recibido. Se detuvo el plazo para la primera respuesta.';
+      return 'Descargo recibido dentro del plazo. Se detuvo el seguimiento para la primera respuesta.';
     }
     const due='Vence: '+displayArgDate(window.dueAt)+' (hora Argentina).';
     if(window.state==='overdue')
@@ -1438,7 +1443,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           item.append(receipt);
           const reminder=document.createElement('div');
           reminder.className='claim-response-clock'+
-            (claim.response_window?.state==='overdue'?' overdue':'');
+            (['overdue','responded_late'].includes(claim.response_window?.state)?' overdue':'');
           const text=document.createElement('p');
           text.textContent=claimResponseNotice(claim.response_window);
           reminder.append(text);
