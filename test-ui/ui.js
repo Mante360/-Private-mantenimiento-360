@@ -1355,44 +1355,78 @@ if (profile.role === 'client') void loadClientSpecialties();
     await loadJobQuotes(job);
   }
 
+  function displayClaimActionDate(value) {
+    if(!value) return 'Fecha y hora no disponibles';
+    const date=new Date(value);
+    return Number.isNaN(date.getTime())?'Fecha y hora no disponibles':
+      date.toLocaleString('es-AR',{
+        timeZone:'America/Argentina/Buenos_Aires',
+        day:'2-digit',month:'2-digit',year:'numeric',
+        hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
+      })+' (hora Argentina)';
+  }
+
   function renderClaimUpdates(container, updates) {
     container.replaceChildren();
     if (!updates.length) {
       container.textContent = 'Todavía no hay intervenciones registradas.';
       return;
     }
-    for (const update of updates) {
-      const entry = document.createElement('div');
-      entry.style.margin = '12px 0';
-      entry.style.padding = '10px 12px';
-      entry.style.borderLeft = update.action === 'claim_technical_review_requested'
+    for(const update of updates) {
+      const entry=document.createElement('div');
+      entry.style.margin='12px 0';
+      entry.style.padding='10px 12px';
+      entry.style.borderLeft=update.action==='claim_technical_review_requested'
         ? '4px solid #315d9a' : '4px solid #5e687a';
-      entry.style.background = 'rgba(128,148,175,.09)';
-      entry.style.borderRadius = '5px';
-      const heading = document.createElement('strong');
-      heading.textContent = update.action === 'claim_technical_review_requested'
-        ? 'ADMINISTRACIÓN · Solicitud de revisión técnica'
-        : 'PROFESIONAL · Descargo técnico';
-      const body = document.createElement('p');
-      body.textContent = update.action === 'warranty_client_confirmed' ? 'El cliente confirmó que la corrección fue satisfactoria.' : (update.description || '');
-      body.style.margin = '7px 0 0';
-      if(update.action === 'claim_warranty_authorized') heading.textContent='ADMINISTRACIÓN · Garantía autorizada';
-      if(update.action === 'warranty_client_confirmed') heading.textContent='CLIENTE · Corrección confirmada';
-      entry.append(heading,body);
+      entry.style.background='rgba(128,148,175,.09)';
+      entry.style.borderRadius='5px';
+      const heading=document.createElement('strong');
+      const names={
+        claim_technical_review_requested:'ADMINISTRACIÓN · Solicitud de revisión técnica',
+        claim_professional_response:'PROFESIONAL · Descargo técnico',
+        claim_warranty_authorized:'ADMINISTRACIÓN · Garantía autorizada',
+        warranty_client_confirmed:'CLIENTE · Corrección confirmada'
+      };
+      heading.textContent=names[update.action]||'Actuación del reclamo';
+      const time=document.createElement('p');
+      time.className='hint';
+      time.style.margin='5px 0 0';
+      time.textContent='Registrado: '+displayClaimActionDate(update.created_at);
+      const body=document.createElement('p');
+      body.textContent=update.action==='warranty_client_confirmed'
+        ?'El cliente confirmó que la corrección fue satisfactoria.'
+        :(update.description||'Sin descripción en este registro.');
+      body.style.margin='7px 0 0';
+      entry.append(heading,time,body);
       container.append(entry);
     }
   }
 
-  function appendClaimResolution(item, claim) {
-    if (claim.status !== 'resolved') return;
-    const box = document.createElement('div');
-    box.style.cssText = 'margin:12px 0;padding:10px 12px;border-left:4px solid #315d9a;background:rgba(128,148,175,.09);border-radius:5px';
-    const title = document.createElement('strong');
-    title.textContent = 'ADMINISTRACIÓN · Reclamo resuelto';
-    const detail = document.createElement('p');
-    detail.style.margin = '7px 0 0';
-    detail.textContent = claim.resolution_note || 'No hay un detalle de resolución disponible.';
-    box.append(title, detail);
+  function appendClaimResolution(item,claim) {
+    if(claim.status!=='resolved')return;
+    const box=document.createElement('div');
+    box.style.cssText='margin:12px 0;padding:10px 12px;border-left:4px solid #315d9a;background:rgba(128,148,175,.09);border-radius:5px';
+    const title=document.createElement('strong');
+    title.textContent='ADMINISTRACIÓN · Resolución final del reclamo';
+    const meta=document.createElement('p');
+    meta.className='hint';
+    meta.style.margin='6px 0';
+    const responsible=claim.resolver_name||'Administrador (nombre no disponible)';
+    meta.textContent='Fecha y hora: '+displayClaimActionDate(claim.resolved_at)+
+      '\nResponsable: '+responsible+
+      (claim.resolved_by?' (ID '+claim.resolved_by+')':'')+
+      '\nDecisión: reclamo resuelto por Administración';
+    const body=document.createElement('p');
+    body.style.margin='7px 0 0';
+    body.textContent='Motivo y medida adoptada: '+
+      (claim.resolution_note||'No hay un detalle de resolución disponible.');
+    const visibility=document.createElement('p');
+    visibility.className='hint';
+    visibility.style.margin='9px 0 0';
+    visibility.textContent='Esta es la decisión de Administración, no un descargo del profesional. '+
+      'Cliente y profesional pueden consultarla en el historial del trabajo dentro del laboratorio. '+
+      'No se envió una notificación por WhatsApp ni correo electrónico.';
+    box.append(title,meta,body,visibility);
     item.append(box);
   }
 
