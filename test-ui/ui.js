@@ -1411,6 +1411,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     const meta=document.createElement('p');
     meta.className='hint';
     meta.style.margin='6px 0';
+    meta.style.whiteSpace='pre-line';
     const responsible=claim.resolver_name||'Administrador (nombre no disponible)';
     meta.textContent='Fecha y hora: '+displayClaimActionDate(claim.resolved_at)+
       '\nResponsable: '+responsible+
