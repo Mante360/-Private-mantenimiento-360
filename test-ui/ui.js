@@ -1120,7 +1120,7 @@ if (profile.role === 'client') void loadClientSpecialties();
           }else if(quote.status==='accepted'){
             const open=document.createElement('button');
             open.type='button';open.className='secondary';
-            open.textContent='Ver trabajo contratado';
+            open.textContent=jobFollowupButtonLabel(quote.job_status,quote.client_approved);
             open.addEventListener('click',async()=>{
               open.disabled=true;
               try{
@@ -1180,7 +1180,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'secondary';
-        button.textContent = 'Ver trabajo contratado';
+        button.textContent = jobFollowupButtonLabel(job.status,job.client_approved);
         button.addEventListener('click', () => void openJob(job));
         line.append(summary, button);
         panel.append(line);
@@ -1204,6 +1204,13 @@ if (profile.role === 'client') void loadClientSpecialties();
       : (statusLabels[status] || status);
   const warrantyStatusLabel = (status) =>
     status === 'completed' ? 'Intervención completada' : statusLabel(status);
+  // Both the accepted quote archive and the professional's contract list
+  // must describe the *current* stage of the work, not just quote acceptance.
+  // A reported completion is not final until the client confirms conformity.
+  const jobFollowupButtonLabel = (status,clientApproved) =>
+    status === 'completed'
+      ? (clientApproved === true ? 'Ver trabajo finalizado' : 'Ver trabajo pendiente de conformidad')
+      : 'Ver trabajo contratado';
 
   const displayArgDate=value=>new Date(value).toLocaleString('es-AR',{
     timeZone:'America/Argentina/Buenos_Aires',hour12:false
