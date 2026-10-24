@@ -122,6 +122,8 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
     const items=await pool.query(
       `SELECT c.id,c.job_id,c.warranty_visit_id,c.reason,c.description,
           c.status,c.resolution_note,c.created_at,c.resolved_at,
+          c.resolved_by,
+          (SELECT u.name FROM users u WHERE u.id=c.resolved_by) AS resolver_name,
           (SELECT MIN(a.created_at) FROM audit_events a
            WHERE a.resource_type='claim' AND a.resource_id=c.id::text
              AND a.action='claim_professional_acknowledged'
@@ -165,6 +167,8 @@ claimsRouter.get('/', async (req, res, next) => {
     const result = await pool.query(
       `SELECT c.id,c.job_id,c.warranty_visit_id,c.reason,c.description,
               c.status,c.resolution_note,c.created_at,c.resolved_at,
+              c.resolved_by,
+              (SELECT u.name FROM users u WHERE u.id=c.resolved_by) AS resolver_name,
           (SELECT MIN(a.created_at) FROM audit_events a
            WHERE a.resource_type='claim' AND a.resource_id=c.id::text
              AND a.action='claim_professional_acknowledged'
