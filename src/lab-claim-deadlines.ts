@@ -72,7 +72,7 @@ function afterWorkingMinutes(fromMs:number,minutes:number):number|null{
 }
 
 export type LabClaimReminder={
-  state:'waiting'|'reminder4'|'reminder8'|'overdue'|'responded'|'calendar_pending';
+  state:'waiting'|'reminder4'|'reminder8'|'overdue'|'responded'|'responded_late'|'calendar_pending';
   elapsedBusinessMinutes:number|null;
   dueAt:string|null;
   firstReminderAt:string|null;
@@ -97,8 +97,12 @@ export function getLabClaimReminder(createdAt:Date|string,
       firstReminderAt:null,secondReminderAt:null,responseAt:responseMs===null?null:new Date(responseMs).toISOString(),
       inAppOnly:true};
   }
-  const state:LabClaimReminder['state']=responseMs!==null?'responded':
-    elapsed>=720?'overdue':elapsed>=480?'reminder8':elapsed>=240?'reminder4':'waiting';
+  // Receipt stops future reminders, but does not erase a missed deadline.
+  // Persisted timestamps are never rewritten; lateness is derived from the
+  // original contractual window and the first recorded response.
+  const state:LabClaimReminder['state']=responseMs!==null
+    ? (responseMs>due?'responded_late':'responded')
+    : elapsed>=720?'overdue':elapsed>=480?'reminder8':elapsed>=240?'reminder4':'waiting';
   return {state,elapsedBusinessMinutes:Math.max(0,elapsed),
     firstReminderAt:new Date(first).toISOString(),
     secondReminderAt:new Date(second).toISOString(),
