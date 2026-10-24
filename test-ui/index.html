@@ -302,10 +302,10 @@
             <div id="claimInboxPanel" class="jobspanel"></div>
           </section>
           <section id="myQuotesSection" class="admin-section" hidden>
-            <h3>Mis presupuestos</h3>
-            <p class="hint">Presupuestos pendientes de respuesta. Los aceptados se consultan en Mis trabajos contratados y su historial.</p>
-            <button type="button" id="refreshMyQuotes" class="secondary">Actualizar mis presupuestos</button>
-            <div id="myQuotesPanel" class="jobspanel" role="status" aria-live="polite"></div>
+            <h3>Mis presupuestos · <span id="myQuotesCounter">0 esperando respuesta</span></h3>
+            <p id="myQuotesSummary" class="hint" role="status">Consultando presupuestos enviados...</p>
+            <button type="button" id="refreshMyQuotes" class="secondary" aria-expanded="false" aria-controls="myQuotesPanel">Ver presupuestos</button>
+            <div id="myQuotesPanel" class="jobspanel" role="region" aria-label="Historial de presupuestos" hidden></div>
           </section>
           <section id="contractsSection" class="admin-section" hidden>
             <h3>Mis trabajos contratados</h3>
