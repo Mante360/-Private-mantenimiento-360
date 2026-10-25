@@ -193,7 +193,7 @@
         const item=node('div',undefined,'service-review-item');
         item.append(node('p',offer.public_code+' · '+offer.locality+
           '\nVisita: ARS '+ars(offer.visit_amount)+
-          ' · '+statusText(offer),'hint'));
+          ' · '+statusText({...offer,status:offer.visit_status}),'hint'));
         const button=node('button','Ver visita y diagnóstico','secondary');button.type='button';
         button.onclick=()=>void openJob({
           id:offer.job_id,public_code:offer.public_code,
@@ -208,7 +208,9 @@
     openJob(job,profile){openedJob=job;openedProfile=profile;callId++;void reload();},
     close(){openedJob=null;openedProfile=null;callId++;el('labVisitSection').hidden=true;},
     reload,loadMine,
-    // Main UI registers refresh callback; no assumption of access to its closure.
     refreshPage:()=>{}
   };
+  if(typeof window.labVisitRefreshJobs==='function'){
+    window.labVisit.refreshPage=window.labVisitRefreshJobs;
+  }
 })();
