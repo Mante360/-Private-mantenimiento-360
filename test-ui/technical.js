@@ -52,6 +52,16 @@
     box.className=isError?'feedback error':'feedback ok';
   }
 
+  function displayTechnicalDate(value){
+    if(!value)return 'Fecha no disponible';
+    const d=new Date(value);
+    if(Number.isNaN(d.getTime()))return 'Fecha no disponible';
+    return d.toLocaleString('es-AR',{
+      timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit',
+      year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
+    })+' (hora Argentina)';
+  }
+
   function renderThread(job,profile,thread){
     const box=node('section',undefined,'technical-thread');
     box.append(node('h4',profile.role==='client'
@@ -64,10 +74,10 @@
 
     for(const item of thread.questions){
       const pair=node('div',undefined,'technical-pair');
-      pair.append(node('p','Profesional · Consulta '+new Date(item.asked_at).toLocaleString('es-AR'),'technical-meta'));
+      pair.append(node('p','Profesional · Consulta '+displayTechnicalDate(item.asked_at),'technical-meta'));
       pair.append(node('p',item.question));
       if(item.answer!==null){
-        pair.append(node('p','Cliente · Respuesta','technical-meta'));
+        pair.append(node('p','Cliente · Respuesta '+displayTechnicalDate(item.answered_at),'technical-meta'));
         pair.append(node('p',item.answer));
       } else if(profile.role==='client'&&thread.canAnswer){
         const form=node('form',undefined,'technical-answer-form');
