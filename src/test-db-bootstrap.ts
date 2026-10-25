@@ -28,7 +28,7 @@ export async function bootstrapTestSchemaIfRequested(): Promise<void> {
       const sql = readFileSync(join(process.cwd(), 'database', '001_new_install.sql'), 'utf8');
       await client.query(sql);
       console.log('Test-only PostgreSQL schema installed');
-    } else if ([21,22,23,24,25,26,27,28,29,30,31,32].includes(existing.rows.length)) {
+    } else if ([21,22,23,24,25,26,27,28,29,30,31,32,33].includes(existing.rows.length)) {
       // A previously completed installation may be reused. Do not touch rows.
       console.log('Test-only PostgreSQL schema already present');
     } else {
@@ -52,7 +52,7 @@ export async function bootstrapTestSchemaIfRequested(): Promise<void> {
         'claims','warranty_visits','ratings','audit_events','legacy_imports'
       ]]
     );
-    if (![21,22,23,24,25,26,27,28,29,30,31,32].includes(schema.rows[0]?.total) ||
+    if (![21,22,23,24,25,26,27,28,29,30,31,32,33].includes(schema.rows[0]?.total) ||
         warranty.rows[0]?.total !== 1 ||
         essentials.rows[0]?.total !== 10) {
       throw new Error('Refusing startup: test schema integrity check failed');
