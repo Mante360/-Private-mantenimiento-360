@@ -2162,7 +2162,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     try {
       const quotes = await api('GET', '/api/jobs/' + job.id + '/quotes');
       if (!quotes.length) {
-        list.textContent = 'Todavía no recibiste presupuestos para esta solicitud.';
+        list.textContent = 'Todavía no recibiste presupuestos generales. Si hay propuestas de visita técnica, aparecen en la sección siguiente.';
         return;
       }
       quotes.forEach(quote => {
