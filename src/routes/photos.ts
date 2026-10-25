@@ -50,6 +50,10 @@ async function permission(db: PoolClient, jobId: number, user: AuthUser, lock = 
          WHERE jc.job_id=j.id AND q.professional_id=$2
        ) AS contracted,
        EXISTS(
+         SELECT 1 FROM lab_visit_offers v
+         WHERE v.job_id=j.id AND v.professional_id=$2 AND v.status='accepted'
+       ) AS selected_visit,
+       EXISTS(
          SELECT 1 FROM professional_profiles pp
          JOIN professional_specialties ps ON ps.professional_id=pp.user_id
            AND ps.specialty_id=j.specialty_id
@@ -70,10 +74,11 @@ async function permission(db: PoolClient, jobId: number, user: AuthUser, lock = 
   const job = result.rows[0];
   const owner = user.role === 'client' && String(job?.client_id) === user.id;
   const contractor = user.role === 'professional' && job?.contracted === true;
+  const selectedVisit = user.role === 'professional' && job?.selected_visit === true;
   const openFeed = user.role === 'professional' && job?.eligible_for_feed === true &&
     ['requested','quoted'].includes(job.status);
-  const read = !!job && (owner || contractor || openFeed || user.role === 'admin');
-  const write = !!job && (owner || contractor) && job.status !== 'cancelled';
+  const read = !!job && (owner || contractor || selectedVisit || openFeed || user.role === 'admin');
+  const write = !!job && (owner || contractor || selectedVisit) && job.status !== 'cancelled';
   return { read, write };
 }
 
