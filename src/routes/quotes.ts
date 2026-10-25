@@ -78,6 +78,15 @@ quotesRouter.post('/:jobId/quotes', requireRole('professional'), async (req, res
       return;
     }
 
+    const visiting=await db.query(
+      'SELECT 1 FROM lab_visit_offers WHERE job_id=$1 AND professional_id=$2 LIMIT 1',
+      [jobId.data,req.authUser!.id]
+    );
+    if(visiting.rows.length){
+      await db.query('ROLLBACK');
+      res.status(409).json({error:'diagnostic_visit_already_offered'});
+      return;
+    }
     const created = await db.query(
       `INSERT INTO job_quotes(job_id,professional_id,amount,description,warranty_days)
        VALUES($1,$2,$3,$4,$5)
@@ -231,6 +240,11 @@ quotesRouter.post('/:jobId/accept-quote', requireRole('client'), async (req, res
          updated_at=now()
        WHERE job_id=$1 AND status='submitted'`,
       [jobId.data,input.data.quoteId]
+    );
+    // A conventional quote selection supersedes any pending diagnostic-visit offers.
+    await db.query(
+      "UPDATE lab_visit_offers SET status='not_selected' WHERE job_id=$1 AND status='submitted'",
+      [jobId.data]
     );
     await db.query(
       'INSERT INTO job_contracts(job_id,quote_id) VALUES($1,$2)',
