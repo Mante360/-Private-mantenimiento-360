@@ -1681,7 +1681,13 @@ if (profile.role === 'client') void loadClientSpecialties();
       const days=Number(warranty.warranty_days);
       let message='Garantía pactada: '+days+' día(s).';
       if(warranty.warranty_status==='awaiting_conformity'){
-        message+='\nInicio y vencimiento: pendientes de la conformidad del cliente.';
+        // Never claim conformity is pending if the same job already has
+        // a confirmed client review. Show a diagnostic status instead.
+        const review=await api('GET','/api/jobs/'+jobId+'/review');
+        if(openedJob?.id !== job.id)return;
+        message+=review
+          ? '\nAtención: conformidad registrada, pero las fechas de garantía no están disponibles. Administración debe revisar esta inconsistencia.'
+          : '\nInicio y vencimiento: pendientes de la conformidad del cliente.';
       } else if(warranty.warranty_status==='no_warranty'){
         message+='\nEstado: sin garantía contractual (0 días).';
       } else if(warranty.approved_at && warranty.expires_at){
@@ -2143,9 +2149,13 @@ if (profile.role === 'client') void loadClientSpecialties();
     button.disabled = true;
     try {
       if (!confirm('¿Confirmar conformidad con el trabajo y enviar tu calificación de prueba?')) return;
-      await api('POST', '/api/jobs/' + encodeURIComponent(String(openedJob.id)) + '/review', {stars,comment});
-      await loadClientReviewStatus(openedJob);
-      void loadJobTimeline(openedJob);
+      const finishedJob=openedJob;
+      await api('POST', '/api/jobs/' + encodeURIComponent(String(finishedJob.id)) + '/review', {stars,comment});
+      await loadClientReviewStatus(finishedJob);
+      void loadJobTimeline(finishedJob);
+      // The warranty begins at the persisted client conformity timestamp.
+      // Re-query it immediately instead of leaving the pre-confirmation label.
+      await loadJobClaimHistory(finishedJob);
     } catch (error) {
       el('reviewResult').textContent = 'No se pudo guardar la conformidad: ' + error.message;
     } finally { button.disabled = false; }
