@@ -22,6 +22,8 @@
     try { body=await response.json(); } catch(_) {}
     if(!response.ok) {
       const known={
+        authentication_required:'Necesitás volver a iniciar sesión para enviar la consulta. Copiá el texto antes de ingresar nuevamente.',
+        invalid_or_expired_token:'La sesión de prueba venció. Copiá el texto de la consulta y volvé a iniciar sesión para enviarla.',
         professional_has_open_claim:'No podés enviar nuevas consultas mientras tengas un reclamo abierto.',
         technical_answer_pending:'Primero esperá la respuesta a tu última consulta.',
         technical_window_closed:'Las consultas previas se cerraron al cambiar el estado del trabajo o presupuesto.',
@@ -30,7 +32,9 @@
         question_already_answered:'Esta consulta ya fue respondida.',
         technical_info_not_found:'No tenés acceso a esta información técnica.'
       };
-      const error=new Error(known[body.error] || 'No se pudo completar esta operación (HTTP '+response.status+').');
+      const error=new Error(known[body.error] || (response.status===401
+        ? 'La sesión venció o dejó de ser válida. Copiá el texto y volvé a iniciar sesión.'
+        : 'No se pudo completar esta operación (HTTP '+response.status+').'));
       error.code=body.error||'';
       throw error;
     }
