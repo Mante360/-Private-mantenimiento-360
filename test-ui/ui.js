@@ -933,12 +933,16 @@
     if(profile.role==='professional')void loadMyLabDocuments();
     el('contractsSection').hidden = profile.role !== 'professional';
     el('myQuotesSection').hidden = profile.role !== 'professional';
+    el('myVisitsSection').hidden = profile.role !== 'professional';
     el('myQuotesPanel').hidden=true;
     el('refreshMyQuotes').textContent='Ver presupuestos';
     el('refreshMyQuotes').setAttribute('aria-expanded','false');
     el('proProfessionCatalogSection').hidden=profile.role!=='professional';
     if(profile.role==='professional'){renderProfessionFinder('proProfessionList','proProfessionSearch');void loadMyDeclaredServices();}
-    if(profile.role === 'professional') void loadMyQuotes();
+    if(profile.role === 'professional') {
+      void loadMyQuotes();
+      if(window.labVisit)void window.labVisit.loadMine(openJob);
+    }
     if(profile.role!=='subadmin')void loadClaimInbox();
     if (profile.role === 'professional') void loadContracts();
     
@@ -1021,6 +1025,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailPanel').hidden = true;
     openedJob = null;
     window.labTechnical.close();
+    if(window.labVisit)window.labVisit.close();
     el('jobClaimHistory').hidden = true;
     panel.replaceChildren();
     try {
@@ -1199,9 +1204,11 @@ if (profile.role === 'client') void loadClientSpecialties();
     resolved: 'Resuelto', dismissed: 'Desestimado', scheduled: 'Programado'
   };
   const statusLabel = (status, job = null) =>
-    status === 'completed' && job?.client_approved === true
-      ? 'Finalizado con conformidad del cliente'
-      : (statusLabels[status] || status);
+    status === 'accepted' && job
+      ? 'Visita técnica aceptada · diagnóstico pendiente'
+      : status === 'completed' && job?.client_approved === true
+        ? 'Finalizado con conformidad del cliente'
+        : (statusLabels[status] || status);
   const warrantyStatusLabel = (status) =>
     status === 'completed' ? 'Intervención completada' : statusLabel(status);
   // Both the accepted quote archive and the professional's contract list
@@ -1352,6 +1359,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     if (profile?.role === 'client' && job.status === 'completed') void loadClientReviewStatus(job);
     const isProfessional = profile?.role === 'professional';
     el('quoteForm').hidden = !isProfessional || !['requested','quoted'].includes(job.status);
+    if(window.labVisit)window.labVisit.openJob(job,profile);
     await loadJobQuotes(job);
   }
 
@@ -2193,39 +2201,57 @@ if (profile.role === 'client') void loadClientSpecialties();
 
   async function submitLabQuote(event) {
     event.preventDefault();
-    if (profile?.role !== 'professional' || !openedJob) return;
+    if(profile?.role!=='professional'||!openedJob)return;
     el('quoteFeedback').classList.remove('quote-warning');
     el('quoteFeedback').setAttribute('role','status');
-    const rawAmount = el('quoteAmount').value.trim().replace(',', '.');
-    const rawWarranty = el('quoteWarranty').value.trim();
-    const amount = Number(rawAmount);
-    const description = el('quoteDescription').value.trim();
-    const warrantyDays = Number(rawWarranty);
-    if (!/^[0-9]+(?:\.[0-9]{1,2})?$/.test(rawAmount) ||
-        !(amount > 0) || amount > 9999999999.99 ||
-        !/^[0-9]+$/.test(rawWarranty) || warrantyDays > 3650 ||
-        description.length < 3) {
-      el('quoteFeedback').textContent = 'Revisá importe, garantía y descripción.';
+    const kind=el('quoteType').value;
+    const rawAmount=el('quoteAmount').value.trim().replace(',','.');
+    const rawWarranty=el('quoteWarranty').value.trim();
+    const amount=Number(rawAmount);
+    const description=el('quoteDescription').value.trim();
+    const warrantyDays=Number(rawWarranty);
+    const invalidAmount=!/^[0-9]+(?:\.[0-9]{1,2})?$/.test(rawAmount) ||
+      !(amount>0)||amount>9999999999.99;
+    const invalidGeneral=kind==='general'&&(!/^[0-9]+$/.test(rawWarranty)||warrantyDays>3650||description.length<3);
+    const invalidVisit=kind==='visit'&&description.length<10;
+    if(invalidAmount||invalidGeneral||invalidVisit){
+      el('quoteFeedback').textContent='Revisá importe y detalle de la propuesta. La visita necesita una descripción de al menos 10 caracteres.';
       return;
     }
-    const button = el('quoteForm').querySelector('button[type="submit"]');
-    button.disabled = true;
+    const button=el('quoteForm').querySelector('button[type="submit"]');
+    button.disabled=true;
     try {
-      await api('POST', '/api/jobs/' + openedJob.id + '/quotes',
-        {amount, description, warrantyDays});
-      el('quoteFeedback').textContent = 'Presupuesto de prueba enviado correctamente.';
+      if(kind==='visit'){
+        await api('POST','/api/jobs/'+openedJob.id+'/visits',{amount,description});
+      }else{
+        await api('POST','/api/jobs/'+openedJob.id+'/quotes',{amount,description,warrantyDays});
+      }
+      el('quoteFeedback').textContent=kind==='visit'
+        ? 'Visita técnica propuesta correctamente. La reparación no está presupuestada ni contratada.'
+        : 'Presupuesto general enviado correctamente.';
       el('quoteForm').reset();
+      updateQuoteType();
       await refreshJobs();
       await loadMyQuotes();
-    } catch(error) {
-      const blocked = error.code === 'professional_has_open_claim';
-      const notice = el('quoteFeedback');
+      if(window.labVisit)await window.labVisit.loadMine(openJob);
+    }catch(error){
+      const blocked=error.code==='professional_has_open_claim';
+      const notice=el('quoteFeedback');
       notice.classList.toggle('quote-warning',blocked);
-      notice.setAttribute('role',blocked ? 'alert' : 'status');
-      notice.textContent = blocked
-        ? '⛔ PRESUPUESTO BLOQUEADO. ' + error.message
-        : 'No se pudo enviar el presupuesto: ' + error.message;
-    } finally { button.disabled = false; }
+      notice.setAttribute('role',blocked?'alert':'status');
+      notice.textContent=blocked?'PRESUPUESTO BLOQUEADO. '+error.message
+        :'No se pudo enviar la propuesta: '+error.message;
+    }finally{button.disabled=false;}
+  }
+  function updateQuoteType(){
+    const visit=el('quoteType').value==='visit';
+    el('quoteWarrantyRow').hidden=visit;
+    el('quoteWarranty').required=!visit;
+    el('quoteTypeNotice').textContent=visit
+      ? 'Importe solo de visita y diagnóstico. No incluye reparación. El cliente decidirá después si acepta el presupuesto de arreglo.'
+      : 'Importe y garantía de la reparación. Elegí visita técnica si necesitás diagnosticar el equipo primero.';
+    el('quoteForm').querySelector('button[type="submit"]').textContent=visit
+      ? 'Proponer visita técnica de prueba':'Enviar presupuesto general de prueba';
   }
 
 async function loadClientSpecialties() {
@@ -2452,6 +2478,8 @@ async function createLabRequest(event) {
   
 el('labRequestForm').addEventListener('submit',createLabRequest);
   el('quoteForm').addEventListener('submit',submitLabQuote);
+  el('quoteType').addEventListener('change',updateQuoteType);
+  updateQuoteType();
   el('clientReviewForm').addEventListener('submit',submitClientReview);
   el('clientClaimForm').addEventListener('submit',submitClientClaim);
   el('refreshClaimPerformance').addEventListener('click',()=>{
@@ -2516,6 +2544,8 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
     render();
     feedback('Sesión de prueba cerrada.');
   });
+  window.labVisitRefreshJobs=refreshJobs;
+  window.labOpenJob=openJob;
   select('client');
   view('register');
   render();
