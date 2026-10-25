@@ -1257,7 +1257,24 @@ if (profile.role === 'client') void loadClientSpecialties();
         const date = new Date(event.created_at);
         const time = Number.isNaN(date.getTime())
           ? '' : ' · ' + date.toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour12:false});
-        return '• ' + (event.note?.includes('Conformidad del cliente') ? 'Conformidad registrada por el cliente' : statusLabel(event.new_status)) + time;
+        // Diagnostic visits keep their own auditable stages in the job timeline.
+        // Read the existing persisted event note, rather than relabeling every
+        // ordinary "accepted" status or changing historical database records.
+        const note=event.note||'';
+        const stage=note.includes('Se presentó una propuesta de visita técnica de diagnóstico')
+          ? 'Visita técnica propuesta'
+          : note.includes('Cliente aceptó únicamente la visita técnica')
+            ? 'Visita técnica aceptada (reparación pendiente)'
+            : note.includes('Diagnóstico informado y presupuesto de reparación presentado')
+              ? 'Diagnóstico y presupuesto de reparación presentados'
+              : note.includes('Cliente aceptó presupuesto de reparación posterior al diagnóstico')
+                ? 'Presupuesto de reparación aceptado · Trabajo contratado'
+                : note.includes('Visita técnica realizada; cliente NO contrató la reparación')
+                  ? 'Reparación no contratada · Visita técnica registrada'
+                  : note.includes('Conformidad del cliente')
+                    ? 'Conformidad registrada por el cliente'
+                    : statusLabel(event.new_status);
+        return '• ' + stage + time;
       });
       panel.textContent = 'Seguimiento del trabajo\n' +
         (rows.length ? rows.join('\n') : 'Solicitud registrada. Sin cambios posteriores.');
