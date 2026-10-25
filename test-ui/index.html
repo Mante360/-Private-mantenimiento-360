@@ -9,6 +9,7 @@
   <script src="/pruebas/ui.js" defer></script>
   <script src="/pruebas/photos.js" defer></script>
   <script src="/pruebas/technical.js" defer></script>
+  <script src="/pruebas/visits.js" defer></script>
 </head>
 <body>
   <main class="shell">
@@ -307,6 +308,11 @@
             <button type="button" id="refreshMyQuotes" class="secondary" aria-expanded="false" aria-controls="myQuotesPanel">Ver presupuestos</button>
             <div id="myQuotesPanel" class="jobspanel" role="region" aria-label="Historial de presupuestos" hidden></div>
           </section>
+          <section id="myVisitsSection" class="admin-section" hidden>
+            <h3>Mis visitas técnicas</h3>
+            <p class="hint">Diagnósticos ofrecidos o aceptados. El costo de visita y el de reparación se registran por separado.</p>
+            <div id="myVisitOffers" class="jobspanel" role="status"></div>
+          </section>
           <section id="contractsSection" class="admin-section" hidden>
             <h3>Mis trabajos contratados</h3>
             <p class="hint">Trabajos adjudicados a tu cuenta profesional. No se muestran propuestas de otros profesionales.</p>
@@ -366,6 +372,11 @@
               <p id="claimResult" class="feedback" role="status"></p>
             </section>
             <div id="quoteList"></div>
+            <section id="labVisitSection" class="admin-section" hidden>
+              <h3>Visita técnica y presupuesto de reparación</h3>
+              <p class="hint">La visita y la reparación son decisiones separadas. Aceptar la visita no obliga al cliente a contratar la reparación. No se cobran pagos reales en el laboratorio.</p>
+              <div id="labVisitOffers" role="status" aria-live="polite"></div>
+            </section>
             <section id="technicalInfoSection" class="admin-section" hidden>
               <h3>Información técnica para preparar la visita</h3>
               <p class="hint">Estas consultas se habilitan solamente después de presentar un presupuesto. No es un chat libre. Las consultas son privadas entre cliente y profesional; las fotos nuevas de la solicitud pueden verlas otros profesionales habilitados.</p>
@@ -373,13 +384,21 @@
               <div id="technicalInfoPanel" role="status" aria-live="polite"></div>
             </section>
             <form id="quoteForm" hidden>
+              <label for="quoteType">Tipo de propuesta</label>
+              <select id="quoteType">
+                <option value="general">Presupuesto general de reparación</option>
+                <option value="visit">Solo visita técnica de diagnóstico</option>
+              </select>
+              <p id="quoteTypeNotice" class="hint">Presupuesto para realizar la reparación. Si primero necesitás revisar el equipo, seleccioná «Solo visita técnica».</p>
               <label for="quoteAmount">Importe de prueba (ARS)</label>
               <input id="quoteAmount" type="text" inputmode="decimal" maxlength="16" autocomplete="off" required>
               <label for="quoteDescription">Detalle del presupuesto</label>
               <textarea id="quoteDescription" rows="6" minlength="3" maxlength="3000" required></textarea>
-              <label for="quoteWarranty">Garantía (días)</label>
+              <div id="quoteWarrantyRow">
+              <label for="quoteWarranty">Garantía de reparación (días)</label>
               <input id="quoteWarranty" type="text" inputmode="numeric" pattern="[0-9]+" maxlength="4" value="30" autocomplete="off" required>
-              <button class="primary" type="submit">Enviar presupuesto de prueba</button>
+              </div>
+              <button class="primary" type="submit">Enviar propuesta de prueba</button>
             </form>
             <p id="quoteFeedback" role="status" aria-live="polite"></p>
           </section>
