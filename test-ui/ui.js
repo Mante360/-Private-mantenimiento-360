@@ -2245,6 +2245,8 @@ if (profile.role === 'client') void loadClientSpecialties();
   }
   function updateQuoteType(){
     const visit=el('quoteType').value==='visit';
+    const descriptionLabel=el('quoteDescription').labels[0];
+    descriptionLabel.textContent=visit?'Detalle de la visita técnica':'Detalle del presupuesto';
     el('quoteWarrantyRow').hidden=visit;
     el('quoteWarranty').required=!visit;
     el('quoteTypeNotice').textContent=visit
