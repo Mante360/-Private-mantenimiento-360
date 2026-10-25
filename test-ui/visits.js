@@ -198,7 +198,10 @@
         button.onclick=()=>void openJob({
           id:offer.job_id,public_code:offer.public_code,
           description:offer.description,locality:offer.locality,
-          status:offer.status,specialty_id:offer.specialty_id,service_id:offer.service_id
+          status:offer.status,specialty_id:offer.specialty_id,service_id:offer.service_id,
+          amount:offer.repair_contract_amount,
+          warranty_days:offer.repair_contract_warranty_days,
+          quote_description:offer.repair_contract_description
         });
         item.append(button);list.append(item);
       }
