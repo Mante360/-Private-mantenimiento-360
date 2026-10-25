@@ -90,6 +90,19 @@ async function changes(db:PoolClient,jobId:number,actor:string,from:string,to:st
 // Include visit details only to the client's own job, corresponding professional,
 // or administrator. Other professionals may see open offers only after posting
 // their own offer; they NEVER see competitors' price / identity.
+labVisitsRouter.get('/mine/visits',requireRole('professional'),async(req,res,next)=>{
+  try{
+    const result=await pool.query(`SELECT v.id AS visit_id,v.id,
+      v.job_id,j.public_code,j.locality,j.description,j.status,
+      j.specialty_id,j.service_id,v.amount AS visit_amount,
+      v.description AS visit_description,v.status AS visit_status,
+      v.offered_at,v.accepted_at,v.diagnosed_at,v.repair_offered_at,
+      v.repair_decision
+      FROM lab_visit_offers v JOIN jobs j ON j.id=v.job_id
+      WHERE v.professional_id=$1 ORDER BY v.offered_at DESC LIMIT 100`,[req.authUser!.id]);
+    res.json(result.rows);
+  }catch(error){next(error);}
+});
 labVisitsRouter.get('/:jobId/visits',async(req,res,next)=>{
   const id=idInput(req.params.jobId);
   if(!id.success){res.status(400).json({error:'invalid_job_id'});return;}
@@ -110,19 +123,6 @@ labVisitsRouter.get('/:jobId/visits',async(req,res,next)=>{
       WHERE v.job_id=$1 AND ($2::boolean OR v.professional_id=$3)
       ORDER BY v.offered_at,v.id`,
       [id.data,owner||me.role==='admin',me.id]);
-    res.json(result.rows);
-  }catch(error){next(error);}
-});
-labVisitsRouter.get('/mine/visits',requireRole('professional'),async(req,res,next)=>{
-  try{
-    const result=await pool.query(`SELECT v.id AS visit_id,v.id,
-      v.job_id,j.public_code,j.locality,j.description,j.status,
-      j.specialty_id,j.service_id,v.amount AS visit_amount,
-      v.description AS visit_description,v.status AS visit_status,
-      v.offered_at,v.accepted_at,v.diagnosed_at,v.repair_offered_at,
-      v.repair_decision
-      FROM lab_visit_offers v JOIN jobs j ON j.id=v.job_id
-      WHERE v.professional_id=$1 ORDER BY v.offered_at DESC LIMIT 100`,[req.authUser!.id]);
     res.json(result.rows);
   }catch(error){next(error);}
 });
