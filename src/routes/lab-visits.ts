@@ -97,8 +97,13 @@ labVisitsRouter.get('/mine/visits',requireRole('professional'),async(req,res,nex
       j.specialty_id,j.service_id,v.amount AS visit_amount,
       v.description AS visit_description,v.status AS visit_status,
       v.offered_at,v.accepted_at,v.diagnosed_at,v.repair_offered_at,
-      v.repair_decision
+      v.repair_decision,
+      q.amount AS repair_contract_amount,q.warranty_days AS repair_contract_warranty_days,
+      q.description AS repair_contract_description
       FROM lab_visit_offers v JOIN jobs j ON j.id=v.job_id
+      LEFT JOIN job_contracts jc ON jc.job_id=j.id
+      LEFT JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=j.id
+        AND q.professional_id=v.professional_id
       WHERE v.professional_id=$1 ORDER BY v.offered_at DESC LIMIT 100`,[req.authUser!.id]);
     res.json(result.rows);
   }catch(error){next(error);}
