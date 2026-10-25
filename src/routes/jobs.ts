@@ -122,6 +122,10 @@ jobsRouter.get('/', async (req, res, next) => {
              SELECT 1 FROM job_quotes q
              WHERE q.job_id=j.id AND q.professional_id=$1
            )
+           AND NOT EXISTS(
+             SELECT 1 FROM lab_visit_offers v
+             WHERE v.job_id=j.id AND v.professional_id=$1
+           )
          ORDER BY j.created_at DESC LIMIT 100`,
         [account.id]
       );
@@ -372,6 +376,11 @@ jobsRouter.get('/:id/events', async (req, res, next) => {
            SELECT 1 FROM job_contracts jc JOIN job_quotes jq
              ON jq.id=jc.quote_id AND jq.job_id=j.id
            WHERE jc.job_id=j.id AND jq.professional_id=$3
+         ))
+         OR ($2='professional' AND EXISTS(
+           SELECT 1 FROM lab_visit_offers visit
+           WHERE visit.job_id=j.id AND visit.professional_id=$3
+             AND visit.status='accepted'
          ))
          OR $2='admin'
        ) ORDER BY e.created_at ASC,e.id ASC LIMIT 100`,
