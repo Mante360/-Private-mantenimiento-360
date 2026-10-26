@@ -78,7 +78,7 @@
     const route='/api/jobs/'+job.id+'/visits/'+offer.id;
     const owner=profile.role==='client';
     const pro=profile.role==='professional'&&String(profile.id)===String(offer.professional_id);
-    if(owner&&offer.status==='submitted'&&job.status==='quoted'){
+    if(owner&&offer.status==='submitted'&&offer.job_status==='quoted'){
       const accept=node('button','Aceptar solamente la visita técnica','secondary');
       accept.type='button';
       accept.onclick=async()=>{
@@ -106,7 +106,7 @@
           (offer.repair_decision==='accepted'?'Reparación aceptada':'Reparación no contratada')+
           ' · '+datestr(offer.repair_decided_at),'hint'));
       }
-      if(pro&&job.status==='accepted'&&!offer.diagnosed_at){
+      if(pro&&offer.job_status==='accepted'&&!offer.diagnosed_at){
         const form=node('form');
         form.append(node('p','Después de la visita ficticia, registrá un diagnóstico y presentá el presupuesto de REPARACIÓN. No se modifica el costo de la visita.','hint'));
         const diagnosis=makeFormField(form,'Diagnóstico técnico de prueba','textarea');
@@ -136,7 +136,7 @@
         };
         item.append(form);
       }
-      if(owner&&job.status==='accepted'&&offer.repair_offered_at&&!offer.repair_decision){
+      if(owner&&offer.job_status==='accepted'&&offer.repair_offered_at&&!offer.repair_decision){
         const note=node('p','Podés rechazar la reparación sin contratarla. La visita que aceptaste queda registrada por separado; no hay cobro automático.','hint');
         item.append(note);
         const yes=node('button','Aceptar presupuesto de reparación','primary');
