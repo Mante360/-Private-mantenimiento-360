@@ -1204,11 +1204,13 @@ if (profile.role === 'client') void loadClientSpecialties();
     resolved: 'Resuelto', dismissed: 'Desestimado', scheduled: 'Programado'
   };
   const statusLabel = (status, job = null) =>
-    status === 'accepted' && job
-      ? 'Visita técnica aceptada · diagnóstico pendiente'
-      : status === 'completed' && job?.client_approved === true
-        ? 'Finalizado con conformidad del cliente'
-        : (statusLabels[status] || status);
+    status === 'cancelled' && job?.visit_only_closed === true
+      ? 'Visita técnica realizada · Reparación no contratada'
+      : status === 'accepted' && job
+        ? 'Visita técnica aceptada · diagnóstico pendiente'
+        : status === 'completed' && job?.client_approved === true
+          ? 'Finalizado con conformidad del cliente'
+          : (statusLabels[status] || status);
   const warrantyStatusLabel = (status) =>
     status === 'completed' ? 'Intervención completada' : statusLabel(status);
   // Both the accepted quote archive and the professional's contract list
