@@ -194,11 +194,12 @@
         item.append(node('p',offer.public_code+' · '+offer.locality+
           '\nVisita: ARS '+ars(offer.visit_amount)+
           ' · '+statusText({...offer,status:offer.visit_status}),'hint'));
-        const button=node('button','Ver visita y diagnóstico','secondary');button.type='button';
+        const button=node('button',offer.repair_decision==='rejected'?'Ver visita finalizada':'Ver visita y diagnóstico','secondary');button.type='button';
         button.onclick=()=>void openJob({
           id:offer.job_id,public_code:offer.public_code,
           description:offer.description,locality:offer.locality,
           status:offer.status,specialty_id:offer.specialty_id,service_id:offer.service_id,
+          visit_only_closed:offer.visit_status==='accepted'&&offer.repair_decision==='rejected',
           amount:offer.repair_contract_amount,
           warranty_days:offer.repair_contract_warranty_days,
           quote_description:offer.repair_contract_description
