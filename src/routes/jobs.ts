@@ -16,7 +16,9 @@ const createSchema = z.object({
 // Deliberately excludes client_id, exact_address, personal data and all quotes.
 const publicJobFields = `j.id,j.public_code,j.specialty_id,j.service_id,
   j.description,j.locality,j.status,j.created_at,j.updated_at,
-  EXISTS(SELECT 1 FROM ratings r WHERE r.job_id=j.id) AS client_approved`;
+  EXISTS(SELECT 1 FROM ratings r WHERE r.job_id=j.id) AS client_approved,
+  EXISTS(SELECT 1 FROM lab_visit_offers v WHERE v.job_id=j.id
+    AND v.status='accepted' AND v.repair_decision='rejected') AS visit_only_closed`;
 
 
 jobsRouter.get('/specialties', requireRole('client'), async (_req, res, next) => {
