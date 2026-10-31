@@ -1469,6 +1469,8 @@ if (profile.role === 'client') void loadClientSpecialties();
           ' · ' + statusLabel(claim.status) + '\nMotivo: ' + claim.reason +
           '\nDescripción: ' + claim.description;
         item.append(info);
+        item.append(window.labClaimEvidence.create(claim.id,null,
+          ['open','in_review'].includes(claim.status)));
         if(profile?.role==='professional' && ['open','in_review'].includes(claim.status)){
           const receipt=document.createElement('div');
           receipt.className='claim-receipt';
@@ -1543,6 +1545,9 @@ if (profile.role === 'client') void loadClientSpecialties();
             detail.textContent='Autorización: '+visit.description;
             detail.style.margin='7px 0 0';
             summary.append(heading,detail);
+            summary.append(window.labClaimEvidence.create(claim.id,visit.id,
+              ['open','in_review'].includes(claim.status) && !clientConfirmed &&
+              visit.status!=='cancelled',visit.code));
             if(visit.resolution_note){
               const correction=document.createElement('p');
               correction.textContent='Corrección informada por el profesional: '+visit.resolution_note;
@@ -1887,6 +1892,8 @@ if (profile.role === 'client') void loadClientSpecialties();
             : '');
 
         item.append(info);
+        item.append(window.labClaimEvidence.create(claim.id,null,
+          ['open','in_review'].includes(claim.status)));
         const professionalUpdates = document.createElement('div');
         professionalUpdates.textContent = 'Consultando descargo profesional...';
         item.append(professionalUpdates);
@@ -1902,6 +1909,11 @@ if (profile.role === 'client') void loadClientSpecialties();
             summary.textContent=visits.map(v=>'Garantía '+v.code+' · '+warrantyStatusLabel(v.status)+
               (v.resolution_note?' · Corrección: '+v.resolution_note:'')).join('\n');
             item.append(summary);
+            for(const visit of visits){
+              item.append(window.labClaimEvidence.create(claim.id,visit.id,
+                ['open','in_review'].includes(claim.status) &&
+                visit.status!=='cancelled' && !visit.client_confirmed_at,visit.code));
+            }
           } else if(['open','in_review'].includes(claim.status) && claim.job_has_prior_warranty){
             // Server disallows a second active warranty visit for the same original job.
             // Do not offer an action that would fail, nor show the earlier visit as
