@@ -44,6 +44,7 @@ export async function ensureLabPhotoSchema(): Promise<void> {
 async function permission(db: PoolClient, jobId: number, user: AuthUser, lock = false) {
   const result = await db.query(
     `SELECT j.id, j.client_id, j.status,
+       EXISTS(SELECT 1 FROM ratings r WHERE r.job_id=j.id) AS client_conformity,
        EXISTS(
          SELECT 1 FROM job_contracts jc
          JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=j.id
@@ -78,7 +79,11 @@ async function permission(db: PoolClient, jobId: number, user: AuthUser, lock = 
   const openFeed = user.role === 'professional' && job?.eligible_for_feed === true &&
     ['requested','quoted'].includes(job.status);
   const read = !!job && (owner || contractor || selectedVisit || openFeed || user.role === 'admin');
-  const write = !!job && (owner || contractor || selectedVisit) && job.status !== 'cancelled';
+  // Once the client records conformity, the original photographic evidence is
+  // immutable for both participants, including the uploader's 15-minute window.
+  // A row lock on jobs serializes writes with the client review transaction.
+  const write = !!job && (owner || contractor || selectedVisit) &&
+    job.status !== 'cancelled' && job.client_conformity !== true;
   return { read, write };
 }
 
@@ -87,7 +92,8 @@ photosRouter.get('/:jobId/photos', async (req, res, next) => {
   if (!id.success) { res.status(400).json({error:'invalid_job_id'}); return; }
   const db = await pool.connect();
   try {
-    if (!(await permission(db,id.data,req.authUser!)).read) {
+    const access=await permission(db,id.data,req.authUser!);
+    if (!access.read) {
       res.status(404).json({error:'job_not_found'}); return;
     }
     const photos = await db.query(
@@ -95,7 +101,7 @@ photosRouter.get('/:jobId/photos', async (req, res, next) => {
        FROM lab_job_photos WHERE job_id=$1 ORDER BY created_at,id LIMIT 20`,
       [id.data,req.authUser!.id]
     );
-    res.json(photos.rows);
+    res.json(photos.rows.map(photo=>({...photo,can_remove:access.write && photo.can_remove===true})));
   } catch (error) { next(error); } finally { db.release(); }
 });
 
