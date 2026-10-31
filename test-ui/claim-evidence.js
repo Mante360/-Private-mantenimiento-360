@@ -13,12 +13,8 @@
     if(className)el.className=className;
     return el;
   };
-  const dataUrl=blob=>new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(reader.result);
-    reader.onerror=()=>reject(new Error('No se pudo leer la fotografía.'));
-    reader.readAsDataURL(blob);
-  });
+  // The test site CSP intentionally permits blob: images, not data: images.
+  const dataUrl=blob=>URL.createObjectURL(blob);
 
   function create(claimId,visitId,canUpload,code='') {
     const isWarranty=visitId!==null && visitId!==undefined;
@@ -26,6 +22,16 @@
       (isWarranty?'/warranty/'+encodeURIComponent(String(visitId)):'')+'/evidence';
     const section=make('section',undefined,'admin-section');
     section.style.marginTop='12px';
+    let allocatedUrls=[];
+    const release=()=>{allocatedUrls.forEach(url=>URL.revokeObjectURL(url));allocatedUrls=[];};
+    const observer=new MutationObserver(()=>{
+      if(!section.isConnected) {
+        release();
+        observer.disconnect();
+        document.removeEventListener('keydown',keyboard);
+      }
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
     const title=make('h4',isWarranty?'Fotografías de la garantía '+code:'Evidencias fotográficas del reclamo');
     const explanation=make('p','Las imágenes se vinculan únicamente a este expediente, con responsable y fecha. No modifican las fotografías del trabajo original.','hint');
     const gallery=make('div','Consultando evidencias...','photo-grid');
@@ -101,6 +107,7 @@
 
     async function refresh() {
       gallery.textContent='Consultando evidencias...';
+      release();
       try{
         const list=await fetch(base,{headers:{Authorization:'Bearer '+token()},cache:'no-store'});
         if(!list.ok)throw new Error('HTTP '+list.status);
@@ -111,12 +118,13 @@
             headers:{Authorization:'Bearer '+token()},cache:'no-store'
           });
           if(!response.ok)throw new Error('No se pudo abrir una imagen (HTTP '+response.status+').');
-          const url=await dataUrl(await response.blob());
+          const url=dataUrl(await response.blob());
+          allocatedUrls.push(url);
           const who=row.uploader_role==='client'?'Cliente':row.uploader_role==='professional'?'Profesional':'Administración';
           pictures.push({url,caption:who+' · '+row.uploader_name+
             ' · '+date(row.created_at)+' · '+Math.round(Number(row.size_bytes)/1024)+' KB'});
         }
-        if(!section.isConnected)return;
+        if(!section.isConnected){release();return;}
         hide();photos=pictures;gallery.replaceChildren();
         if(!photos.length){gallery.textContent='Todavía no hay fotografías en este expediente.';return;}
         photos.forEach((photo,i)=>{
