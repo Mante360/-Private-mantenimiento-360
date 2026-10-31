@@ -278,14 +278,35 @@
 
   function openJob(job,profile) {
     closePhotoViewer();
-    opened={id:Number(job.id)};
+    const jobId=Number(job.id);
+    opened={id:jobId};
     const mayUpload=profile?.role==='client' ||
       (profile?.role==='professional' && job.amount!==undefined &&
        ['confirmed','in_progress','completed'].includes(job.status));
-    el('photoUploadControls').hidden=!mayUpload;
+    const conformidadRegistrada=job.status==='completed' && job.client_approved===true;
+    el('photoArchiveNotice').hidden=!conformidadRegistrada;
+    // For completed jobs, fail closed until the current conformity is checked.
+    el('photoUploadControls').hidden=!mayUpload || job.status==='completed';
     el('jobPhotoInput').value='';
     el('photoUploadResult').textContent='';
-    void loadPhotos(Number(job.id));
+    void loadPhotos(jobId);
+    if(job.status==='completed' && !conformidadRegistrada && mayUpload) {
+      void fetch('/api/jobs/'+encodeURIComponent(String(jobId))+'/review',{
+        cache:'no-store',headers:{Authorization:'Bearer '+token()}
+      }).then(async response=>{
+        if(!response.ok)throw new Error('review_unavailable');
+        return response.json();
+      }).then(review=>{
+        if(opened?.id!==jobId)return;
+        el('photoArchiveNotice').hidden=!review;
+        el('photoUploadControls').hidden=!!review;
+      }).catch(()=>{
+        if(opened?.id!==jobId)return;
+        // Never enable modification when conformity cannot be verified.
+        el('photoArchiveNotice').hidden=false;
+        el('photoArchiveNotice').textContent='No se pudo comprobar si el trabajo tiene conformidad. Las fotografías se conservan, pero no se permite modificarlas hasta verificarlo.';
+      });
+    }
   }
 
   el('requestPhotoInput').addEventListener('change',stageNewRequestPhotos);
