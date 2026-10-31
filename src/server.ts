@@ -7,6 +7,7 @@ import { authRouter } from './routes/auth.js';
 import { jobsRouter } from './routes/jobs.js';
 import { quotesRouter } from './routes/quotes.js';
 import { claimsRouter } from './routes/claims.js';
+import { claimEvidenceRouter, ensureLabClaimEvidenceSchema } from './routes/claim-evidence.js';
 import { photosRouter, ensureLabPhotoSchema } from './routes/photos.js';
 import { technicalRouter, ensureLabTechnicalSchema } from './routes/technical.js';
 import { labVisitsRouter,ensureLabVisitSchema } from './routes/lab-visits.js';
@@ -89,6 +90,7 @@ app.use('/api/jobs', photosRouter);
 app.use('/api/jobs', technicalRouter);
 app.use('/api/jobs', labVisitsRouter);
 app.use('/api/claims', claimsRouter);
+app.use('/api/claims', claimEvidenceRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/admin/claim-performance', claimPerformanceRouter);
 app.use('/api/admin/claim-reminders', claimRemindersRouter);
@@ -113,6 +115,7 @@ app.use((
 
 await bootstrapTestSchemaIfRequested();
 await ensureLabPhotoSchema();
+await ensureLabClaimEvidenceSchema();
 await ensureLabTechnicalSchema();
 await ensureLabVisitSchema();
 await ensureLabClaimReminderSchema();
