@@ -2154,6 +2154,8 @@ if (profile.role === 'client') void loadClientSpecialties();
       const finishedJob=openedJob;
       await api('POST', '/api/jobs/' + encodeURIComponent(String(finishedJob.id)) + '/review', {stars,comment});
       await loadClientReviewStatus(finishedJob);
+      // Freeze the original gallery as soon as conformity is registered.
+      window.labPhotos.openJob({...finishedJob,client_approved:true},profile);
       void loadJobTimeline(finishedJob);
       // The warranty begins at the persisted client conformity timestamp.
       // Re-query it immediately instead of leaving the pre-confirmation label.
