@@ -280,7 +280,7 @@
     closePhotoViewer();
     const jobId=Number(job.id);
     opened={id:jobId};
-    el('photoArchiveNotice').textContent='Trabajo finalizado con conformidad: las fotografías originales quedan protegidas. Todavía no está habilitada la carga independiente de imágenes en reclamos o garantías de este laboratorio.';
+    el('photoArchiveNotice').textContent='Trabajo finalizado con conformidad: las fotografías originales quedan protegidas. Las evidencias posteriores se incorporan por separado en cada reclamo o garantía.';
     const mayUpload=profile?.role==='client' ||
       (profile?.role==='professional' && job.amount!==undefined &&
        ['confirmed','in_progress','completed'].includes(job.status));
