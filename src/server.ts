@@ -66,6 +66,7 @@ app.get('/pruebas', serveLab('index.html'));
 app.get('/pruebas/ui.css', serveLab('ui.css'));
 app.get('/pruebas/ui.js', serveLab('ui.js'));
 app.get('/pruebas/photos.js', serveLab('photos.js'));
+app.get('/pruebas/claim-evidence.js', serveLab('claim-evidence.js'));
 app.get('/pruebas/technical.js', serveLab('technical.js'));
 app.get('/pruebas/visits.js', serveLab('visits.js'));
 
