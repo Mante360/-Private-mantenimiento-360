@@ -338,7 +338,7 @@
     }
   });
 
-  window.labPhotos={openJob,uploadLabPhotos,
+  window.labPhotos={openJob,uploadLabPhotos,optimizeForEvidence:optimize,
     getStagedPhotos:()=>staged.slice(),clearStagedPhotos};
 
 })();
