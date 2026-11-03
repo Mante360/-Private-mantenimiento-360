@@ -13,6 +13,20 @@
     node.textContent = message;
     node.className = 'feedback ' + (failed ? 'error' : 'ok');
   }
+  // Access tokens intentionally expire after 30 minutes. Clear only the
+  // session whose credential the server rejected, not a newer login.
+  function expireSession(usedToken) {
+    if (!usedToken || usedToken !== token) return;
+    token='';
+    profile=null;
+    labProfessional=null;
+    labCategoryId=null;
+    sessionStorage.removeItem(tokenKey);
+    render();
+    view('login');
+    el('sessionExpiredNotice').hidden=false;
+  }
+  window.labAuthExpired=expireSession;
   async function api(method, path, data, credential = token) {
     const response = await fetch(path, {
       method,
@@ -26,6 +40,9 @@
     let body;
     try { body = await response.json(); } catch { body = {}; }
     if (!response.ok) {
+      if (response.status===401 && credential && credential===token) {
+        expireSession(credential);
+      }
       const known = {
         invalid_input: 'Revisá los datos ingresados. La contraseña necesita 12 caracteres o más.',
         account_unavailable: 'Esta cuenta ya existe o no está disponible.',
@@ -954,6 +971,7 @@ if (profile.role === 'client') void loadClientSpecialties();
   async function activate(data) {
     token = data.token;
     profile = data.user;
+    el('sessionExpiredNotice').hidden=true;
     sessionStorage.setItem(tokenKey, token);
     el('regPassword').value = '';
     el('loginPassword').value = '';
@@ -1012,10 +1030,14 @@ if (profile.role === 'client') void loadClientSpecialties();
       const data = await api('GET','/api/auth/me');
       profile=data.user;
       render();
-    } catch {
-      token='';
-      sessionStorage.removeItem(tokenKey);
-      render();
+    } catch (error) {
+      if (error.code!=='invalid_or_expired_token' &&
+          error.code!=='authentication_required') {
+        // A temporary network/server problem is not proof of expiry.
+        // Keep the token for a later retry, but never show a false signed-in state.
+        render();
+        feedback('No se pudo verificar la sesión. Revisá la conexión y presioná F5 para reintentar.',true);
+      }
     }
   }
   let displayedJobs = [];
@@ -2606,6 +2628,10 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
   el('prepareRefrigeration').addEventListener('click',prepareRefrigeration);
   el('approveSelected').addEventListener('click',approveSelected);
   el('resetProfessionalForm').addEventListener('submit',resetProfessionalPassword);
+  el('reloginAfterExpiry').addEventListener('click',()=>{
+    view('login');
+    el('loginEmail').focus();
+  });
   el('logout').addEventListener('click',()=>{
     token='';profile=null;labProfessional=null;labCategoryId=null;
     el('adminSection').hidden=true;
@@ -2613,6 +2639,7 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
     el('adminConfirmPassword').value='';
     el('newProfessionalPassword').value='';
     sessionStorage.removeItem(tokenKey);
+    el('sessionExpiredNotice').hidden=true;
     render();
     feedback('Sesión de prueba cerrada.');
   });
