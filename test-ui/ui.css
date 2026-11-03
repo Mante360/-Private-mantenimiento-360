@@ -167,3 +167,9 @@ body.photo-viewer-open{overflow:hidden}
 .lab-doc-preview-image{display:block;max-width:100%;max-height:560px;object-fit:contain;border:1px solid #c8d5e5;background:#fff}
 .lab-doc-evidence-link{display:block;margin:10px 0;overflow-wrap:anywhere}
 .lab-evidence-holder button{margin-top:5px}
+
+/* Aviso persistente y accesible cuando el servidor rechaza un token vencido. */
+.session-expired-notice{margin:0 0 20px;padding:15px 16px;background:#fff4ed;border:2px solid #c65c30;border-left-width:6px;border-radius:11px;color:#7d3217;line-height:1.55}
+.session-expired-notice strong{display:block;font-size:15px}
+.session-expired-notice p{margin:8px 0 12px;font-size:13px}
+.session-expired-notice button{background:#fff}
