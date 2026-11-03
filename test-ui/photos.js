@@ -178,6 +178,10 @@
     renderStagedPhotos();
   }
 
+  const checkSession=response=>{
+    if(response.status===401)window.labAuthExpired?.(token());
+    return response;
+  };
   async function uploadLabPhotos(jobId,files) {
     if (files.length>5) throw new Error('Se permiten hasta 5 fotos por carga.');
     let saved=0;
@@ -189,6 +193,7 @@
         body:jpg
       });
       if (!response.ok) {
+        checkSession(response);
         let data={};
         try { data=await response.json(); } catch (_) { /* malformed response */ }
         const reasons={
@@ -216,7 +221,7 @@
       const listResponse=await fetch('/api/jobs/'+encodeURIComponent(String(jobId))+'/photos',{
         cache:'no-store',headers:{Authorization:'Bearer '+token()}
       });
-      if (!listResponse.ok) throw new Error('No tenés acceso a estas fotografías.');
+      if (!listResponse.ok) { checkSession(listResponse); throw new Error('No tenés acceso a estas fotografías.'); }
       const photos=await listResponse.json();
       if (opened?.id!==jobId) return;
       panel.replaceChildren();
@@ -225,7 +230,7 @@
         const response=await fetch('/api/jobs/'+encodeURIComponent(String(jobId))+'/photos/'+encodeURIComponent(String(photo.id)),{
           cache:'no-store',headers:{Authorization:'Bearer '+token()}
         });
-        if (!response.ok) throw new Error('No se pudo recuperar una foto.');
+        if (!response.ok) { checkSession(response); throw new Error('No se pudo recuperar una foto.'); }
         const blob=await response.blob();
         const url=URL.createObjectURL(blob);
         if (opened?.id!==jobId) { URL.revokeObjectURL(url); return; }
@@ -261,7 +266,7 @@
                 '/photos/'+encodeURIComponent(String(photo.id)),{
                 method:'DELETE',cache:'no-store',headers:{Authorization:'Bearer '+token()}
               });
-              if(!result.ok) throw new Error('La foto ya no puede quitarse o no tenés autorización.');
+              if(!result.ok) { checkSession(result); throw new Error('La foto ya no puede quitarse o no tenés autorización.'); }
               el('photoUploadResult').textContent='Fotografía retirada correctamente.';
               if (opened?.id===jobId) await loadPhotos(jobId);
             } catch(error) {
@@ -295,7 +300,7 @@
       void fetch('/api/jobs/'+encodeURIComponent(String(jobId))+'/review',{
         cache:'no-store',headers:{Authorization:'Bearer '+token()}
       }).then(async response=>{
-        if(!response.ok)throw new Error('review_unavailable');
+        if(!response.ok){ checkSession(response); throw new Error('review_unavailable'); }
         return response.json();
       }).then(review=>{
         if(opened?.id!==jobId)return;
