@@ -3,6 +3,10 @@
   // Separate laboratory evidence for a specific claim or authorized warranty
   // visit. Original job photos remain immutable after client conformity.
   const token=()=>sessionStorage.getItem('m360-lab-token')||'';
+  const checkSession=response=>{
+    if(response.status===401)window.labAuthExpired?.(token());
+    return response;
+  };
   const date=value=>new Date(value).toLocaleString('es-AR',{
     timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit',
     year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
@@ -122,14 +126,14 @@
       release();
       try{
         const list=await fetch(base,{headers:{Authorization:'Bearer '+token()},cache:'no-store'});
-        if(!list.ok)throw new Error('HTTP '+list.status);
+        if(!list.ok){checkSession(list);throw new Error('HTTP '+list.status);}
         const rows=await list.json();
         const pictures=[];
         for(const row of rows){
           const response=await fetch(base+'/'+encodeURIComponent(String(row.id)),{
             headers:{Authorization:'Bearer '+token()},cache:'no-store'
           });
-          if(!response.ok)throw new Error('No se pudo abrir una imagen (HTTP '+response.status+').');
+          if(!response.ok){checkSession(response);throw new Error('No se pudo abrir una imagen (HTTP '+response.status+').');}
           const url=dataUrl(await response.blob());
           allocatedUrls.push(url);
           const who=row.uploader_role==='client'?'Cliente':row.uploader_role==='professional'?'Profesional':'Administración';
@@ -166,6 +170,7 @@
             body:converted
           });
           if(!response.ok) {
+            checkSession(response);
             const body=await response.json().catch(()=>({}));
             const message=body.error==='claim_evidence_limit_reached'
               ? 'Se alcanzó el máximo de cinco fotos por persona en este expediente.'
