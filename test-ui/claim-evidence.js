@@ -24,7 +24,19 @@
     section.style.marginTop='12px';
     let allocatedUrls=[];
     const release=()=>{allocatedUrls.forEach(url=>URL.revokeObjectURL(url));allocatedUrls=[];};
+    // Archive cards are built asynchronously *before* being added to the DOM.
+    // Wait for their first attachment before loading evidence. Previously the
+    // observer treated an unmounted new card as removed, leaving the message
+    // "Consultando evidencias..." on screen indefinitely.
+    let mounted=false;
     const observer=new MutationObserver(()=>{
+      if(!mounted) {
+        if(section.isConnected) {
+          mounted=true;
+          void refresh();
+        }
+        return;
+      }
       if(!section.isConnected) {
         release();
         observer.disconnect();
@@ -172,9 +184,12 @@
         await refresh();
       }
     });
-    // Only query evidence for a card the UI is authorized to display. The
-    // server still independently validates every list and individual image.
-    void refresh();
+    // Only query after the card is attached to the document. The server
+    // independently validates access to each list and individual image.
+    if(section.isConnected) {
+      mounted=true;
+      void refresh();
+    }
     return section;
   }
   window.labClaimEvidence={create};
