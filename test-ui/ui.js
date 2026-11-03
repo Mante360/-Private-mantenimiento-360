@@ -1598,14 +1598,41 @@ if (profile.role === 'client') void loadClientSpecialties();
             }
             if(profile.role==='professional' && visit.status==='requested'){
               const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Informar corrección realizada';
+              const notice=document.createElement('p');
+              notice.setAttribute('role','status');
+              notice.setAttribute('aria-live','polite');
               btn.onclick=async()=>{
                 const note=prompt('Describí la corrección realizada (mínimo 10 caracteres):');
                 if(note===null)return;
-                if(note.trim().length<10){alert('Escribí al menos 10 caracteres.');return;}
+                if(note.trim().length<10){
+                  notice.className='feedback error';
+                  notice.textContent='Escribí al menos 10 caracteres.';
+                  return;
+                }
                 btn.disabled=true;
-                try{await api('POST','/api/claims/'+claim.id+'/warranty/'+visit.id+'/report-completed',{note:note.trim()});await loadClaimInbox();}
-                catch(error){alert(error.message);btn.disabled=false;}
-              };item.append(btn);
+                notice.className='hint';
+                notice.textContent='Registrando corrección en garantía...';
+                try{
+                  const result=await api('POST','/api/claims/'+claim.id+'/warranty/'+visit.id+'/report-completed',{note:note.trim()});
+                  btn.hidden=true;
+                  notice.className='feedback ok';
+                  notice.textContent='Corrección registrada en la garantía. Estado: '+warrantyStatusLabel(result.status)+'.';
+                  try{
+                    await loadClaimInbox();
+                    if(openedJob && String(openedJob.id)===String(claim.job_id))await loadJobClaimHistory(openedJob);
+                  }catch(refreshError){
+                    notice.textContent='Corrección registrada. No se pudo actualizar la pantalla automáticamente; presioná F5 para verla.';
+                  }
+                }catch(error){
+                  notice.className='feedback error';
+                  notice.textContent='No se registró la corrección: '+error.message+
+                    (error.code==='warranty_not_available'
+                      ? ' La garantía puede haber cambiado de estado o ya no estar disponible. No reintentes sin verificarla.'
+                      : '');
+                  btn.disabled=false;
+                }
+              };
+              item.append(btn,notice);
             }
             if(profile.role==='client' && visit.status==='completed' && !clientConfirmed){
               const btn=document.createElement('button');btn.type='button';btn.className='secondary';btn.textContent='Confirmar corrección de garantía';
