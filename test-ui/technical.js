@@ -21,6 +21,7 @@
     let body={};
     try { body=await response.json(); } catch(_) {}
     if(!response.ok) {
+      if(response.status===401)window.labAuthExpired?.(token());
       const known={
         authentication_required:'Necesitás volver a iniciar sesión para enviar la consulta. Copiá el texto antes de ingresar nuevamente.',
         invalid_or_expired_token:'La sesión de prueba venció. Copiá el texto de la consulta y volvé a iniciar sesión para enviarla.',
