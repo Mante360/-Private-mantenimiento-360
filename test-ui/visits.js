@@ -13,6 +13,7 @@
     let result={};
     try{result=await response.json();}catch(_){}
     if(!response.ok){
+      if(response.status===401)window.labAuthExpired?.(token);
       const errors={
         invalid_or_expired_token:'La sesión venció; volvé a iniciar sesión.',
         authentication_required:'Iniciá sesión para continuar.',
