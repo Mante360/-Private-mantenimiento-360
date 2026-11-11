@@ -51,6 +51,8 @@ jobs:
         run: npm run build
       - name: Verificar archivos compilados
         run: test -f dist/server.js && test -f dist/security.js && test -f dist/routes/jobs.js
+      - name: Verificar renovacion de sesiones y limite de seguridad
+        run: node test/session-renewal.smoke.mjs
       - name: Probar instalacion controlada en otra base temporal
         run: node test/bootstrap-schema.integration.mjs
       - name: Validar restablecimiento de contraseña administrado y protegido
