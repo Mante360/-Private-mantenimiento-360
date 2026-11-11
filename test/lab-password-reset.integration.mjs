@@ -110,7 +110,58 @@ try {
     "SELECT count(*)::integer AS n FROM audit_events WHERE resource_id='4' AND action='lab_professional_password_reset'"
   );
   assert.equal(audits.rows[0].n,1);checks++;
-  console.log('OK: '+checks+' controles de cambio seguro de contraseña del profesional ID 4');
+  // Reviewer ID 8 is a fixture in a disposable CI database, not the Render lab.
+  const reviewerOld='Old-Reviewer-Testing-2026!';
+  const reviewerNew='New-Reviewer-Testing-2026!';
+  const reviewerHash=await argon2.hash(reviewerOld,{type:argon2.argon2id});
+  const [labAdmin]= (await conn.query(
+    "SELECT id FROM users WHERE email='administracion-lab360@test.invalid'")).rows;
+  await conn.query(
+    "INSERT INTO users(id,name,email,password_hash,role,status) "+
+    "VALUES(8,'Revisor-1 Laboratorio 360','revisor1@test.invalid',$1,'subadmin','active')",
+    [reviewerHash]
+  );
+  await conn.query("INSERT INTO lab_staff_permissions(user_id,document_review,created_by) VALUES(8,true,$1)",[labAdmin.id]);
+  await conn.query("SELECT setval(pg_get_serial_sequence('users','id'), (SELECT MAX(id) FROM users))");
+
+  const reviewerEndpoint='/api/lab-documents/staff/8/reset-test-password';
+  const reviewerValid={adminPassword,newPassword:reviewerNew};
+  check(await request('POST',reviewerEndpoint,null,reviewerValid),401,
+    'Reviewer reset requires admin authentication');
+  check(await request('POST',reviewerEndpoint,professional.token,reviewerValid),403,
+    'Professional cannot reset reviewer password');
+  check(await request('POST',reviewerEndpoint,admin.token,{
+    adminPassword:'Incorrect-Admin-Test-Password!',newPassword:reviewerNew
+  }),403,'Current admin password required for reviewer recovery');
+  check(await request('POST',reviewerEndpoint,admin.token,{
+    adminPassword,newPassword:'too-short'
+  }),400,'Reviewer recovery requires strong new password');
+  const reviewerReset=check(await request('POST',reviewerEndpoint,admin.token,reviewerValid),
+    200,'General admin changes original reviewer password');
+  assert.equal(reviewerReset.reviewerId,'8');checks++;
+  assert.equal(reviewerReset.permission,'document_review');checks++;
+  check(await request('POST','/api/auth/login',null,{
+    email:'revisor1@test.invalid',password:reviewerOld
+  }),401,'Old reviewer password rejected after recovery');
+  const reviewerLogin=check(await request('POST','/api/auth/login',null,{
+    email:'revisor1@test.invalid',password:reviewerNew
+  }),200,'Reviewer can log in with new password');
+  assert.equal(reviewerLogin.user.role,'subadmin');checks++;
+  const reviewerState=(await conn.query(
+    "SELECT u.role,u.status,p.document_review FROM users u "+
+    "JOIN lab_staff_permissions p ON p.user_id=u.id WHERE u.id=8")).rows[0];
+  assert.equal(reviewerState.role,'subadmin');checks++;
+  assert.equal(reviewerState.status,'active');checks++;
+  assert.equal(reviewerState.document_review,true);checks++;
+  const reviewerAudits=(await conn.query(
+    "SELECT count(*)::integer AS n FROM audit_events "+
+    "WHERE resource_id='8' AND action='lab_subadmin_password_reset'"
+  )).rows[0];
+  assert.equal(reviewerAudits.n,1);checks++;
+  check(await request('POST',reviewerEndpoint,admin.token,reviewerValid),400,
+    'Reviewer password cannot be reset to the same value');
+
+  console.log('OK: '+checks+' controles de recuperación segura de contraseñas del profesional y del revisor documental');
 } finally {
   server?.kill('SIGTERM');
   await conn.end();
