@@ -147,6 +147,20 @@ try {
     email:'revisor1@test.invalid',password:reviewerNew
   }),200,'Reviewer can log in with new password');
   assert.equal(reviewerLogin.user.role,'subadmin');checks++;
+  // Security must be enforced by API routes, not only hidden navigation.
+  check(await request('GET','/api/lab-documents/queue',reviewerLogin.token),200,
+    'Reviewer can access only assigned fictitious document queue');
+  check(await request('GET','/api/claims',reviewerLogin.token),403,
+    'Reviewer must not read claims');
+  check(await request('GET','/api/admin/professionals',reviewerLogin.token),403,
+    'Reviewer must not inspect general admin professional approval');
+  check(await request('GET','/api/lab-documents/audit',reviewerLogin.token),403,
+    'Reviewer must not read general administration document audit');
+  check(await request('GET','/api/lab-documents/staff',reviewerLogin.token),403,
+    'Reviewer must not manage subadministrators');
+  check(await request('POST',reviewerEndpoint,reviewerLogin.token,reviewerValid),403,
+    'Reviewer cannot reset any account password');
+
   const reviewerState=(await conn.query(
     "SELECT u.role,u.status,p.document_review FROM users u "+
     "JOIN lab_staff_permissions p ON p.user_id=u.id WHERE u.id=8")).rows[0];
