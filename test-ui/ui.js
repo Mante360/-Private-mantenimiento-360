@@ -79,7 +79,7 @@
   async function renewIfActive() {
     const original = token;
     if (!original || !profile || document.hidden || sessionRenewalInFlight ||
-        Date.now() - lastUserActivityAt > 20 * 60 * 1000 ||
+        Date.now() - lastUserActivityAt > 5 * 60 * 1000 ||
         Date.now() - lastSessionRenewalAt < 5 * 60 * 1000) return;
     const expiresAt = expiresAtMillis(original);
     if (!expiresAt || expiresAt - Date.now() > 10 * 60 * 1000) return;
@@ -105,6 +105,10 @@
     }
   }
   const markActivity = () => {
+    if (token && profile && Date.now() - lastUserActivityAt >= 30 * 60 * 1000) {
+      expireSession(token);
+      return;
+    }
     lastUserActivityAt = Date.now();
     void renewIfActive();
   };
@@ -114,7 +118,13 @@
     if (!document.hidden) markActivity();
   });
   window.addEventListener('focus', markActivity);
-  window.setInterval(() => { void renewIfActive(); }, 60 * 1000);
+  window.setInterval(() => {
+    if (token && profile && Date.now() - lastUserActivityAt >= 30 * 60 * 1000) {
+      expireSession(token);
+    } else {
+      void renewIfActive();
+    }
+  }, 60 * 1000);
 
   // A single source of truth for browsing (guest/pro/client/admin).
   // Browsing does not update professional verification or assigned specialties.
@@ -1026,6 +1036,8 @@ if (profile.role === 'client') void loadClientSpecialties();
   async function activate(data) {
     token = data.token;
     profile = data.user;
+    lastUserActivityAt = Date.now();
+    lastSessionRenewalAt = 0;
     el('sessionExpiredNotice').hidden=true;
     sessionStorage.setItem(tokenKey, token);
     el('regPassword').value = '';
