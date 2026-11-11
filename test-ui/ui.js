@@ -633,6 +633,34 @@
     }catch(error){list.textContent='No se pudieron listar revisores: '+error.message;}
   }
 
+  async function resetLabReviewerPassword(event){
+    event.preventDefault();
+    if(profile?.role!=='admin')return;
+    const button=el('labReviewerResetButton');
+    const status=el('labReviewerResetStatus');
+    const adminPassword=el('labReviewerAdminPassword').value;
+    const newPassword=el('labReviewerNewPassword').value;
+    button.disabled=true;
+    try{
+      const data=await api('POST','/api/lab-documents/staff/8/reset-test-password',{
+        adminPassword,newPassword
+      });
+      status.textContent='Contraseña actualizada para '+data.reviewerName+
+        ' (ID '+data.reviewerId+'). Permiso documental e historial conservados.';
+    }catch(error){
+      const help={
+        admin_password_incorrect:'La contraseña de Administración no es correcta.',
+        lab_reviewer_not_found:'No se encontró el revisor original ID 8 con permiso documental.',
+        password_must_change:'Elegí una clave diferente de la anterior.'
+      };
+      status.textContent=help[error.code]||'No se pudo cambiar la contraseña: '+error.message;
+    }finally{
+      el('labReviewerAdminPassword').value='';
+      el('labReviewerNewPassword').value='';
+      button.disabled=false;
+    }
+  }
+
   function renderProfessionFinder(panelId,searchId){
     const panel=el(panelId);
     if(!panel)return;
@@ -2635,6 +2663,7 @@ async function createLabRequest(event) {
   el('refreshLabDocsQueue').addEventListener('click',loadLabDocumentsQueue);
   el('labSubadminForm').addEventListener('submit',createLabSubadmin);
   el('refreshLabStaff').addEventListener('click',loadLabStaff);
+  el('labReviewerResetForm').addEventListener('submit',resetLabReviewerPassword);
   el('refreshLabAudit').addEventListener('click',loadLabAuditHistory);
   el('regServiceSearch').addEventListener('input',()=>renderServiceChecklist('regServiceChoices','regServiceSearch',registrationServiceIds));
   el('proServiceSearch').addEventListener('input',()=>renderServiceChecklist('proServiceChoices','proServiceSearch',proServiceIds,proServiceStatuses));
