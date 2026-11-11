@@ -43,6 +43,10 @@ const authorize=async(account,specialtyId,serviceId,approved=true)=>{
       [account.user.id,specialtyId]);
     await query("INSERT INTO professional_services(professional_id,specialty_id,service_id) VALUES($1,$2,$3)",
       [account.user.id,specialtyId,serviceId]);
+    // The lab accepts requests for a selected service only when that exact
+    // declaration has been reviewed and approved, not merely listed in a profile.
+    await query("INSERT INTO lab_service_declarations(professional_id,service_id,status) VALUES($1,$2,'approved')",
+      [account.user.id,serviceId]);
   }
 };
 
