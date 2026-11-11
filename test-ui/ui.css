@@ -185,3 +185,9 @@ body.lab-signed-in .layout > .panel.results{min-width:0;width:100%}
 #contractsPanel .contract-entry p{margin:0;line-height:1.5;flex:1 1 340px;overflow-wrap:anywhere}
 #contractsPanel .contract-entry button{flex:0 0 auto}
 @media(max-width:600px){#contractsPanel .contract-entry button{width:100%}}
+
+/* Small live summary of current and completed professional jobs. */
+.contracts-summary{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.contracts-summary-item{display:flex;align-items:center;justify-content:space-between;gap:18px;flex:1 1 200px;max-width:300px;padding:12px 14px;border:1px solid #cbd9e9;border-radius:10px;background:#fff}
+.contracts-summary-item span{font-size:13px;color:#56647b}
+.contracts-summary-item strong{font-size:21px;color:#172438;font-variant-numeric:tabular-nums}
