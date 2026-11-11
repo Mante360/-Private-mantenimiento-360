@@ -1256,21 +1256,29 @@ if (profile.role === 'client') void loadClientSpecialties();
   async function loadContracts() {
     if (profile?.role !== 'professional') return;
     const panel = el('contractsPanel');
+    const heading = el('contractsHeading');
+    heading.textContent = 'Mis trabajos contratados';
     panel.replaceChildren();
     panel.textContent = 'Consultando trabajos contratados...';
     try {
       const contracts = await api('GET', '/api/jobs/mine');
+      if (profile?.role !== 'professional') return;
       panel.replaceChildren();
+      heading.textContent = 'Mis trabajos contratados (' + contracts.length + ')';
       if (!contracts.length) {
         panel.textContent = 'Todavía no tenés trabajos contratados.';
         return;
       }
       for (const job of contracts) {
         const line = document.createElement('div');
-        line.className = 'jobspanel';
+        line.className = 'contract-entry';
         const summary = document.createElement('p');
+        const amount = Number(job.amount);
         summary.textContent = job.public_code + ' · ' + job.locality +
-          ' · ' + statusLabel(job.status,job) + ' · ARS ' + job.amount;
+          ' · ' + statusLabel(job.status,job) + ' · ARS ' +
+          (Number.isFinite(amount) ? amount.toLocaleString('es-AR',{
+            minimumFractionDigits:2,maximumFractionDigits:2
+          }) : String(job.amount));
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'secondary';
@@ -1280,6 +1288,7 @@ if (profile.role === 'client') void loadClientSpecialties();
         panel.append(line);
       }
     } catch (error) {
+      heading.textContent = 'Mis trabajos contratados';
       panel.textContent = 'No se pudieron consultar los trabajos: ' + error.message;
     }
   }
