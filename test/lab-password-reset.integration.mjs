@@ -45,6 +45,9 @@ try {
     "(4,'Sebastián Salva','profesional360@test.invalid',$1,'professional')",
     [hash]
   );
+  // The explicit fixture IDs must also advance the users sequence: later API
+  // integration tests create new users in this same disposable CI database.
+  await conn.query("SELECT setval(pg_get_serial_sequence('users','id'), (SELECT MAX(id) FROM users))");
   await conn.query(
     "INSERT INTO professional_profiles(user_id,verification_status,available) VALUES(4,'approved',true)"
   );
