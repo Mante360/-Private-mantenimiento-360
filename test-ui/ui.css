@@ -178,3 +178,10 @@ body.photo-viewer-open{overflow:hidden}
 body.lab-signed-in .layout{grid-template-columns:minmax(0,1fr)}
 body.lab-signed-in .layout > .panel:first-child{display:none}
 body.lab-signed-in .layout > .panel.results{min-width:0;width:100%}
+
+/* Professional contracts: compact readable rows and visible count. */
+#contractsPanel{display:grid;gap:10px;margin-top:16px;padding:0;background:transparent;white-space:normal}
+#contractsPanel .contract-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #cbd9e9;border-radius:10px;padding:12px 14px}
+#contractsPanel .contract-entry p{margin:0;line-height:1.5;flex:1 1 340px;overflow-wrap:anywhere}
+#contractsPanel .contract-entry button{flex:0 0 auto}
+@media(max-width:600px){#contractsPanel .contract-entry button{width:100%}}
