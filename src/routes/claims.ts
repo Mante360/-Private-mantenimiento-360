@@ -155,7 +155,7 @@ claimsRouter.get('/admin-list',requireRole('admin'),async(req,res,next)=>{
 
 // Privacy: clients see their claims, professionals only their own related
 // cases; administration has read access for complaint management.
-claimsRouter.get('/', async (req, res, next) => {
+claimsRouter.get('/', requireRole('client','professional','admin'), async (req, res, next) => {
   const actor = req.authUser!;
   try {
     const conditions = actor.role === 'client'
