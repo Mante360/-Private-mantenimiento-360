@@ -23,7 +23,7 @@ function decodeAccessToken(token: string): JwtPayload {
     issuer: ISSUER,
     audience: AUDIENCE,
   }) as JwtPayload;
-  if (typeof decoded.sub !== 'string' || !/^[1-9]\\d*$/.test(decoded.sub)) {
+  if (typeof decoded.sub !== 'string' || !/^[1-9]\d*$/.test(decoded.sub)) {
     throw new Error('Invalid token subject');
   }
   return decoded;
