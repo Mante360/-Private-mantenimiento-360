@@ -322,6 +322,10 @@
           <section id="contractsSection" class="admin-section" hidden>
             <h3 id="contractsHeading">Mis trabajos contratados</h3>
             <p class="hint">Trabajos adjudicados a tu cuenta profesional. No se muestran propuestas de otros profesionales.</p>
+            <div id="contractsSummary" class="contracts-summary" aria-label="Resumen de trabajos contratados" hidden>
+              <div class="contracts-summary-item"><span>En curso o pendientes</span><strong id="contractsActiveCount">0</strong></div>
+              <div class="contracts-summary-item"><span>Finalizados</span><strong id="contractsFinishedCount">0</strong></div>
+            </div>
             <button type="button" id="refreshContracts" class="secondary">Actualizar mis trabajos contratados</button>
             <div id="contractsPanel" class="jobspanel" role="status" aria-live="polite"></div>
           </section>
@@ -410,9 +414,6 @@
             <p id="quoteFeedback" role="status" aria-live="polite"></p>
           </section>
         </div>
-        <hr>
-        <h3>Importante</h3>
-        <p class="hint">Las cuentas profesionales empiezan <strong>pendientes de aprobación</strong>, tal como exige la seguridad del proyecto. En esta primera prueba verificaremos el registro y el inicio de sesión; después habilitaremos las especialidades y la aprobación por Administración.</p>
       </div>
     </section>
     <footer>Área experimental independiente · No se admiten clientes, direcciones ni pagos reales.</footer>
