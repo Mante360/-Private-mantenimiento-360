@@ -252,6 +252,66 @@ labDocumentsRouter.post('/staff',requireRole('admin'),async(req,res,next)=>{
  }finally{tx.release();}
 });
 
+// Access recovery for the original fictitious reviewer only. No registration,
+// role change or document edit. The general lab administrator must re-authenticate.
+const reviewerReset=z.object({
+  adminPassword:z.string().min(1).max(128),
+  newPassword:z.string().min(12).max(128)
+}).strict();
+labDocumentsRouter.post('/staff/8/reset-test-password',requireRole('admin'),async(req,res,next)=>{
+  const parsed=reviewerReset.safeParse(req.body);
+  if(!parsed.success){res.status(400).json({error:'invalid_input'});return;}
+  if(req.authUser!.email!=='administracion-lab360@test.invalid'){
+    res.status(403).json({error:'lab_admin_only'});return;
+  }
+  const tx=await pool.connect().catch(next);if(!tx)return;
+  let active=false;
+  try{
+    await tx.query('BEGIN');active=true;
+    const identity=await tx.query('SELECT current_database() AS name');
+    if(identity.rows[0]?.name!==LAB_DOCUMENT_DB){
+      await tx.query('ROLLBACK');active=false;
+      res.status(403).json({error:'test_database_only'});return;
+    }
+    const admin=await tx.query(
+      "SELECT password_hash FROM users WHERE id=$1 AND role='admin' AND status='active'",
+      [req.authUser!.id]
+    );
+    if(!admin.rows[0] ||
+       !await argon2.verify(admin.rows[0].password_hash,parsed.data.adminPassword)){
+      await tx.query('ROLLBACK');active=false;
+      res.status(403).json({error:'admin_password_incorrect'});return;
+    }
+    const target=await tx.query(
+      `SELECT u.id::text,u.name,u.email,u.password_hash
+       FROM users u JOIN lab_staff_permissions p ON p.user_id=u.id
+       WHERE u.id=8 AND u.role='subadmin' AND u.status='active'
+         AND p.document_review=true FOR UPDATE OF u`
+    );
+    const reviewer=target.rows[0];
+    if(!reviewer || !reviewer.email.endsWith('@test.invalid') ||
+       reviewer.name!=='Revisor-1 Laboratorio 360'){
+      await tx.query('ROLLBACK');active=false;
+      res.status(404).json({error:'lab_reviewer_not_found'});return;
+    }
+    if(await argon2.verify(reviewer.password_hash,parsed.data.newPassword)){
+      await tx.query('ROLLBACK');active=false;
+      res.status(400).json({error:'password_must_change'});return;
+    }
+    const hash=await argon2.hash(parsed.data.newPassword,{type:argon2.argon2id});
+    await tx.query('UPDATE users SET password_hash=$1,updated_at=now() WHERE id=8',[hash]);
+    await tx.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       VALUES($1,'lab_subadmin_password_reset','user','8',$2::jsonb)`,
+      [req.authUser!.id,JSON.stringify({scope:'lab',role:'subadmin',no_permission_change:true})]
+    );
+    await tx.query('COMMIT');active=false;
+    res.json({reviewerId:reviewer.id,reviewerName:reviewer.name,
+      permission:'document_review',notice:'Clave de laboratorio actualizada; sin cambios de permisos.'});
+  }catch(error){if(active)await tx.query('ROLLBACK').catch(()=>undefined);next(error);}
+  finally{tx.release();}
+});
+
 labDocumentsRouter.get('/staff',requireRole('admin'),async(_req,res,next)=>{
  try{const r=await pool.query(`SELECT u.id::text,u.name,u.status,p.document_review,p.created_at
    FROM lab_staff_permissions p JOIN users u ON u.id=p.user_id WHERE u.role='subadmin'
