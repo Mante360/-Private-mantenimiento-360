@@ -7,6 +7,8 @@
   let shownProfile=null;
   let currentJob=null;
   let session=0;
+  let lastTechnicalSnapshot=null;
+  let autoRefreshInFlight=false;
   const endpoint=(jobId)=>'/api/jobs/'+encodeURIComponent(String(jobId))+'/technical';
 
   async function request(method,path,data){
@@ -173,10 +175,12 @@
     const section=el('technicalInfoSection');
     const panel=el('technicalInfoPanel');
     section.hidden=true;
+    lastTechnicalSnapshot=null;
     panel.replaceChildren(node('p','Consultando información técnica...','hint'));
     try{
       const data=await request('GET',endpoint(job.id));
       if(shownJob!==Number(job.id)||version!==session) return;
+      lastTechnicalSnapshot=JSON.stringify(data.threads||[]);
       panel.replaceChildren();
       if(!data.threads?.length){
         section.hidden=true;
@@ -198,6 +202,55 @@
       panel.replaceChildren(node('p','No se pudieron consultar las solicitudes técnicas: '+error.message,'feedback error'));
     }
   }
+  // Poll only the technical details of the job currently open in this tab.
+  // This does not expose conversations from other jobs or roles.
+  async function refreshSilently(){
+    if(autoRefreshInFlight||document.hidden||!token()||!currentJob||!shownProfile||
+       lastTechnicalSnapshot===null) return;
+    const job=currentJob,profile=shownProfile,version=session;
+    autoRefreshInFlight=true;
+    try{
+      const data=await request('GET',endpoint(job.id));
+      if(version!==session||shownJob!==Number(job.id)||
+         currentJob!==job||shownProfile!==profile) return;
+      const signature=JSON.stringify(data.threads||[]);
+      if(signature===lastTechnicalSnapshot) return;
+      const panel=el('technicalInfoPanel');
+      // Keep unsent answers and the professional's preparation notes on a refresh.
+      const drafts=new Map(Array.from(panel.querySelectorAll('textarea')).filter(x=>x.id)
+        .map(x=>[x.id,{value:x.value,expanded:x.closest('.technical-question-form')?.hidden===false}]));
+      const focused=document.activeElement;
+      const focusedId=focused?.tagName==='TEXTAREA'?focused.id:null;
+      const cursor=focusedId?{start:focused.selectionStart,end:focused.selectionEnd}:null;
+      panel.replaceChildren();
+      lastTechnicalSnapshot=signature;
+      if(!data.threads?.length){el('technicalInfoSection').hidden=true;return;}
+      for(const thread of data.threads) panel.append(renderThread(job,profile,thread));
+      for(const [id,draft] of drafts){
+        const field=Array.from(panel.querySelectorAll('textarea')).find(x=>x.id===id);
+        if(!field) continue;
+        field.value=draft.value;
+        if(draft.expanded){const form=field.closest('.technical-question-form');if(form)form.hidden=false;}
+      }
+      if(focusedId){
+        const field=Array.from(panel.querySelectorAll('textarea')).find(x=>x.id===focusedId);
+        if(field){field.focus({preventScroll:true});if(cursor)field.setSelectionRange(cursor.start,cursor.end);}
+      }
+      panel.prepend(node('p','Consultas técnicas actualizadas automáticamente.','feedback ok'));
+      el('technicalInfoSection').hidden=false;
+    }catch(_error){
+      // A temporary background failure must not erase the current thread or drafts.
+      // The visible manual refresh remains available for troubleshooting.
+    }finally{autoRefreshInFlight=false;}
+  }
+  // Switching Chrome/Edge windows updates immediately; the periodic check also
+  // catches changes while the professional leaves this page open.
+  window.addEventListener('focus',()=>{void refreshSilently();});
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden) void refreshSilently();
+  });
+  window.setInterval(()=>{void refreshSilently();},15000);
+
   function openJob(job,profile) {
     shownJob=Number(job.id);
     session++;
@@ -210,6 +263,7 @@
     currentJob=null;
     shownProfile=null;
     session++;
+    lastTechnicalSnapshot=null;
     el('technicalInfoSection').hidden=true;
   }
   el('refreshTechnicalInfo').addEventListener('click',()=>{
