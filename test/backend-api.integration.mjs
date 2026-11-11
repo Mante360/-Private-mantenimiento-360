@@ -112,45 +112,63 @@ try {
     clientId: userB.user.id,
   }, userA.token), 400, 'Cliente no puede falsificar propietario');
 
-  const jobA = expectStatus(await post('/api/jobs', {
-    specialtyId: Number(refrigeration.id), serviceId: Number(repair.id),
-    description: 'Reparacion de heladera', locality: 'San Isidro',
-  }, userA.token), 201, 'Solicitud del Cliente Uno');
-  const jobB = expectStatus(await post('/api/jobs', {
-    specialtyId: Number(electricity.id),
-    description: 'Sin luz en el tablero', locality: 'Olivos',
-  }, userB.token), 201, 'Solicitud del Cliente Dos');
 
-  const listA = expectStatus(await get('/api/jobs', userA.token), 200, 'Lista privada de A');
-  const listB = expectStatus(await get('/api/jobs', userB.token), 200, 'Lista privada de B');
-  assert.ok(listA.some(x => String(x.id) === String(jobA.id)));
-  assert.ok(listB.some(x => String(x.id) === String(jobB.id)));
-  assert.ok(!listA.some(x => String(x.id) === String(jobB.id)));
-  assert.ok(!listB.some(x => String(x.id) === String(jobA.id)));
+  // No job for an explicitly selected service until a reviewed professional offers it.
+  const repairRequest={
+    specialtyId:Number(refrigeration.id),serviceId:Number(repair.id),
+    description:'Reparacion de heladera',locality:'San Isidro'
+  };
+  expectStatus(await post('/api/jobs',repairRequest,userA.token),409,
+    'Servicio sin profesional habilitado rechazado');
+
+  const jobB=expectStatus(await post('/api/jobs',{
+    specialtyId:Number(electricity.id),
+    description:'Sin luz en el tablero',locality:'Olivos'
+  },userB.token),201,'Solicitud general del Cliente Dos');
+
+  const proUnverified=expectStatus(await get('/api/jobs',pro.token),200,'Pro no verificado');
+  assert.deepEqual(proUnverified,[]);
   tests++;
-  expectStatus(await get('/api/jobs/' + jobA.id, userB.token), 404, 'B no abre A');
-  expectStatus(await get('/api/jobs/' + jobB.id, userA.token), 404, 'A no abre B');
+  expectStatus(await post('/api/jobs',{
+    specialtyId:Number(refrigeration.id),description:'No autorizado',locality:'Olivos'
+  },pro.token),403,'Pro no puede crear trabajo como cliente');
+  expectStatus(await get('/api/jobs/'+jobB.id,pro.token),404,'Pro no ve trabajo ajeno');
 
-  const proUnverified = expectStatus(await get('/api/jobs', pro.token), 200, 'Pro no verificado');
-  assert.deepEqual(proUnverified, []);
-  tests++;
-  expectStatus(await post('/api/jobs', {
-    specialtyId: Number(refrigeration.id),
-    description: 'No autorizado', locality: 'Olivos',
-  }, pro.token), 403, 'Pro no puede crear trabajo como cliente');
-  expectStatus(await get('/api/jobs/' + jobA.id, pro.token), 404, 'Pro no ve privado sin contrato');
-
+  // Synthetic CI setup only: verification, matching specialty and approved
+  // service declaration are all needed before the client can request it.
   await query("UPDATE professional_profiles SET verification_status='approved',available=true WHERE user_id=$1",
     [pro.user.id]);
   await query("INSERT INTO professional_specialties(professional_id,specialty_id) VALUES($1,$2)",
     [pro.user.id,refrigeration.id]);
   await query("INSERT INTO professional_services(professional_id,specialty_id,service_id) VALUES($1,$2,$3)",
     [pro.user.id,refrigeration.id,repair.id]);
-  const proFeed = expectStatus(await get('/api/jobs', pro.token), 200, 'Solicitudes por especialidad');
-  assert.ok(proFeed.some(x => String(x.id) === String(jobA.id)));
-  assert.ok(!proFeed.some(x => String(x.id) === String(jobB.id)));
-  assert.ok(!proFeed.some(x => 'exact_address' in x || 'client_id' in x));
+  await query("INSERT INTO lab_service_declarations(professional_id,service_id,status) VALUES($1,$2,'approved')",
+    [pro.user.id,repair.id]);
+
+  const jobA=expectStatus(await post('/api/jobs',repairRequest,userA.token),201,
+    'Solicitud del Cliente Uno con profesional habilitado');
+  const listA=expectStatus(await get('/api/jobs',userA.token),200,'Lista privada de A');
+  const listB=expectStatus(await get('/api/jobs',userB.token),200,'Lista privada de B');
+  assert.ok(listA.some(x=>String(x.id)===String(jobA.id)));
+  assert.ok(listB.some(x=>String(x.id)===String(jobB.id)));
+  assert.ok(!listA.some(x=>String(x.id)===String(jobB.id)));
+  assert.ok(!listB.some(x=>String(x.id)===String(jobA.id)));
   tests++;
+  expectStatus(await get('/api/jobs/'+jobA.id,userB.token),404,'B no abre A');
+  expectStatus(await get('/api/jobs/'+jobB.id,userA.token),404,'A no abre B');
+
+  const proFeed=expectStatus(await get('/api/jobs',pro.token),200,'Solicitudes por especialidad');
+  assert.ok(proFeed.some(x=>String(x.id)===String(jobA.id)));
+  assert.ok(!proFeed.some(x=>String(x.id)===String(jobB.id)));
+  assert.ok(!proFeed.some(x=>'exact_address' in x||'client_id' in x));
+  tests++;
+
+  // Create a second job before any active claim blocks that professional;
+  // the zero-warranty scenario is exercised after the first claim is opened.
+  const zeroJob=expectStatus(await post('/api/jobs',{
+    specialtyId:Number(refrigeration.id),serviceId:Number(repair.id),
+    description:'Reparacion sin garantia',locality:'Olivos'
+  },userB.token),201,'Solicitud previa a reclamo para prueba sin garantia');
 
   const [quote] = await query(
     "INSERT INTO job_quotes(job_id,professional_id,amount,description,warranty_days,status) VALUES($1,$2,85000,'Reparacion con garantia',30,'accepted') RETURNING id",
@@ -172,6 +190,10 @@ try {
   const claim = expectStatus(await post('/api/claims', {
     jobId: Number(jobA.id), reason: 'Garantia', description: 'El problema sigue',
   }, userA.token), 201, 'Reclamo valido de A');
+
+  // An open claim blocks quoting and excludes the sole eligible professional.
+  expectStatus(await post('/api/jobs',repairRequest,userB.token),409,
+    'Rechazar nuevo trabajo del servicio mientras el profesional tiene reclamo');
 
   const aClaims = expectStatus(await get('/api/claims', userA.token), 200, 'Reclamos A');
   const bClaims = expectStatus(await get('/api/claims', userB.token), 200, 'Reclamos B');
@@ -201,10 +223,6 @@ try {
 
   // A claim with a zero-day warranty may be filed and resolved, but no
   // contractual warranty visit should be authorized by the API.
-  const zeroJob = expectStatus(await post('/api/jobs', {
-    specialtyId: Number(refrigeration.id), serviceId: Number(repair.id),
-    description: 'Reparacion sin garantia', locality: 'Olivos',
-  }, userB.token), 201, 'Crear solicitud sin garantia');
   const [zeroQuote] = await query(
     "INSERT INTO job_quotes(job_id,professional_id,amount,description,warranty_days,status) VALUES($1,$2,60000,'Sin garantia',0,'accepted') RETURNING id",
     [zeroJob.id,pro.user.id]);
