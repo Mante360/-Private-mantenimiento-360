@@ -60,6 +60,10 @@ jobs:
       - name: Validar esquema PostgreSQL aislado
         run: node test/schema.smoke.mjs
       - name: Probar aislamiento entre cliente, profesional y administracion
+        env:
+          DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
         run: node test/backend-api.integration.mjs
       - name: Probar presupuestos y contratacion unica
+        env:
+          DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
         run: node test/quotes.integration.mjs
