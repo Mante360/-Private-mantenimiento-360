@@ -164,7 +164,7 @@
             </section>
             <section class="admin-section admin-performance" id="claimPerformanceSection">
               <h3>Subadministradores y liquidaciones · Etapa 1</h3>
-              <p class="hint">Control de reclamos cerrados por responsable. La validación registra la complejidad, pero no paga ni descuenta dinero. Todavía no hay altas de subadministradores ni tarifas configuradas.</p>
+              <p class="hint">Control de reclamos cerrados por responsable. La validación registra la complejidad, pero no paga ni descuenta dinero. La validación no genera pagos ni descuentos. Los revisores documentales se gestionan en una sección separada; las tarifas siguen sin configurarse.</p>
               <div class="admin-performance-toolbar">
                 <label for="claimPerformanceMonth">Mes de cierre</label>
                 <input type="month" id="claimPerformanceMonth" min="2026-01" max="2099-12">
@@ -219,6 +219,18 @@
     <div id="labStaffCreateStatus" class="hint" role="status"></div>
     <button type="button" id="refreshLabStaff" class="secondary">Ver revisores de prueba</button>
     <div id="labStaffList" class="jobspanel"></div>
+    <section class="lab-reviewer-recovery" aria-labelledby="reviewerRecoveryTitle">
+      <h4 id="reviewerRecoveryTitle">Recuperar acceso de Revisor-1 (ID 8)</h4>
+      <p class="hint">Solo Administración de Pruebas puede cambiar la clave de esta cuenta ficticia. Se conserva el historial y el permiso de revisión documental. No uses contraseñas personales.</p>
+      <form id="labReviewerResetForm" autocomplete="off">
+        <label for="labReviewerAdminPassword">Contraseña actual de Administración de Pruebas</label>
+        <input id="labReviewerAdminPassword" type="password" autocomplete="off" required>
+        <label for="labReviewerNewPassword">Nueva contraseña del revisor (mínimo 12 caracteres)</label>
+        <input id="labReviewerNewPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+        <button type="submit" class="secondary" id="labReviewerResetButton">Cambiar contraseña del Revisor-1 (ID 8)</button>
+      </form>
+      <p id="labReviewerResetStatus" class="hint" role="status" aria-live="polite"></p>
+    </section>
   </section>
 </section>
 
