@@ -173,3 +173,8 @@ body.photo-viewer-open{overflow:hidden}
 .session-expired-notice strong{display:block;font-size:15px}
 .session-expired-notice p{margin:8px 0 12px;font-size:13px}
 .session-expired-notice button{background:#fff}
+
+/* Active accounts use the full workspace; registration returns on sign-out. */
+body.lab-signed-in .layout{grid-template-columns:minmax(0,1fr)}
+body.lab-signed-in .layout > .panel:first-child{display:none}
+body.lab-signed-in .layout > .panel.results{min-width:0;width:100%}
