@@ -62,6 +62,60 @@
     return body;
   }
 
+  // Renew short-lived access tokens only while this browser is actively used.
+  // A tab left idle will still expire; renewal never extends a login past 4 hours.
+  let lastUserActivityAt = Date.now();
+  let sessionRenewalInFlight = false;
+  let lastSessionRenewalAt = 0;
+
+  function expiresAtMillis(value) {
+    try {
+      const raw = value.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      const payload = JSON.parse(atob(raw));
+      return Number.isFinite(payload.exp) ? payload.exp * 1000 : 0;
+    } catch { return 0; }
+  }
+
+  async function renewIfActive() {
+    const original = token;
+    if (!original || !profile || document.hidden || sessionRenewalInFlight ||
+        Date.now() - lastUserActivityAt > 20 * 60 * 1000 ||
+        Date.now() - lastSessionRenewalAt < 5 * 60 * 1000) return;
+    const expiresAt = expiresAtMillis(original);
+    if (!expiresAt || expiresAt - Date.now() > 10 * 60 * 1000) return;
+    if (expiresAt <= Date.now()) {
+      expireSession(original);
+      return;
+    }
+    sessionRenewalInFlight = true;
+    try {
+      const result = await api('POST', '/api/auth/renew', undefined, original);
+      if (token !== original || !profile) return;
+      token = result.token;
+      sessionStorage.setItem(tokenKey, token);
+      lastSessionRenewalAt = Date.now();
+    } catch(error) {
+      // Authentication failures are already handled by api(); do not erase
+      // the session on a transient network error.
+      if (token === original && error.code === 'session_max_age') {
+        expireSession(original);
+      }
+    } finally {
+      sessionRenewalInFlight = false;
+    }
+  }
+  const markActivity = () => {
+    lastUserActivityAt = Date.now();
+    void renewIfActive();
+  };
+  document.addEventListener('pointerdown', markActivity, {passive:true});
+  document.addEventListener('keydown', markActivity);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) markActivity();
+  });
+  window.addEventListener('focus', markActivity);
+  window.setInterval(() => { void renewIfActive(); }, 60 * 1000);
+
   // A single source of truth for browsing (guest/pro/client/admin).
   // Browsing does not update professional verification or assigned specialties.
   let labProfessionCatalog=[];
