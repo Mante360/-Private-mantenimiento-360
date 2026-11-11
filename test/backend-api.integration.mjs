@@ -300,6 +300,18 @@ try {
     'Administrador consulta los aspirantes');
   assert.ok(pendingList.some(p=>String(p.id)===String(pendingLabId) && p.verification_status==='pending'));
   tests++;
+  // A category's services are NEVER granted automatically at onboarding.
+  // These two fictional service declarations are separately approved in this
+  // isolated fixture before the professional's own account is approved.
+  const declaredServices=await query(
+    "SELECT id FROM specialty_services WHERE specialty_id=$1 AND active=true",[cat.id]);
+  assert.equal(declaredServices.length,2,'Two services in the laboratory category');
+  tests++;
+  for(const item of declaredServices){
+    await query("INSERT INTO lab_service_declarations(professional_id,service_id,status) "+
+      "VALUES($1,$2,'approved')",[pendingLabId,item.id]);
+  }
+
   expectStatus(await post('/api/admin/professionals/'+pendingLabId+'/approve',{
     specialtyId:999999999
   },admin.token),400,'Categoría inexistente no permite aprobar');
