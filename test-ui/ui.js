@@ -1257,6 +1257,8 @@ if (profile.role === 'client') void loadClientSpecialties();
     if (profile?.role !== 'professional') return;
     const panel = el('contractsPanel');
     const heading = el('contractsHeading');
+    const summary = el('contractsSummary');
+    summary.hidden = true;
     heading.textContent = 'Mis trabajos contratados';
     panel.replaceChildren();
     panel.textContent = 'Consultando trabajos contratados...';
@@ -1265,6 +1267,12 @@ if (profile.role === 'client') void loadClientSpecialties();
       if (profile?.role !== 'professional') return;
       panel.replaceChildren();
       heading.textContent = 'Mis trabajos contratados (' + contracts.length + ')';
+      const finished = contracts.filter(job => job.status === 'completed' && job.client_approved === true).length;
+      const activeOrPending = contracts.filter(job => ['confirmed','in_progress'].includes(job.status) ||
+        (job.status === 'completed' && job.client_approved !== true)).length;
+      el('contractsActiveCount').textContent = String(activeOrPending);
+      el('contractsFinishedCount').textContent = String(finished);
+      summary.hidden = false;
       if (!contracts.length) {
         panel.textContent = 'Todavía no tenés trabajos contratados.';
         return;
@@ -1289,6 +1297,7 @@ if (profile.role === 'client') void loadClientSpecialties();
       }
     } catch (error) {
       heading.textContent = 'Mis trabajos contratados';
+      summary.hidden = true;
       panel.textContent = 'No se pudieron consultar los trabajos: ' + error.message;
     }
   }
