@@ -980,6 +980,7 @@
     feedback('');
   }
   function render() {
+    document.body.classList.toggle('lab-signed-in', !!profile);
     el('guest').hidden = !!profile;
     el('signedIn').hidden = !profile;
     if (!profile) return;
