@@ -2,7 +2,7 @@ import { Router } from 'express';
 import argon2 from 'argon2';
 import { z } from 'zod';
 import { pool } from '../db.js';
-import { signAccessToken } from '../auth.js';
+import { signAccessToken, renewAccessToken } from '../auth.js';
 import { requireAuth } from '../security.js';
 
 export const authRouter = Router();
@@ -98,6 +98,17 @@ authRouter.post('/login', async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+});
+
+// Only an authenticated, unexpired access token can renew its own session.
+// Renewal has an absolute four-hour limit measured from the original login.
+authRouter.post('/renew', requireAuth, (req, res) => {
+  const credential = req.header('authorization')?.slice('Bearer '.length) || '';
+  try {
+    res.json(renewAccessToken(credential));
+  } catch {
+    res.status(401).json({ error: 'session_max_age' });
   }
 });
 
