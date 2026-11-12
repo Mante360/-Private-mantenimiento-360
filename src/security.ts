@@ -7,6 +7,7 @@ export interface AuthUser {
   role: Role;
   name: string;
   email: string;
+  verificationStatus: string | null;
 }
 
 declare global {
@@ -33,7 +34,10 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
   }
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, status FROM users WHERE id=$1',
+      `SELECT u.id,u.name,u.email,u.role,u.status,
+         pp.verification_status AS verification_status
+       FROM users u LEFT JOIN professional_profiles pp ON pp.user_id=u.id
+       WHERE u.id=$1`,
       [userId]
     );
     const user = result.rows[0];
@@ -50,6 +54,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role as Role,
+      verificationStatus: user.role==='professional' ? (user.verification_status ?? 'pending') : null,
     };
     next();
   } catch (error) {
@@ -64,6 +69,20 @@ export const requireRole = (...allowed: Role[]): RequestHandler => (req, res, ne
   }
   if (!allowed.includes(req.authUser.role)) {
     res.status(403).json({ error: 'role_forbidden' });
+    return;
+  }
+  next();
+};
+
+/**
+ * A registered-but-unverified professional has limited onboarding access.
+ * Authorization is enforced on the server, never only by hiding UI elements.
+ * Previously approved professionals under claim restrictions retain access
+ * to their contracts and claims; this gate checks verification only.
+ */
+export const requireVerifiedProfessionalForWork: RequestHandler = (req,res,next)=>{
+  if(req.authUser?.role==='professional' && req.authUser.verificationStatus!=='approved'){
+    res.status(403).json({error:'professional_verification_pending'});
     return;
   }
   next();
