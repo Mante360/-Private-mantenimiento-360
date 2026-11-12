@@ -55,6 +55,7 @@
             <input id="guestProfessionSearch" type="search" maxlength="100" placeholder="Ej.: gasista, durlock, paseador, heladeras">
             <p class="hint">Catálogo orientativo. La búsqueda no asigna automáticamente especialidades ni acredita habilitaciones; Administración revisa cada alta.</p>
             <div id="guestProfessionList" class="jobspanel" role="status"></div>
+            <p class="hint">Si no figura tu oficio exacto, terminá el registro y podrás solicitar su incorporación desde tu cuenta profesional.</p>
             <h4>Marcá los trabajos que realizás</h4>
             <p class="hint">Podés seleccionar servicios de distintos oficios. Quedarán pendientes de revisión por Administración y no constituyen acreditación profesional.</p>
             <label for="regServiceSearch">Buscar trabajo concreto</label>
@@ -101,6 +102,12 @@
               <p class="hint">Administración revisa los servicios solicitados por cada profesional. Esta es una simulación con cuentas ficticias; no se verifica documentación real.</p>
               <button type="button" class="secondary" id="refreshServiceDeclarations">Actualizar declaraciones</button>
               <div id="adminServiceDeclarations" class="jobspanel" role="status"></div>
+            </section>
+            <section class="service-admin-review">
+              <h4>Solicitudes para agregar nuevos oficios</h4>
+              <p class="hint">Propuestas de profesionales de prueba. Solo Administración puede aprobar o descartar. Aprobar incorpora el nombre al catálogo, pero NO habilita automáticamente profesionales ni servicios.</p>
+              <button id="refreshProfessionRequests" type="button" class="secondary">Ver solicitudes de oficios</button>
+              <div id="adminProfessionRequests" class="jobspanel" role="status"></div>
             </section>
             <button type="button" id="approveSelected" class="primary" disabled>Aprobar profesional seleccionado para la prueba</button>
             <section class="admin-section">
@@ -289,6 +296,13 @@
             <label for="proProfessionSearch">Buscar oficio</label>
             <input id="proProfessionSearch" type="search" maxlength="100" placeholder="Ej.: cerrajería, mecánico, peluquería canina">
             <div id="proProfessionList" class="jobspanel" role="status"></div>
+            <div id="proProfessionRequestBox" class="admin-section" hidden>
+              <p class="hint">¿No aparece tu oficio exacto? Aunque haya oficios parecidos, podés proponer el tuyo. Administración decide si incorporarlo.</p>
+              <button id="proProfessionRequestButton" type="button" class="secondary">Solicitar incorporación de este oficio</button>
+              <p id="proProfessionRequestStatus" class="hint" role="status" aria-live="polite"></p>
+            </div>
+            <h4>Mis solicitudes de nuevos oficios</h4>
+            <div id="proProfessionRequestsMine" class="jobspanel" role="status"></div>
             <h4>Mis trabajos y especialidades declaradas</h4>
             <p class="hint">Marcá exactamente los servicios que realizás, incluso de más de un oficio. Los cambios se envían a revisión. Los trabajos retirados dejan de ofrecerse, sin borrar el historial.</p>
             <label for="proServiceSearch">Buscar servicios</label>
