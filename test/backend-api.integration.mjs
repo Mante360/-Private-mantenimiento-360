@@ -97,6 +97,22 @@ try {
   assert.equal(me.user.role, 'client');
   tests++;
 
+  // Real HTTP renewal, not just isolated JWT helpers: tokens retain identity
+  // and do not grant another role. No additional account or job is created.
+  expectStatus(await request('POST','/api/auth/renew'),401,
+    'Renovacion sin cuenta autenticada rechazada');
+  for(const [account,role] of [[userA,'client'],[pro,'professional']]){
+    const renewed=expectStatus(await request('POST','/api/auth/renew',account.token),200,
+      'Renovar sesion desde API para '+role);
+    assert.ok(typeof renewed.token==='string' && renewed.token.length>30);
+    assert.ok(renewed.expiresIn>0 && renewed.expiresIn<=1800);
+    const meRenewed=expectStatus(await get('/api/auth/me',renewed.token),200,
+      'Rol preservado tras renovacion '+role);
+    assert.equal(meRenewed.user.role,role);
+    assert.equal(String(meRenewed.user.id),String(account.user.id));
+    tests+=4;
+  }
+
   const [refrigeration] = await query(
     "INSERT INTO specialties(name) VALUES('Refrigeracion') ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id");
   const [electricity] = await query(
@@ -213,6 +229,14 @@ try {
   const admin = expectStatus(await post('/api/auth/login', {
     email:'admin@test.invalid', password,
   }),200,'Acceso de admin preparado por sistema');
+
+  const renewedAdmin=expectStatus(await request('POST','/api/auth/renew',admin.token),200,
+    'Renovar sesion de Administracion');
+  const adminAfterRenewal=expectStatus(await get('/api/auth/me',renewedAdmin.token),200,
+    'Administracion conserva identidad tras renovar');
+  assert.equal(adminAfterRenewal.user.role,'admin');
+  assert.equal(String(adminAfterRenewal.user.id),String(admin.user.id));
+  tests+=2;
   expectStatus(await request('PATCH','/api/claims/' + claim.id + '/resolve',admin.token,
     { resolutionNote:'Se coordino visita correctiva.' }),200,'Admin resuelve y documenta');
   expectStatus(await request('PATCH','/api/claims/' + claim.id + '/resolve',admin.token,
