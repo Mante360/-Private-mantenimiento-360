@@ -67,3 +67,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
         run: node test/quotes.integration.mjs
+      - name: Validar solicitudes y aprobacion exclusiva de nuevos oficios
+        env:
+          DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
+        run: node test/profession-requests.integration.mjs
