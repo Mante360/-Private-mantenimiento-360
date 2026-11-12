@@ -55,7 +55,12 @@
             <input id="guestProfessionSearch" type="search" maxlength="100" placeholder="Ej.: gasista, durlock, paseador, heladeras">
             <p class="hint">Catálogo orientativo. La búsqueda no asigna automáticamente especialidades ni acredita habilitaciones; Administración revisa cada alta.</p>
             <div id="guestProfessionList" class="jobspanel" role="status"></div>
-            <p class="hint">Si no figura tu oficio exacto, terminá el registro y podrás solicitar su incorporación desde tu cuenta profesional.</p>
+            <div id="guestProfessionRequestBox" class="admin-section" hidden>
+              <p class="hint">¿Tu oficio exacto no aparece? Podés pedir que Administración lo evalúe mientras te registrás. Aunque veas un oficio parecido, no se agrega automáticamente.</p>
+              <button id="guestProfessionRequestButton" type="button" class="secondary">Solicitar este oficio al registrarme</button>
+              <p id="guestProfessionRequestStatus" class="hint" role="status" aria-live="polite"></p>
+            </div>
+            <p class="hint">Si lo que buscás es un trabajo concreto, como reparar lavarropas, marcá los servicios de abajo. Distintos oficios pueden ofrecer el mismo trabajo.</p>
             <h4>Marcá los trabajos que realizás</h4>
             <p class="hint">Podés seleccionar servicios de distintos oficios. Quedarán pendientes de revisión por Administración y no constituyen acreditación profesional.</p>
             <label for="regServiceSearch">Buscar trabajo concreto</label>
@@ -295,6 +300,7 @@
             <p class="hint">Buscá tus oficios por nombre o palabra relacionada. La incorporación a tu perfil requiere una gestión de Administración; el catálogo no certifica matrículas.</p>
             <label for="proProfessionSearch">Buscar oficio</label>
             <input id="proProfessionSearch" type="search" maxlength="100" placeholder="Ej.: cerrajería, mecánico, peluquería canina">
+            <p id="proProfessionSignupResult" class="hint" role="status" aria-live="polite"></p>
             <div id="proProfessionList" class="jobspanel" role="status"></div>
             <div id="proProfessionRequestBox" class="admin-section" hidden>
               <p class="hint">¿No aparece tu oficio exacto? Aunque haya oficios parecidos, podés proponer el tuyo. Administración decide si incorporarlo.</p>
