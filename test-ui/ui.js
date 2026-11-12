@@ -661,17 +661,111 @@
     }
   }
 
+  async function loadMyProfessionRequests(){
+    if(profile?.role!=='professional')return;
+    const panel=el('proProfessionRequestsMine');
+    try{
+      const result=await api('GET','/api/lab-profession-requests/mine');
+      const statuses={pending:'Pendiente de Administración',approved:'Incorporado al catálogo; servicios aún no habilitados',rejected:'No incorporado'};
+      panel.replaceChildren();
+      if(!result.items?.length){
+        panel.textContent='Todavía no enviaste solicitudes de nuevos oficios.';return;
+      }
+      for(const item of result.items){
+        const entry=document.createElement('p');
+        entry.textContent=item.requested_name+' · '+(statuses[item.status]||item.status);
+        panel.append(entry);
+      }
+    }catch(error){panel.textContent='No se pudieron consultar tus solicitudes: '+error.message;}
+  }
+  async function requestProfessionAddition(){
+    if(profile?.role!=='professional')return;
+    const name=el('proProfessionSearch').value.trim();
+    const button=el('proProfessionRequestButton');
+    const status=el('proProfessionRequestStatus');
+    if(name.length<3||name.length>100)return;
+    button.disabled=true;
+    try{
+      const result=await api('POST','/api/lab-profession-requests/mine',{name});
+      status.textContent=result.alreadyPending
+        ?'Ya habías solicitado este oficio. Continúa pendiente de revisión.'
+        :'Solicitud enviada a Administración. El oficio no se habilita hasta que sea evaluado.';
+      await loadMyProfessionRequests();
+    }catch(error){
+      status.textContent=error.code==='profession_already_available'
+        ?'Ese oficio ya figura en el catálogo. Buscalo por su nombre completo.'
+        :'No se pudo enviar la solicitud: '+error.message;
+    }finally{button.disabled=false;}
+  }
+  async function loadAdminProfessionRequests(){
+    if(profile?.role!=='admin')return;
+    const panel=el('adminProfessionRequests');
+    panel.textContent='Consultando propuestas de oficios...';
+    try{
+      const result=await api('GET','/api/lab-profession-requests/pending');
+      panel.replaceChildren();
+      if(!result.items?.length){
+        panel.textContent='No hay nuevas solicitudes de oficios pendientes.';return;
+      }
+      for(const request of result.items){
+        const row=document.createElement('div');row.className='service-review-item';
+        const title=document.createElement('strong');
+        title.textContent=request.requested_name+' · solicitado por '+request.professional_name;
+        const note=document.createElement('p');note.className='hint';
+        note.textContent='Solo propuesta. Incorporar al catálogo no acredita al profesional ni asigna servicios.';
+        const approve=document.createElement('button');
+        approve.type='button';approve.className='secondary';
+        approve.textContent='Incorporar oficio al catálogo';
+        const reject=document.createElement('button');
+        reject.type='button';reject.className='secondary';
+        reject.textContent='No incorporar';
+        const status=document.createElement('p');status.className='hint';
+        const decide=async(value)=>{
+          if(!confirm(value==='approved'
+            ?'¿Incorporar este oficio al catálogo ficticio? No habilita profesionales ni servicios.'
+            :'¿Marcar esta solicitud como no incorporada?'))return;
+          approve.disabled=true;reject.disabled=true;
+          try{
+            await api('POST','/api/lab-profession-requests/'+encodeURIComponent(request.id)+'/decision',{decision:value});
+            status.textContent=value==='approved'
+              ?'Oficio incorporado al catálogo. Los servicios y profesionales siguen pendientes de gestión.'
+              :'Solicitud marcada como no incorporada.';
+            labProfessionCatalogPromise=null;
+            await fetchLabProfessionCatalog();
+            await loadAdminProfessionRequests();
+          }catch(error){
+            status.textContent='No se pudo resolver la solicitud: '+error.message;
+            approve.disabled=false;reject.disabled=false;
+          }
+        };
+        approve.addEventListener('click',()=>void decide('approved'));
+        reject.addEventListener('click',()=>void decide('rejected'));
+        row.append(title,note,approve,reject,status);
+        panel.append(row);
+      }
+    }catch(error){panel.textContent='No se pudieron consultar las propuestas: '+error.message;}
+  }
+
   function renderProfessionFinder(panelId,searchId){
     const panel=el(panelId);
     if(!panel)return;
     const query=el(searchId).value;
     const found=labProfessionCatalog.filter(p=>professionMatches(p,query));
+    if(panelId==='proProfessionList'){
+      const normalized=professionNormalized(query);
+      const exact=labProfessionCatalog.some(p=>
+        professionNormalized(p.title)===normalized ||
+        (p.aliases||[]).some(alias=>professionNormalized(alias)===normalized));
+      el('proProfessionRequestBox').hidden=
+        !(profile?.role==='professional' && normalized.length>=3 && !exact && labProfessionCatalog.length);
+      el('proProfessionRequestStatus').textContent='';
+    }
     panel.replaceChildren();
     if(!labProfessionCatalog.length){
       panel.textContent='Cargando catálogo de profesiones...';return;
     }
     if(!found.length){
-      panel.textContent='No encontramos ese oficio en el catálogo. Podrá solicitarse su incorporación a Administración.';return;
+      panel.textContent='No encontramos ese oficio exacto. Podés solicitar su incorporación desde tu cuenta profesional.';return;
     }
     const count=document.createElement('p');
     count.className='hint';
@@ -1048,7 +1142,11 @@
     el('refreshMyQuotes').textContent='Ver presupuestos';
     el('refreshMyQuotes').setAttribute('aria-expanded','false');
     el('proProfessionCatalogSection').hidden=profile.role!=='professional';
-    if(profile.role==='professional'){renderProfessionFinder('proProfessionList','proProfessionSearch');void loadMyDeclaredServices();}
+    if(profile.role==='professional'){
+      renderProfessionFinder('proProfessionList','proProfessionSearch');
+      void loadMyDeclaredServices();
+      void loadMyProfessionRequests();
+    }
     if(profile.role === 'professional') {
       void loadMyQuotes();
       if(window.labVisit)void window.labVisit.loadMine(openJob);
@@ -1059,7 +1157,11 @@
 el('clientRequestSection').hidden = profile.role !== 'client';
 if (profile.role === 'client') void loadClientSpecialties();
 
-    if(profile.role === 'admin') { void loadProfessionals(); void loadServiceReviews(); void loadAdminClaims(); void loadLabReminderLedger(); void loadClaimPerformance(); }
+    if(profile.role === 'admin') {
+      void loadProfessionals(); void loadServiceReviews(); void loadAdminClaims();
+      void loadLabReminderLedger(); void loadClaimPerformance();
+      void loadAdminProfessionRequests();
+    }
   }
   async function activate(data) {
     token = data.token;
@@ -2671,6 +2773,8 @@ async function createLabRequest(event) {
   el('refreshServiceDeclarations').addEventListener('click',loadServiceReviews);
   el('guestProfessionSearch').addEventListener('input',()=>renderProfessionFinder('guestProfessionList','guestProfessionSearch'));
   el('proProfessionSearch').addEventListener('input',()=>renderProfessionFinder('proProfessionList','proProfessionSearch'));
+  el('proProfessionRequestButton').addEventListener('click',()=>void requestProfessionAddition());
+  el('refreshProfessionRequests').addEventListener('click',()=>void loadAdminProfessionRequests());
   el('requestSpecialtySearch').addEventListener('input',renderClientSpecialtyOptions);
   el('requestHeaterGuide').addEventListener('change',event=>{
     if(event.target?.name==='requestHeaterType'){
