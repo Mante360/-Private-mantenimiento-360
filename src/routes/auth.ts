@@ -44,7 +44,7 @@ authRouter.post('/register', async (req, res, next) => {
     }
     await client.query('COMMIT');
     res.status(201).json({
-      user,
+      user: {...user, verificationStatus: role==='professional' ? 'pending' : null},
       token: signAccessToken(String(user.id)),
       expiresIn: 1800,
     });
@@ -73,8 +73,10 @@ authRouter.post('/login', async (req, res, next) => {
   }
   try {
     const result = await pool.query(
-      `SELECT id,name,email,role,password_hash,status
-       FROM users WHERE email=$1`,
+      `SELECT u.id,u.name,u.email,u.role,u.password_hash,u.status,
+         pp.verification_status AS verification_status
+       FROM users u LEFT JOIN professional_profiles pp ON pp.user_id=u.id
+       WHERE u.email=$1`,
       [parsed.data.email]
     );
     const account = result.rows[0];
@@ -92,7 +94,8 @@ authRouter.post('/login', async (req, res, next) => {
       return;
     }
     res.json({
-      user: { id: account.id, name: account.name, email: account.email, role: account.role },
+      user: { id: account.id, name: account.name, email: account.email, role: account.role,
+        verificationStatus: account.role==='professional' ? (account.verification_status ?? 'pending') : null },
       token: signAccessToken(String(account.id)),
       expiresIn: 1800,
     });
