@@ -147,6 +147,14 @@ try {
     email:'revisor1@test.invalid',password:reviewerNew
   }),200,'Reviewer can log in with new password');
   assert.equal(reviewerLogin.user.role,'subadmin');checks++;
+
+  const renewedReviewer=check(await request('POST','/api/auth/renew',reviewerLogin.token),200,
+    'Document reviewer can renew own session');
+  assert.ok(renewedReviewer.expiresIn>0 && renewedReviewer.expiresIn<=1800);checks++;
+  const reviewerAfterRenew=check(await request('GET','/api/auth/me',renewedReviewer.token),200,
+    'Document reviewer identity after renewal');
+  assert.equal(reviewerAfterRenew.user.role,'subadmin');checks++;
+  assert.equal(String(reviewerAfterRenew.user.id),'8');checks++;
   // Security must be enforced by API routes, not only hidden navigation.
   check(await request('GET','/api/lab-documents/queue',reviewerLogin.token),200,
     'Reviewer can access only assigned fictitious document queue');
