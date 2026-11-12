@@ -45,6 +45,20 @@ try{
     name:'Cliente Solicitudes',email:'oficio-client@test.invalid',role:'client',password
   }),201,'Client');
 
+  assert.equal(pro.user.verificationStatus,'pending',
+    'Professional sign-up must identify the account as under review');checks++;
+  const identity=check(await request('GET','/api/auth/me',pro.token),200,
+    'Pending professional can enter limited onboarding');
+  assert.equal(identity.user.verificationStatus,'pending');checks++;
+  check(await request('GET','/api/jobs',pro.token),403,
+    'Pending professional cannot access job marketplace despite having session token');
+  check(await request('GET','/api/claims',pro.token),403,
+    'Pending professional cannot access work claims');
+  check(await request('GET','/api/lab-profession-requests/mine',pro.token),200,
+    'Pending professional retains access to profession requests');
+  check(await request('GET','/api/lab-documents/mine',pro.token),200,
+    'Pending professional can submit test documents for verification');
+
   const catalog=check(await request('GET','/api/catalog/professions'),200,'Catalog');
   assert.ok(catalog.some(p=>p.title==='Peluquero Canino'));checks++;
   assert.ok(!catalog.some(p=>p.title==='Peluquero'));checks++;
