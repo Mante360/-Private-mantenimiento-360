@@ -130,6 +130,29 @@
   // Browsing does not update professional verification or assigned specialties.
   let labProfessionCatalog=[];
   let labProfessionCatalogPromise=null;
+  // Register-first: a new professional chooses the missing occupation in this
+  // form, but it is submitted only after creation of their test account.
+  // Profession approval and professional verification are separate workflows.
+  let pendingSignupProfession='';
+  const exactProfessionInCatalog=query=>{
+    const normalized=professionNormalized(query);
+    return labProfessionCatalog.some(p=>
+      professionNormalized(p.title)===normalized ||
+      (p.aliases||[]).some(alias=>professionNormalized(alias)===normalized));
+  };
+  function stageProfessionAtSignup(){
+    if(profile || choice!=='professional')return;
+    const name=el('guestProfessionSearch').value.trim().replace(/\s+/g,' ');
+    const status=el('guestProfessionRequestStatus');
+    if(name.length<3 || name.length>100 || exactProfessionInCatalog(name))return;
+    if(!/^[\p{L}\p{N}][\p{L}\p{N}\s.'-]*$/u.test(name)){
+      status.textContent='Usá solo el nombre del oficio, sin símbolos especiales.';
+      return;
+    }
+    pendingSignupProfession=name;
+    status.textContent='Solicitud de «'+name+'» preparada. Al crear tu cuenta profesional se enviará a Administración para evaluación. Podés continuar con el registro.';
+  }
+
   const professionNormalized=value=>String(value||'').normalize('NFD')
     .replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-AR').trim();
   const professionSearchable=p=>professionNormalized([
@@ -751,14 +774,19 @@
     if(!panel)return;
     const query=el(searchId).value;
     const found=labProfessionCatalog.filter(p=>professionMatches(p,query));
+    const normalized=professionNormalized(query);
+    const exact=exactProfessionInCatalog(query);
     if(panelId==='proProfessionList'){
-      const normalized=professionNormalized(query);
-      const exact=labProfessionCatalog.some(p=>
-        professionNormalized(p.title)===normalized ||
-        (p.aliases||[]).some(alias=>professionNormalized(alias)===normalized));
       el('proProfessionRequestBox').hidden=
         !(profile?.role==='professional' && normalized.length>=3 && !exact && labProfessionCatalog.length);
       el('proProfessionRequestStatus').textContent='';
+    }else if(panelId==='guestProfessionList'){
+      el('guestProfessionRequestBox').hidden=
+        !(choice==='professional' && !profile && normalized.length>=3 && !exact && labProfessionCatalog.length);
+      if(pendingSignupProfession && professionNormalized(pendingSignupProfession)!==normalized){
+        pendingSignupProfession='';
+        el('guestProfessionRequestStatus').textContent='';
+      }
     }
     panel.replaceChildren();
     if(!labProfessionCatalog.length){
@@ -1101,6 +1129,11 @@
     el('regName').placeholder = role === 'client' ? 'Ejemplo: Cliente de Prueba' : 'Ejemplo: Profesional de Prueba';
     el('regEmail').placeholder = role === 'client' ? 'cliente360@test.invalid' : 'profesional360@test.invalid';
     el('registerProfessionSearchBox').hidden=role!=='professional';
+    if(role!=='professional'){
+      pendingSignupProfession='';
+      el('guestProfessionRequestStatus').textContent='';
+      el('guestProfessionRequestBox').hidden=true;
+    }
     if(role==='professional')renderProfessionFinder('guestProfessionList','guestProfessionSearch');
   }
   function view(tab) {
@@ -1185,17 +1218,45 @@ if (profile.role === 'client') void loadClientSpecialties();
       return;
     }
     const selectedServices=choice==='professional'?[...registrationServiceIds].map(Number):[];
+    const suggestedProfession=choice==='professional'?pendingSignupProfession:'';
     const button=el('registerButton');
     button.disabled = true;
     try {
       const data=await api('POST','/api/auth/register',{ name,email,password,role:choice },'');
       await activate(data);
-      if(choice==='professional'&&selectedServices.length){
-        try{
-          await api('POST','/api/lab-services/mine',{serviceIds:selectedServices},data.token);
-          registrationServiceIds.clear();await loadMyDeclaredServices();
-          feedback('Cuenta creada. Tus trabajos declarados quedaron pendientes de revisión.');
-        }catch(error){feedback('Cuenta creada, pero no se guardaron los trabajos: '+error.message,true);}
+      if(choice==='professional'){
+        const outcomes=[];
+        if(selectedServices.length){
+          try{
+            await api('POST','/api/lab-services/mine',{serviceIds:selectedServices},data.token);
+            registrationServiceIds.clear();
+            await loadMyDeclaredServices();
+            outcomes.push('Tus servicios quedaron pendientes de la revisión correspondiente.');
+          }catch(error){
+            outcomes.push('La cuenta fue creada, pero no pudimos guardar los servicios: '+error.message);
+          }
+        }
+        if(suggestedProfession){
+          try{
+            const proposed=await api('POST','/api/lab-profession-requests/mine',{
+              name:suggestedProfession
+            },data.token);
+            pendingSignupProfession='';
+            outcomes.push(proposed.alreadyPending
+              ?'Tu solicitud de «'+suggestedProfession+'» ya estaba pendiente en Administración.'
+              :'Enviamos «'+suggestedProfession+'» a Administración para evaluar su incorporación.');
+            await loadMyProfessionRequests();
+          }catch(error){
+            // A failed secondary request NEVER cancels a successfully created
+            // account. Keep the term ready for retry in the professional panel.
+            el('proProfessionSearch').value=suggestedProfession;
+            renderProfessionFinder('proProfessionList','proProfessionSearch');
+            outcomes.push('Tu cuenta fue creada. La solicitud de «'+suggestedProfession+
+              '» no pudo enviarse: '+error.message+'. Podés reintentar desde «Consultar profesiones disponibles».');
+          }
+        }
+        outcomes.push('Tu cuenta sigue pendiente de verificación. Agregar un oficio no te habilita para trabajar.');
+        el('proProfessionSignupResult').textContent=outcomes.join(' ');
       }
     } catch(err) {
       feedback(err.message,true);
@@ -2772,6 +2833,7 @@ async function createLabRequest(event) {
   el('saveProServices').addEventListener('click',saveMyDeclaredServices);
   el('refreshServiceDeclarations').addEventListener('click',loadServiceReviews);
   el('guestProfessionSearch').addEventListener('input',()=>renderProfessionFinder('guestProfessionList','guestProfessionSearch'));
+  el('guestProfessionRequestButton').addEventListener('click',stageProfessionAtSignup);
   el('proProfessionSearch').addEventListener('input',()=>renderProfessionFinder('proProfessionList','proProfessionSearch'));
   el('proProfessionRequestButton').addEventListener('click',()=>void requestProfessionAddition());
   el('refreshProfessionRequests').addEventListener('click',()=>void loadAdminProfessionRequests());
