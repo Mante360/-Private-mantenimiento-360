@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import { checkJwtConfiguration } from './auth.js';
-import { requireAuth, requireRole } from './security.js';
+import { requireAuth, requireRole, requireVerifiedProfessionalForWork } from './security.js';
 import { authRouter } from './routes/auth.js';
 import { jobsRouter } from './routes/jobs.js';
 import { quotesRouter } from './routes/quotes.js';
@@ -84,8 +84,8 @@ app.get('/health', async (_req, res, next) => {
 app.use('/api/auth', authRouter);
 // Explicit global gate: subadmins cannot reach job, quote, claim or admin routes
 // even if an older route treats an unknown role as administrator.
-app.use('/api/jobs',requireAuth,requireRole('client','professional','admin'));
-app.use('/api/claims',requireAuth,requireRole('client','professional','admin'));
+app.use('/api/jobs',requireAuth,requireRole('client','professional','admin'),requireVerifiedProfessionalForWork);
+app.use('/api/claims',requireAuth,requireRole('client','professional','admin'),requireVerifiedProfessionalForWork);
 app.use('/api/admin',requireAuth,requireRole('admin'));
 app.use('/api/jobs', jobsRouter);
 app.use('/api/jobs', quotesRouter);
