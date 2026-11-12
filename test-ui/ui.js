@@ -1149,13 +1149,24 @@
     el('guest').hidden = !!profile;
     el('signedIn').hidden = !profile;
     if (!profile) return;
+    const professionalPending=profile.role==='professional' && profile.verificationStatus!=='approved';
+    const professionalCanWork=profile.role==='professional' && !professionalPending;
+    el('accessStatusTitle').textContent=professionalPending
+      ? 'Registro en revisión · acceso limitado'
+      : 'Sesión de prueba iniciada';
+    el('professionalOnboardingNotice').hidden=!professionalPending;
     el('profileName').textContent = profile.name || '—';
-    el('profileRole').textContent = profile.role === 'professional' ? 'Profesional' : profile.role === 'client' ? 'Cliente' : profile.role === 'subadmin' ? 'Subadministrador documental' : 'Administrador';
+    el('profileRole').textContent = profile.role === 'professional'
+      ? (professionalPending?'Aspirante profesional · pendiente de aprobación':'Profesional aprobado')
+      : profile.role === 'client' ? 'Cliente' : profile.role === 'subadmin'
+      ? 'Subadministrador documental' : 'Administrador';
     el('profileId').textContent = String(profile.id || '—');
     el('roleNotice').textContent = profile.role === 'admin'
       ? 'Administración de laboratorio: sólo aprobación ficticia, sin documentos personales.'
       : profile.role === 'professional'
-      ? 'Cuenta profesional de laboratorio. Consultá solicitudes disponibles y tus trabajos contratados. No hay datos reales.'
+      ? (professionalPending
+          ? 'Registro recibido, sin habilitación comercial. Completá tus documentos ficticios y solicitudes de oficios o servicios para revisión. No hay datos reales.'
+          : 'Cuenta profesional aprobada de laboratorio. Podés consultar las solicitudes habilitadas y tus trabajos de prueba.')
       : profile.role === 'subadmin'
       ? 'Revisor limitado de documentación ficticia. No tenés acceso a reclamos ni a aprobación general.'
       : 'Tu cuenta ficticia ya puede iniciar sesión. Las solicitudes serán exclusivamente de prueba.';
@@ -1164,13 +1175,13 @@
     el('documentReviewSection').hidden=!['admin','subadmin'].includes(profile.role);
     el('labSubadminManagement').hidden=profile.role!=='admin';
     el('labAuditSection').hidden=profile.role!=='admin';
-    el('refreshJobs').hidden=profile.role==='subadmin';
+    el('refreshJobs').hidden=profile.role==='subadmin'||professionalPending;
     el('proDocExpirySection').hidden=profile.role!=='professional';
     if(['admin','subadmin'].includes(profile.role))void loadLabDocumentsQueue();
     if(profile.role==='professional')void loadMyLabDocuments();
-    el('contractsSection').hidden = profile.role !== 'professional';
-    el('myQuotesSection').hidden = profile.role !== 'professional';
-    el('myVisitsSection').hidden = profile.role !== 'professional';
+    el('contractsSection').hidden = !professionalCanWork;
+    el('myQuotesSection').hidden = !professionalCanWork;
+    el('myVisitsSection').hidden = !professionalCanWork;
     el('myQuotesPanel').hidden=true;
     el('refreshMyQuotes').textContent='Ver presupuestos';
     el('refreshMyQuotes').setAttribute('aria-expanded','false');
@@ -1180,12 +1191,13 @@
       void loadMyDeclaredServices();
       void loadMyProfessionRequests();
     }
-    if(profile.role === 'professional') {
+    if(professionalCanWork) {
       void loadMyQuotes();
       if(window.labVisit)void window.labVisit.loadMine(openJob);
     }
-    if(profile.role!=='subadmin')void loadClaimInbox();
-    if (profile.role === 'professional') void loadContracts();
+    el('claimInboxSection').hidden=profile.role==='subadmin'||professionalPending;
+    if(profile.role!=='subadmin' && !professionalPending)void loadClaimInbox();
+    if (professionalCanWork) void loadContracts();
     
 el('clientRequestSection').hidden = profile.role !== 'client';
 if (profile.role === 'client') void loadClientSpecialties();
@@ -1206,7 +1218,9 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('regPassword').value = '';
     el('loginPassword').value = '';
     render();
-    feedback('Cuenta de prueba activa.');
+    feedback(profile.role==='professional' && profile.verificationStatus!=='approved'
+      ?'Registro recibido. Acceso limitado para completar documentación y solicitudes; Administración todavía no aprobó tu cuenta.'
+      :'Cuenta de prueba activa.');
   }
   async function handleRegistration(event) {
     event.preventDefault();
