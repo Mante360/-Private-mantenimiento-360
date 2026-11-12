@@ -142,13 +142,14 @@ try {
     description:'Sin luz en el tablero',locality:'Olivos'
   },userB.token),201,'Solicitud general del Cliente Dos');
 
-  const proUnverified=expectStatus(await get('/api/jobs',pro.token),200,'Pro no verificado');
-  assert.deepEqual(proUnverified,[]);
-  tests++;
+  // A new professional has a restricted onboarding session. No work APIs
+  // may be used until explicit professional approval, even with a valid token.
+  expectStatus(await get('/api/jobs',pro.token),403,'Profesional pendiente sin acceso a trabajos');
+  expectStatus(await get('/api/claims',pro.token),403,'Profesional pendiente sin acceso a reclamos de trabajo');
   expectStatus(await post('/api/jobs',{
     specialtyId:Number(refrigeration.id),description:'No autorizado',locality:'Olivos'
-  },pro.token),403,'Pro no puede crear trabajo como cliente');
-  expectStatus(await get('/api/jobs/'+jobB.id,pro.token),404,'Pro no ve trabajo ajeno');
+  },pro.token),403,'Pro pendiente no puede crear trabajo');
+  expectStatus(await get('/api/jobs/'+jobB.id,pro.token),403,'Pro pendiente no accede al detalle');
 
   // Synthetic CI setup only: verification, matching specialty and approved
   // service declaration are all needed before the client can request it.
