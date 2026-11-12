@@ -24,6 +24,8 @@ import {labDocumentsRouter} from './routes/lab-documents.js';
 import {labDocumentFilesRouter} from './routes/lab-document-files.js';
 import {ensureLabDocumentSchema} from './lab-document-setup.js';
 import { ensureLabProfessionCatalog } from './lab-professions.js';
+import {professionRequestsRouter} from './routes/lab-profession-requests.js';
+import {ensureLabProfessionRequestSchema} from './lab-profession-requests.js';
 import { ensureLabClaimReminderSchema } from './lab-claim-reminders.js';
 
 checkJwtConfiguration(); // Fail closed on weak/missing secret.
@@ -96,6 +98,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/admin/claim-performance', claimPerformanceRouter);
 app.use('/api/admin/claim-reminders', claimRemindersRouter);
 app.use('/api/catalog/professions', professionsRouter);
+app.use('/api/lab-profession-requests', professionRequestsRouter);
 app.use('/api/lab-services', labServicesRouter);
 app.use('/api/lab-documents', labDocumentsRouter);
 app.use('/api/lab-documents', labDocumentFilesRouter);
@@ -121,6 +124,7 @@ await ensureLabTechnicalSchema();
 await ensureLabVisitSchema();
 await ensureLabClaimReminderSchema();
 await ensureLabProfessionCatalog();
+await ensureLabProfessionRequestSchema();
 await ensureLabServiceOfferings();
 await ensureLabDocumentSchema();
 await seedLabAdminIfRequested();
