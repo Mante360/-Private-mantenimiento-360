@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { pool } from '../db.js';
 import { signAccessToken, renewAccessToken } from '../auth.js';
 import { requireAuth } from '../security.js';
+import { LAB_PROFESSION_REQUEST_DB } from '../lab-profession-requests.js';
 
 export const authRouter = Router();
 
@@ -14,7 +15,14 @@ const registerSchema = z.object({
   email: z.string().trim().email().max(255).transform(v => v.toLowerCase()),
   password: z.string().min(12).max(128),
   role: z.enum(['client', 'professional']).default('client'),
+  // Optional when a new professional cannot find their exact occupation.
+  // This only creates a pending proposal in the isolated lab database.
+  requestedProfession: z.string().trim().min(3).max(100)
+    .regex(/^[\p{L}\p{N}][\p{L}\p{N}\s.'-]*$/u).optional(),
 }).strict();
+const normalizedProfession=(value:string)=>value.normalize('NFD')
+  .replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-AR')
+  .replace(/\s+/g,' ').trim();
 
 authRouter.post('/register', async (req, res, next) => {
   const parsed = registerSchema.safeParse(req.body);
@@ -22,12 +30,23 @@ authRouter.post('/register', async (req, res, next) => {
     res.status(400).json({ error: 'invalid_input' });
     return;
   }
-  const { name, email, password, role } = parsed.data;
+  const { name, email, password, role, requestedProfession } = parsed.data;
+  if (requestedProfession && role !== 'professional') {
+    res.status(400).json({error:'profession_requires_professional_role'});return;
+  }
   const client = await pool.connect().catch(next);
   if (!client) return;
   try {
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     await client.query('BEGIN');
+    if(requestedProfession){
+      const database=await client.query('SELECT current_database() AS name');
+      if(database.rows[0]?.name!==LAB_PROFESSION_REQUEST_DB){
+        await client.query('ROLLBACK');
+        res.status(403).json({error:'test_database_only'});
+        return;
+      }
+    }
     const created = await client.query(
       `INSERT INTO users(name,email,password_hash,role,status)
        VALUES($1,$2,$3,$4,'active')
@@ -35,16 +54,40 @@ authRouter.post('/register', async (req, res, next) => {
       [name,email,passwordHash,role]
     );
     const user = created.rows[0];
+    let professionRequest:null|{requestedName:string;status:'pending'|'already_available'}=null;
     if (role === 'professional') {
       await client.query(
         `INSERT INTO professional_profiles(user_id,verification_status,available)
          VALUES($1,'pending',false)`,
         [user.id]
       );
+      if(requestedProfession){
+        const specialties=await client.query('SELECT name FROM specialties WHERE active=true');
+        const normalized=normalizedProfession(requestedProfession);
+        const exists=specialties.rows.some(row=>normalizedProfession(String(row.name))===normalized);
+        if(exists){
+          professionRequest={requestedName:requestedProfession,status:'already_available'};
+        }else{
+          const proposed=await client.query(
+            `INSERT INTO lab_profession_requests(professional_id,requested_name,normalized_name)
+             VALUES($1,$2,$3) RETURNING id::text`,
+            [user.id,requestedProfession,normalized]
+          );
+          await client.query(
+            `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+             VALUES($1,'lab_profession_requested','lab_profession_request',$2,$3::jsonb)`,
+            [user.id,proposed.rows[0].id,JSON.stringify({
+              scope:'lab',name:normalized,source:'professional_signup'
+            })]
+          );
+          professionRequest={requestedName:requestedProfession,status:'pending'};
+        }
+      }
     }
     await client.query('COMMIT');
     res.status(201).json({
       user: {...user, verificationStatus: role==='professional' ? 'pending' : null},
+      professionRequest,
       token: signAccessToken(String(user.id)),
       expiresIn: 1800,
     });
