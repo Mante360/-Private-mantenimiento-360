@@ -1239,11 +1239,26 @@ if (profile.role === 'client') void loadClientSpecialties();
       return;
     }
     const selectedServices=choice==='professional'?[...registrationServiceIds].map(Number):[];
-    const suggestedProfession=choice==='professional'?pendingSignupProfession:'';
+    // Also offer a suggestion if they typed an absent occupation but missed
+    // the smaller "add" button. A confirmation avoids silently treating
+    // generic service searches as new occupations.
+    let suggestedProfession=choice==='professional'?pendingSignupProfession:'';
+    if(choice==='professional' && !suggestedProfession && labProfessionCatalog.length){
+      const query=el('guestProfessionSearch').value.trim().replace(/\s+/g,' ');
+      if(query.length>=3 && query.length<=100 &&
+          /^[\p{L}\p{N}][\p{L}\p{N}\s.'-]*$/u.test(query) &&
+          !exactProfessionInCatalog(query)){
+        if(confirm('«'+query+'» no figura como oficio exacto. ¿Querés enviar esa profesión a Administración junto con tu registro?')){
+          suggestedProfession=query;
+        }
+      }
+    }
     const button=el('registerButton');
     button.disabled = true;
     try {
-      const data=await api('POST','/api/auth/register',{ name,email,password,role:choice },'');
+      const registration={name,email,password,role:choice};
+      if(suggestedProfession)registration.requestedProfession=suggestedProfession;
+      const data=await api('POST','/api/auth/register',registration,'');
       await activate(data);
       if(choice==='professional'){
         const outcomes=[];
@@ -1258,23 +1273,17 @@ if (profile.role === 'client') void loadClientSpecialties();
           }
         }
         if(suggestedProfession){
-          try{
-            const proposed=await api('POST','/api/lab-profession-requests/mine',{
-              name:suggestedProfession
-            },data.token);
-            pendingSignupProfession='';
-            outcomes.push(proposed.alreadyPending
-              ?'Tu solicitud de «'+suggestedProfession+'» ya estaba pendiente en Administración.'
-              :'Enviamos «'+suggestedProfession+'» a Administración para evaluar su incorporación.');
-            await loadMyProfessionRequests();
-          }catch(error){
-            // A failed secondary request NEVER cancels a successfully created
-            // account. Keep the term ready for retry in the professional panel.
-            el('proProfessionSearch').value=suggestedProfession;
-            renderProfessionFinder('proProfessionList','proProfessionSearch');
-            outcomes.push('Tu cuenta fue creada. La solicitud de «'+suggestedProfession+
-              '» no pudo enviarse: '+error.message+'. Podés reintentar desde «Consultar profesiones disponibles».');
+          // The account and the request are committed together on the server.
+          // A successful registration cannot leave an unsent occupation proposal.
+          pendingSignupProfession='';
+          if(data.professionRequest?.status==='pending'){
+            outcomes.push('La solicitud del oficio «'+suggestedProfession+
+              '» ya fue enviada a Administración con tu registro.');
+          }else if(data.professionRequest?.status==='already_available'){
+            outcomes.push('El oficio «'+suggestedProfession+
+              '» ya figura en el catálogo. Podés declararlo para revisión.');
           }
+          await loadMyProfessionRequests();
         }
         outcomes.push('Tu cuenta sigue pendiente de verificación. Agregar un oficio no te habilita para trabajar.');
         el('proProfessionSignupResult').textContent=outcomes.join(' ');
