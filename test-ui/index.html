@@ -96,30 +96,34 @@
           </dl>
           <p id="roleNotice" class="hint"></p>
           <section id="adminSection" class="admin-section" hidden>
-            <h3>Administración · entorno de pruebas</h3>
-            <p class="hint">Esta aprobación es sólo para pruebas: no verifica DNI ni identidad real. Elegí un profesional pendiente y su especialidad.</p>
-            <button type="button" id="prepareRefrigeration" class="secondary">Preparar Refrigeración y Reparación</button>
-            <button type="button" id="showPending" class="secondary">Actualizar profesionales</button>
-            <label for="adminProfessionalSelect">Profesional pendiente</label>
+            <h3>Profesionales pendientes de verificación: <span id="adminPendingProfessionalsCount">—</span></h3>
+            <p class="hint">Esta lista se carga automáticamente al ingresar. Elegí una PERSONA para revisar su cuenta. No se aprueban oficios nuevos desde este control.</p>
+            <label for="adminProfessionalSelect">Personas que esperan aprobación</label>
             <select id="adminProfessionalSelect"><option value="">Seleccionar profesional</option></select>
-            <label for="adminSpecialtySearch">Buscar oficio para aprobación</label>
-            <input id="adminSpecialtySearch" type="search" maxlength="100" placeholder="Ej.: sanitarista, refrigeración, jardinería">
-            <label for="adminSpecialtySelect">Especialidad para aprobar</label>
-            <select id="adminSpecialtySelect"><option value="">Seleccionar especialidad</option></select>
-            <div id="adminTarget" class="jobspanel">Esperando consulta.</div>
+            <button type="button" id="showPending" class="secondary">Actualizar lista de profesionales</button>
+            <label for="adminSpecialtySearch">Buscar el oficio que se asignaría a esa persona</label>
+            <input id="adminSpecialtySearch" type="search" maxlength="100" placeholder="Ej.: electricista, refrigeración, jardinería">
+            <label for="adminSpecialtySelect">Oficio para asociar al profesional (no se incorpora un oficio nuevo aquí)</label>
+            <select id="adminSpecialtySelect"><option value="">Seleccionar oficio</option></select>
+            <div id="adminTarget" class="jobspanel" role="status">Cargando profesionales pendientes...</div>
+            <p class="hint">Antes de aprobar una persona hay que verificar la documentación y los servicios. En este laboratorio la aprobación es ficticia y NO verifica identidad real.</p>
+            <button type="button" id="approveSelected" class="primary" disabled>Aprobar persona seleccionada (solo laboratorio)</button>
+            <details>
+              <summary>Herramientas adicionales de laboratorio</summary>
+              <button type="button" id="prepareRefrigeration" class="secondary">Preparar Refrigeración y Reparación de prueba</button>
+            </details>
             <section class="service-admin-review">
-              <h4>Declaraciones de servicios pendientes de revisión</h4>
-              <p class="hint">Administración revisa los servicios solicitados por cada profesional. Esta es una simulación con cuentas ficticias; no se verifica documentación real.</p>
-              <button type="button" class="secondary" id="refreshServiceDeclarations">Actualizar declaraciones</button>
-              <div id="adminServiceDeclarations" class="jobspanel" role="status"></div>
-            </section>
-            <section class="service-admin-review">
-              <h4>Solicitudes para agregar nuevos oficios</h4>
-              <p class="hint">Propuestas de profesionales de prueba. Solo Administración puede aprobar o descartar. Aprobar incorpora el nombre al catálogo, pero NO habilita automáticamente profesionales ni servicios.</p>
-              <button id="refreshProfessionRequests" type="button" class="secondary">Ver solicitudes de oficios</button>
+              <h3>Oficios nuevos solicitados: <span id="adminPendingProfessionsCount">—</span></h3>
+              <p class="hint">Este es OTRO trámite: agregar un oficio que todavía no existe en el catálogo. No verifica ni habilita a la persona que lo pidió.</p>
+              <button id="refreshProfessionRequests" type="button" class="secondary">Actualizar lista de oficios solicitados</button>
               <div id="adminProfessionRequests" class="jobspanel" role="status"></div>
             </section>
-            <button type="button" id="approveSelected" class="primary" disabled>Aprobar profesional seleccionado para la prueba</button>
+            <section class="service-admin-review">
+              <h4>Servicios que declararon los profesionales</h4>
+              <p class="hint">Revisión separada de los trabajos concretos ofrecidos, como reparación de lavarropas. No implica verificar la identidad real.</p>
+              <button type="button" class="secondary" id="refreshServiceDeclarations">Actualizar servicios declarados</button>
+              <div id="adminServiceDeclarations" class="jobspanel" role="status"></div>
+            </section>
             <section class="admin-section">
               <h3>Reclamos de trabajos · Laboratorio</h3>
               <h4>Reclamos sin resolver</h4>
