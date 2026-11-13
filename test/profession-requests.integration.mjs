@@ -63,6 +63,48 @@ try{
   assert.ok(catalog.some(p=>p.title==='Peluquero Canino'));checks++;
   assert.ok(!catalog.some(p=>p.title==='Peluquero'));checks++;
 
+  // Single registration action: a new user proposes an absent profession while
+  // creating their account; both must be persisted in the same transaction.
+  const newPanadero=check(await request('POST','/api/auth/register',null,{
+    name:'Maestro Panadero CI',email:'panadero-ci@test.invalid',
+    role:'professional',password,requestedProfession:'Panadero'
+  }),201,'Signup registers person and occupation in one operation');
+  assert.equal(newPanadero.user.verificationStatus,'pending');checks++;
+  assert.equal(newPanadero.professionRequest?.status,'pending');checks++;
+  assert.equal(newPanadero.professionRequest?.requestedName,'Panadero');checks++;
+  const panaderoMine=check(await request('GET','/api/lab-profession-requests/mine',newPanadero.token),
+    200,'Brand-new professional sees own occupation proposal');
+  assert.ok(panaderoMine.items.some(item=>item.requested_name==='Panadero'&&item.status==='pending'));checks++;
+  const panaderoPending=check(await request('GET','/api/lab-profession-requests/pending',admin.token),
+    200,'Admin sees new signup occupation automatically');
+  assert.ok(panaderoPending.items.some(item=>item.requested_name==='Panadero' &&
+    item.professional_name==='Maestro Panadero CI'));checks++;
+  check(await request('GET','/api/jobs',newPanadero.token),403,
+    'Signup with requested occupation cannot browse jobs');
+  const panaderoVerification=await database.query(
+    'SELECT verification_status,available FROM professional_profiles WHERE user_id=$1',
+    [newPanadero.user.id]
+  );
+  assert.equal(panaderoVerification.rows[0].verification_status,'pending');checks++;
+  assert.equal(panaderoVerification.rows[0].available,false);checks++;
+
+  check(await request('POST','/api/auth/register',null,{
+    name:'Invalid Client Suggestion',email:'bad-suggestion@test.invalid',
+    role:'client',password,requestedProfession:'Panadero'
+  }),400,'Client cannot request a professional occupation on signup');
+  const forbidden=await database.query('SELECT id FROM users WHERE email=$1',['bad-suggestion@test.invalid']);
+  assert.equal(forbidden.rowCount,0);checks++;
+  const existingOccupation=check(await request('POST','/api/auth/register',null,{
+    name:'Existing Profession CI',email:'existing-ci@test.invalid',
+    role:'professional',password,requestedProfession:'Peluquero Canino'
+  }),201,'Signup never queues an occupation already present in the catalog');
+  assert.equal(existingOccupation.professionRequest.status,'already_available');checks++;
+  const existingProposals=await database.query(
+    'SELECT count(*)::int AS total FROM lab_profession_requests WHERE professional_id=$1',
+    [existingOccupation.user.id]
+  );
+  assert.equal(existingProposals.rows[0].total,0);checks++;
+
   check(await request('POST','/api/lab-profession-requests/mine',client.token,{name:'Peluquero'}),403,
     'Client must not propose professional occupation');
   check(await request('POST','/api/lab-profession-requests/mine',null,{name:'Peluquero'}),401,
@@ -132,7 +174,7 @@ try{
     `SELECT action,count(*)::int AS count FROM audit_events
      WHERE resource_type='lab_profession_request' GROUP BY action`
   );
-  assert.equal(audit.rows.find(x=>x.action==='lab_profession_requested')?.count,2);checks++;
+  assert.equal(audit.rows.find(x=>x.action==='lab_profession_requested')?.count,3);checks++;
   assert.equal(audit.rows.find(x=>x.action==='lab_profession_request_reviewed')?.count,2);checks++;
 
   console.log('OK: '+checks+' controles del circuito de nuevas profesiones y permisos');
