@@ -723,9 +723,12 @@
   async function loadAdminProfessionRequests(){
     if(profile?.role!=='admin')return;
     const panel=el('adminProfessionRequests');
-    panel.textContent='Consultando propuestas de oficios...';
+    const counter=el('adminPendingProfessionsCount');
+    counter.textContent='…';
+    panel.textContent='Consultando oficios solicitados...';
     try{
       const result=await api('GET','/api/lab-profession-requests/pending');
+      counter.textContent=String(result.items?.length||0);
       panel.replaceChildren();
       if(!result.items?.length){
         panel.textContent='No hay nuevas solicitudes de oficios pendientes.';return;
@@ -756,6 +759,7 @@
             labProfessionCatalogPromise=null;
             await fetchLabProfessionCatalog();
             await loadAdminProfessionRequests();
+            await loadProfessionals();
           }catch(error){
             status.textContent='No se pudo resolver la solicitud: '+error.message;
             approve.disabled=false;reject.disabled=false;
@@ -766,7 +770,10 @@
         row.append(title,note,approve,reject,status);
         panel.append(row);
       }
-    }catch(error){panel.textContent='No se pudieron consultar las propuestas: '+error.message;}
+    }catch(error){
+      counter.textContent='—';
+      panel.textContent='No se pudieron consultar las propuestas: '+error.message;
+    }
   }
 
   function renderProfessionFinder(panelId,searchId){
@@ -2730,10 +2737,13 @@ async function createLabRequest(event) {
     labProfessional = selectedProfessional();
     labCategoryId = Number(el('adminSpecialtySelect').value) || null;
     const target = el('adminTarget');
-    target.textContent = labProfessional
-      ? 'Profesional: ' + labProfessional.name + ' | ID: ' + labProfessional.id +
-        '\\nEstado: ' + labProfessional.verification_status
-      : 'Elegí un profesional pendiente para aprobar.';
+    const chosenSpecialty=labCategories.find(c=>String(c.id)===String(labCategoryId));
+    target.textContent=labProfessional
+      ? 'PERSONA: '+labProfessional.name+' (ID '+labProfessional.id+')'+
+        '\nESTADO: pendiente de verificación'+
+        '\nOFICIO QUE SE ASOCIARÍA: '+(chosenSpecialty?.name||'ninguno seleccionado')+
+        '\nEste paso no agrega oficios nuevos.'
+      : 'Elegí una PERSONA de la lista. Sin revisar sus datos y seleccionar un oficio, no podés aprobarla.';
     el('approveSelected').disabled = !labProfessional ||
       labProfessional.verification_status !== 'pending' || !labCategoryId;
     // Password recovery remains strictly restricted to the original ID 4.
@@ -2741,7 +2751,9 @@ async function createLabRequest(event) {
   }
   async function loadProfessionals() {
     const target = el('adminTarget');
-    target.textContent = 'Consultando cuentas de prueba...';
+    const counter=el('adminPendingProfessionalsCount');
+    counter.textContent='…';
+    target.textContent = 'Actualizando personas pendientes...';
     el('approveSelected').disabled = true;
     try {
       const [pros, categories] = await Promise.all([
@@ -2753,17 +2765,17 @@ async function createLabRequest(event) {
       const previousPro = el('adminProfessionalSelect').value;
       const previousSpecialty = el('adminSpecialtySelect').value;
       const pending = pros.filter(p => p.verification_status === 'pending');
+      counter.textContent=String(pending.length);
       const proSelect = el('adminProfessionalSelect');
       proSelect.replaceChildren(new Option('Seleccionar profesional', ''));
       pending.forEach(p => proSelect.add(new Option(p.name + ' (ID ' + p.id + ')', String(p.id))));
       if (pending.some(p => String(p.id) === previousPro)) proSelect.value = previousPro;
       renderAdminSpecialtyOptions(previousSpecialty);
-      target.textContent = pending.length
-        ? 'Profesionales pendientes: ' + pending.length + '. Seleccioná uno y elegí su especialidad.'
-        : 'No hay profesionales pendientes de aprobación.';
       updateAdminSelection();
+      if(!pending.length)target.textContent='No hay personas pendientes de aprobación.';
     } catch(error) {
-      target.textContent = error.message;
+      counter.textContent='—';
+      target.textContent = 'No se pudo actualizar la lista: '+error.message;
       el('approveSelected').disabled = true;
     }
   }
@@ -2786,7 +2798,11 @@ async function createLabRequest(event) {
     const person = labProfessional;
     const specialtyId = labCategoryId;
     if (!person || person.verification_status !== 'pending' || !specialtyId) return;
-    if (!confirm('¿Aprobar para PRUEBAS a ' + person.name + ' (ID ' + person.id + ')?')) return;
+    const occupation=labCategories.find(c=>String(c.id)===String(specialtyId));
+    if(!occupation)return;
+    if (!confirm('SOLO LABORATORIO: ¿Aprobar a la PERSONA '+person.name+
+      ' (ID '+person.id+') para el OFICIO «'+occupation.name+
+      '»? Esto NO aprueba otros oficios ni reemplaza la verificación real de documentos.')) return;
     const button = el('approveSelected');
     button.disabled = true;
     try {
