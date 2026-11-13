@@ -56,8 +56,8 @@
             <p class="hint">Catálogo orientativo. La búsqueda no asigna automáticamente especialidades ni acredita habilitaciones; Administración revisa cada alta.</p>
             <div id="guestProfessionList" class="jobspanel" role="status"></div>
             <div id="guestProfessionRequestBox" class="admin-section" hidden>
-              <p class="hint">¿Tu oficio exacto no aparece? Podés pedir que Administración lo evalúe mientras te registrás. Aunque veas un oficio parecido, no se agrega automáticamente.</p>
-              <button id="guestProfessionRequestButton" type="button" class="secondary">Solicitar este oficio al registrarme</button>
+              <p class="hint">¿No aparece tu profesión exacta? Podés agregarla a esta inscripción. No hace falta registrarte, entrar de nuevo y pedirla por segunda vez.</p>
+              <button id="guestProfessionRequestButton" type="button" class="secondary">Incluir este oficio en mi registro</button>
               <p id="guestProfessionRequestStatus" class="hint" role="status" aria-live="polite"></p>
             </div>
             <p class="hint">Si lo que buscás es un trabajo concreto, como reparar lavarropas, marcá los servicios de abajo. Distintos oficios pueden ofrecer el mismo trabajo.</p>
@@ -67,6 +67,7 @@
             <input id="regServiceSearch" type="search" placeholder="Ej.: lavarropas, heladera, secarropas" maxlength="100">
             <div id="regServiceChoices" class="service-select-list" aria-label="Servicios declarados al registrarse"></div>
           </section>
+          <p class="hint">Si solicitaste incorporar un oficio, Administración lo recibirá junto con tu registro. El oficio y tu verificación profesional se aprueban por separado.</p>
           <button class="primary" type="submit" id="registerButton">Crear cuenta de prueba</button>
         </form>
         <form id="loginForm" autocomplete="off" hidden>
