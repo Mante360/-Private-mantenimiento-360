@@ -1153,6 +1153,11 @@
   }
   function render() {
     document.body.classList.toggle('lab-signed-in', !!profile);
+    // The role is reflected in the document to enforce visibility independent
+    // of any asynchronous refresh of a panel left over from another session.
+    document.body.dataset.labRole=!profile?'guest':
+      profile.role==='professional' && profile.verificationStatus!=='approved'
+        ?'professional-pending':profile.role;
     el('guest').hidden = !!profile;
     el('signedIn').hidden = !profile;
     if (!profile) return;
@@ -2080,14 +2085,24 @@ if (profile.role === 'client') void loadClientSpecialties();
 
   async function loadClaimInbox() {
     const section=el('claimInboxSection');
-    section.hidden=!profile || !['client','professional'].includes(profile.role);
-    if(section.hidden)return;
+    const allowed=profile?.role==='client' ||
+      (profile?.role==='professional' && profile.verificationStatus==='approved');
+    section.hidden=!allowed;
+    if(!allowed){
+      el('claimInboxPanel').replaceChildren();
+      return;
+    }
+    const viewerId=profile.id;
     const panel=el('claimInboxPanel');
     panel.textContent='Consultando reclamos pendientes...';
     try {
       const claims=(await api('GET','/api/claims')).filter(c=>['open','in_review'].includes(c.status));
+      if(!profile || profile.id!==viewerId || !['client','professional'].includes(profile.role) ||
+          profile.role==='professional' && profile.verificationStatus!=='approved')return;
       await renderClaimCards(panel,claims);
-    }catch(error){panel.textContent='No se pudieron cargar reclamos: '+error.message;}
+    }catch(error){
+      if(profile?.id===viewerId)panel.textContent='No se pudieron cargar reclamos: '+error.message;
+    }
   }
 
   // Liquidaciones, etapa 1: cierres reales y validación documental.
