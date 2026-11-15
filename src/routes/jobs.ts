@@ -435,6 +435,79 @@ jobsRouter.get('/:id/private-address', requireRole('client','professional'), asy
   }catch(error){next(error);}
 });
 
+/**
+ * Client-owned address corrections. Before any selection, the owner can
+ * correct an address. Once a visit/contract is selected, an existing address
+ * is locked to avoid silently changing where the professional must attend.
+ * For older jobs with no address, the owner may complete it ONCE until work
+ * finishes. Every change is audited without ever storing the address in logs.
+ */
+const privateAddressInput=z.object({
+  exactAddress:z.string().trim().min(8).max(240)
+    .refine(value=>!/[\\u0000-\\u001f\\u007f]/.test(value))
+}).strict();
+
+jobsRouter.patch('/:id/private-address',requireRole('client'),async(req,res,next)=>{
+  const id=z.coerce.number().int().positive().safeParse(req.params.id);
+  const parsed=privateAddressInput.safeParse(req.body);
+  if(!id.success||!parsed.success){
+    res.status(400).json({error:'invalid_address_input'});return;
+  }
+  const db=await pool.connect();
+  let active=false;
+  try{
+    await db.query('BEGIN');active=true;
+    const found=await db.query(
+      'SELECT id,status,exact_address FROM jobs WHERE id=$1 AND client_id=$2 FOR UPDATE',
+      [id.data,req.authUser!.id]
+    );
+    const job=found.rows[0];
+    if(!job){
+      await db.query('ROLLBACK');active=false;
+      res.status(404).json({error:'job_not_found'});return;
+    }
+    const beforeSelection=['requested','quoted'].includes(job.status);
+    const firstTimeAfterSelection=job.exact_address===null &&
+      ['accepted','confirmed','in_progress'].includes(job.status);
+    if(!beforeSelection&&!firstTimeAfterSelection){
+      await db.query('ROLLBACK');active=false;
+      res.status(409).json({error:'address_locked_after_selection'});return;
+    }
+    if(job.exact_address===parsed.data.exactAddress){
+      await db.query('ROLLBACK');active=false;
+      res.json({jobId:job.id,updated:false,status:job.status});
+      return;
+    }
+    await db.query(
+      'UPDATE jobs SET exact_address=$2,updated_at=now() WHERE id=$1',
+      [id.data,parsed.data.exactAddress]
+    );
+    const action=job.exact_address===null?'client_private_address_added':
+      'client_private_address_corrected';
+    await db.query(
+      `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+       VALUES($1,$2,'job',$3,$4::jsonb)`,
+      [req.authUser!.id,action,String(id.data),
+        JSON.stringify({jobStatus:job.status,scope:'private',containsAddress:false})]
+    );
+    // This generic event is visible to the selected professional via the
+    // contract timeline. It never includes a street, number or apartment.
+    await db.query(
+      `INSERT INTO job_status_events(job_id,actor_id,old_status,new_status,note)
+       VALUES($1,$2,$3,$3,$4)`,
+      [id.data,req.authUser!.id,job.status,
+       firstTimeAfterSelection
+         ?'El cliente completó una dirección privada pendiente. El profesional contratado debe consultarla.'
+         :'El cliente actualizó la dirección privada de la solicitud.']
+    );
+    await db.query('COMMIT');active=false;
+    res.json({jobId:job.id,updated:true,status:job.status});
+  }catch(error){
+    if(active)await db.query('ROLLBACK').catch(()=>undefined);
+    next(error);
+  }finally{db.release();}
+});
+
 // The ordinary job detail intentionally excludes exact_address.
 jobsRouter.get('/:id', async (req, res, next) => {
   const id = z.coerce.number().int().positive().safeParse(req.params.id);
