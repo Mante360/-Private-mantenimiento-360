@@ -22,6 +22,17 @@
     labProfessional=null;
     labCategoryId=null;
     sessionStorage.removeItem(tokenKey);
+    // Never retain a previous session's home address or conversation in the DOM.
+    if(el('jobPrivateAddressSection')){
+      el('jobPrivateAddressSection').hidden=true;
+      el('jobPrivateAddressText').textContent='';
+      el('jobPrivateAddressEditForm').hidden=true;
+      el('jobPrivateAddressInput').value='';
+    }
+    if(el('jobMessagesSection')){
+      el('jobMessagesSection').hidden=true;
+      el('jobMessagesList').replaceChildren();
+    }
     render();
     view('login');
     el('sessionExpiredNotice').hidden=false;
@@ -1347,6 +1358,9 @@ if (profile.role === 'client') void loadClientSpecialties();
     privateAddressVersion++;
     el('jobPrivateAddressSection').hidden=true;
     el('jobPrivateAddressText').textContent='';
+    el('jobPrivateAddressEditForm').hidden=true;
+    el('jobPrivateAddressInput').value='';
+    el('jobPrivateAddressFeedback').textContent='';
   }
   async function loadJobPrivateAddress(job){
     clearJobPrivateAddress();
@@ -1365,13 +1379,47 @@ if (profile.role === 'client') void loadClientSpecialties();
         profile?.id!==currentUser)return;
       el('jobPrivateAddressText').textContent=address.exactAddress ||
         'Esta solicitud anterior no tiene una dirección exacta registrada.';
+      const owner=profile?.role==='client';
+      const editable=owner&&(['requested','quoted'].includes(job.status) ||
+        (!address.exactAddress&&['accepted','confirmed','in_progress'].includes(job.status)));
+      el('jobPrivateAddressEditForm').hidden=!editable;
+      if(editable)el('jobPrivateAddressInput').value=address.exactAddress||'';
     }catch(error){
       if(requestVersion!==privateAddressVersion||
         String(openedJob?.id)!==String(job.id))return;
       // Do not reveal details about another user's private address.
       el('jobPrivateAddressSection').hidden=true;
       el('jobPrivateAddressText').textContent='';
+      el('jobPrivateAddressEditForm').hidden=true;
     }
+  }
+  async function saveJobPrivateAddress(event){
+    event.preventDefault();
+    const job=openedJob;
+    if(profile?.role!=='client'||!job||el('jobPrivateAddressEditForm').hidden)return;
+    const address=el('jobPrivateAddressInput').value.trim();
+    if(address.length<8||address.length>240)return;
+    const button=el('jobPrivateAddressSaveButton');
+    const legacy=['accepted','confirmed','in_progress'].includes(job.status);
+    const notice=legacy
+      ?'Esta solicitud ya tiene un profesional seleccionado. Solo podrás agregar una dirección si estaba vacía. El cambio quedará registrado y el profesional debe revisar la nueva ubicación. ¿Continuar?'
+      :'¿Guardar o corregir la dirección privada de esta solicitud ficticia?';
+    if(!confirm(notice))return;
+    button.disabled=true;
+    try{
+      const response=await api('PATCH','/api/jobs/'+encodeURIComponent(String(job.id))+
+        '/private-address',{exactAddress:address});
+      if(String(openedJob?.id)!==String(job.id))return;
+      await loadJobPrivateAddress(job);
+      el('jobPrivateAddressFeedback').textContent=response.updated
+        ?'Dirección privada guardada y modificación registrada. No apareció en el listado público.'
+        :'La dirección ya estaba guardada; no hubo cambios.';
+      if(response.updated)void loadJobTimeline(job);
+    }catch(error){
+      if(String(openedJob?.id)===String(job.id))
+        el('jobPrivateAddressFeedback').textContent=
+          'No se pudo modificar la dirección: '+error.message;
+    }finally{button.disabled=false;}
   }
   let messagePageHasMore = false;
   let messageOldestId = null;
@@ -3094,6 +3142,7 @@ async function createLabRequest(event) {
     if(messagePageHasMore && messageOldestId)void loadJobMessages(true);
   });
   el('jobMessageForm').addEventListener('submit',sendJobMessage);
+  el('jobPrivateAddressEditForm').addEventListener('submit',saveJobPrivateAddress);
   el('refreshContracts').addEventListener('click',loadContracts);
   el('refreshMyQuotes').addEventListener('click',toggleMyQuotes);
   
@@ -3167,6 +3216,7 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
     el('newProfessionalPassword').value='';
     sessionStorage.removeItem(tokenKey);
     closeJobMessages();
+    clearJobPrivateAddress();
     openedJob=null;
     el('sessionExpiredNotice').hidden=true;
     render();
