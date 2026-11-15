@@ -124,7 +124,7 @@ try {
 
   expectStatus(await post('/api/jobs', {
     specialtyId: Number(refrigeration.id), serviceId: Number(repair.id),
-    description: 'Quiero atribuir a otro usuario', locality: 'San Isidro',
+    description: 'Quiero atribuir a otro usuario', locality: 'San Isidro',exactAddress:'Calle Ficticia 123, Piso 2',
     clientId: userB.user.id,
   }, userA.token), 400, 'Cliente no puede falsificar propietario');
 
@@ -132,14 +132,14 @@ try {
   // No job for an explicitly selected service until a reviewed professional offers it.
   const repairRequest={
     specialtyId:Number(refrigeration.id),serviceId:Number(repair.id),
-    description:'Reparacion de heladera',locality:'San Isidro'
+    description:'Reparacion de heladera',locality:'San Isidro',exactAddress:'Calle Ficticia 123, Piso 2'
   };
   expectStatus(await post('/api/jobs',repairRequest,userA.token),409,
     'Servicio sin profesional habilitado rechazado');
 
   const jobB=expectStatus(await post('/api/jobs',{
     specialtyId:Number(electricity.id),
-    description:'Sin luz en el tablero',locality:'Olivos'
+    description:'Sin luz en el tablero',locality:'Olivos',exactAddress:'Calle Ficticia 123, Piso 2'
   },userB.token),201,'Solicitud general del Cliente Dos');
 
   // A new professional has a restricted onboarding session. No work APIs
@@ -147,7 +147,7 @@ try {
   expectStatus(await get('/api/jobs',pro.token),403,'Profesional pendiente sin acceso a trabajos');
   expectStatus(await get('/api/claims',pro.token),403,'Profesional pendiente sin acceso a reclamos de trabajo');
   expectStatus(await post('/api/jobs',{
-    specialtyId:Number(refrigeration.id),description:'No autorizado',locality:'Olivos'
+    specialtyId:Number(refrigeration.id),description:'No autorizado',locality:'Olivos',exactAddress:'Calle Ficticia 123, Piso 2'
   },pro.token),403,'Pro pendiente no puede crear trabajo');
   expectStatus(await get('/api/jobs/'+jobB.id,pro.token),403,'Pro pendiente no accede al detalle');
 
@@ -184,7 +184,7 @@ try {
   // the zero-warranty scenario is exercised after the first claim is opened.
   const zeroJob=expectStatus(await post('/api/jobs',{
     specialtyId:Number(refrigeration.id),serviceId:Number(repair.id),
-    description:'Reparacion sin garantia',locality:'Olivos'
+    description:'Reparacion sin garantia',locality:'Olivos',exactAddress:'Calle Ficticia 123, Piso 2'
   },userB.token),201,'Solicitud previa a reclamo para prueba sin garantia');
 
   const [quote] = await query(
@@ -365,7 +365,7 @@ try {
   tests++;
   const testJob=expectStatus(await post('/api/jobs',{
     specialtyId:Number(cat.id),description:'Revisión de refrigeración de prueba',
-    locality:'Beccar'
+    locality:'Beccar',exactAddress:'Calle Ficticia 123, Piso 2'
   },userB.token),201,'Cliente crea solicitud del rubro aprobado');
   const approvedFeed=expectStatus(await get('/api/jobs',pendingLab.token),200,
     'Profesional aprobado consulta sus solicitudes');
