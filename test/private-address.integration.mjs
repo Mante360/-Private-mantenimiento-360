@@ -27,6 +27,7 @@ function check(res,expected,label){
 }
 const get=(path,t)=>req('GET',path,t);
 const post=(path,t,b)=>req('POST',path,t,b);
+const patch=(path,t,b)=>req('PATCH',path,t,b);
 async function user(role,name,email){
  return check(await post('/api/auth/register',null,{role,name,email,password}),201,'Register '+name);
 }
@@ -102,6 +103,38 @@ try {
  absent(check(await get(path,owner.token),200,'Client general job detail'),address,'Client detail');
  absent(check(await get(path,admin.token),200,'Admin job detail'),address,'Admin detail');
 
+ // Only the client can correct a pending address. The correction is not
+ // written into public summaries, notifications or audit metadata.
+ const tentativeAddress='Calle Ficticia 111, planta baja - VERSION 1';
+ check(await patch(addr,null,{exactAddress:tentativeAddress}),401,
+   'Unauthenticated address edit rejected');
+ check(await patch(addr,stranger.token,{exactAddress:tentativeAddress}),404,
+   'Unrelated client cannot edit owner address');
+ check(await patch(addr,p1.token,{exactAddress:tentativeAddress}),403,
+   'Professional cannot change client address');
+ check(await patch(addr,admin.token,{exactAddress:tentativeAddress}),403,
+   'Even administrator cannot silently change home address');
+ check(await patch(addr,reviewer.token,{exactAddress:tentativeAddress}),403,
+   'Document-only reviewer cannot change address');
+ check(await patch(addr,owner.token,{exactAddress:'xx'}),400,
+   'Reject invalid address edit');
+ check(await patch(addr,owner.token,{exactAddress:tentativeAddress,actorId:p2.user.id}),400,
+   'Disallow forging editor identity');
+ const changed=check(await patch(addr,owner.token,{exactAddress:tentativeAddress}),200,
+   'Owner may correct an unselected request');
+ assert.equal(changed.updated,true);checks++;
+ assert.equal(check(await get(addr,owner.token),200,'Owner reads corrected address').exactAddress,
+   tentativeAddress);checks++;
+ absent(check(await get('/api/jobs',p1.token),200,'Pros cannot see edited address'),
+   tentativeAddress,'Updated pending job feed');
+ absent(check(await get(path,owner.token),200,'Job detail excludes corrections'),
+   tentativeAddress,'Updated job detail');
+ const unchanged=check(await patch(addr,owner.token,{exactAddress:tentativeAddress}),200,
+   'Repeated identical address does nothing');
+ assert.equal(unchanged.updated,false);checks++;
+ check(await patch(addr,owner.token,{exactAddress:address}),200,
+   'Owner corrects typo before quotation');
+
  const q1=check(await post(path+'/quotes',p1.token,{amount:52000,
   description:'Reparación ficticia uno',warrantyDays:30}),201,'First quote');
  const q2=check(await post(path+'/quotes',p2.token,{amount:54000,
@@ -109,6 +142,12 @@ try {
  absent(check(await get(path+'/quotes',owner.token),200,'Owner views quotes'),address,'Quotes');
  check(await get(addr,p1.token),404,'Offer submission does not release address');
  check(await get(addr,p2.token),404,'Other offer still blocked');
+ check(await patch(addr,owner.token,{exactAddress:'Calle Inventada 444, puerta 3'}),200,
+   'Owner can correct address after quotes but before hiring');
+ assert.equal(check(await get(addr,owner.token),200,'Owner verifies quoted job').exactAddress,
+   'Calle Inventada 444, puerta 3');checks++;
+ check(await patch(addr,owner.token,{exactAddress:address}),200,
+   'Owner restores private address before choosing');
  const selection=check(await post(path+'/accept-quote',owner.token,{quoteId:Number(q2.id)}),200,
   'Owner selects one professional');
  assert.equal(selection.paymentProcessed,false);checks++;
@@ -117,6 +156,14 @@ try {
  check(await get(addr,p1.token),404,'Rejected professional cannot see address');
  check(await get(addr,stranger.token),404,'Unrelated client stays blocked');
  check(await get(addr,admin.token),403,'Admin still denied after hiring');
+ check(await patch(addr,owner.token,{exactAddress:'Direccion Cambiada 999, luego contrato'}),409,
+   'Once hired, an existing address is locked to avoid silent changes');
+ const audit=(await db.query(
+   "SELECT action,metadata FROM audit_events WHERE resource_type='job' AND resource_id=$1 AND action LIKE 'client_private_address_%' ORDER BY id",
+   [String(created.id)])).rows;
+ assert.ok(audit.length>=3,'Every real correction is audited');checks++;
+ assert.ok(audit.every(x=>!JSON.stringify(x.metadata).includes('Calle') &&
+   x.metadata.containsAddress===false),'Audit must never contain street details');checks++;
  absent(check(await get('/api/jobs/mine',p2.token),200,'Hired pro contracts list'),address,
   'Contract list');
  absent(check(await get(path,p2.token),200,'Hired pro general details'),address,
@@ -151,6 +198,64 @@ try {
  check(await get(vUrl+'/private-address',admin.token),403,'No admin silent visit address access');
  absent(check(await get('/api/jobs/mine',p2.token),200,'Unselected contract list'),visitAddress,
   'Other pro contract list');
+
+ // A legacy job already assigned, but lacking an address, can be completed
+ // exactly once. Concurrent submissions must never silently overwrite it.
+ const legacy=check(await post('/api/jobs',owner.token,{
+   ...base,description:'Solicitud heredada sin calle guardada',
+   exactAddress:'Dirección Inicial Ficticia 200'
+ }),201,'Create test job before simulating legacy data');
+ const legacyQuote=check(await post('/api/jobs/'+legacy.id+'/quotes',p2.token,{
+   amount:32000,description:'Trabajo heredado de prueba',warrantyDays:20
+ }),201,'Legacy quote');
+ check(await post('/api/jobs/'+legacy.id+'/accept-quote',owner.token,{
+   quoteId:Number(legacyQuote.id)
+ }),200,'Legacy contract assigned');
+ // CI ONLY: reproduce an older job created when no private address existed.
+ await db.query('UPDATE jobs SET exact_address=NULL WHERE id=$1',[legacy.id]);
+ assert.equal(check(await get('/api/jobs/'+legacy.id+'/private-address',owner.token),200,
+   'Legacy record starts without address').exactAddress,null);checks++;
+ const candidates=[
+   'Pasaje Inventado 777, depto 1 - CORRECCION LEGACY A',
+   'Pasaje Inventado 888, depto 2 - CORRECCION LEGACY B'
+ ];
+ const race=await Promise.all(candidates.map(exactAddress=>patch(
+   '/api/jobs/'+legacy.id+'/private-address',owner.token,{exactAddress}
+ )));
+ assert.deepEqual(race.map(r=>r.status).sort((a,b)=>a-b),[200,409],
+   'A legacy selected address can be completed once but not overwritten');checks++;
+ const actual=check(await get('/api/jobs/'+legacy.id+'/private-address',p2.token),200,
+   'Hired professional sees completed legacy address').exactAddress;
+ assert.ok(candidates.includes(actual));checks++;
+ check(await get('/api/jobs/'+legacy.id+'/private-address',p1.token),404,
+   'Unselected professional remains unable to see legacy address');
+ const auditLegacy=(await db.query(
+   "SELECT metadata FROM audit_events WHERE action='client_private_address_added' AND resource_id=$1",
+   [String(legacy.id)])).rows;
+ assert.equal(auditLegacy.length,1);checks++;
+ assert.ok(!JSON.stringify(auditLegacy).includes(actual));checks++;
+ const historyLegacy=check(await get('/api/jobs/'+legacy.id+'/events',p2.token),200,
+   'Hired professional can see generic location-update notice');
+ assert.ok(historyLegacy.some(event=>event.note?.includes('completó una dirección privada')));
+ checks++;
+ assert.ok(!JSON.stringify(historyLegacy).includes(actual),'Timeline does not expose street');checks++;
+ check(await patch('/api/jobs/'+legacy.id+'/private-address',owner.token,{
+   exactAddress:'Tercera calle ficticia 123'
+ }),409,'Client cannot overwrite completed legacy address after hiring');
+
+ // An accepted diagnostic visit permits a single missing-address completion.
+ await db.query('UPDATE jobs SET exact_address=NULL WHERE id=$1',[visitJob.id]);
+ check(await patch(vUrl+'/private-address',owner.token,{
+   exactAddress:'Nueva Dirección de Visita 345, Local 6'
+ }),200,'Client fills absent address for selected technician');
+ assert.equal(check(await get(vUrl+'/private-address',p1.token),200,
+   'Chosen technician gets updated private visit address').exactAddress,
+   'Nueva Dirección de Visita 345, Local 6');checks++;
+ check(await get(vUrl+'/private-address',p2.token),404,
+   'Unselected technician cannot see completed visit address');
+ check(await patch(vUrl+'/private-address',owner.token,{
+   exactAddress:'Intento Reemplazo Visita 999'
+ }),409,'Accepted technical visit address cannot be silently replaced');
 
  console.log('OK: '+checks+' pruebas de dirección privada, seguridad de acceso y visita contratada');
 }finally{
