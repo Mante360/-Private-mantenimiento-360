@@ -66,7 +66,7 @@ try{
   checks++;
   const newJob=description=>api('POST','/api/jobs',client.token,{
     specialtyId:Number(specialty.id),serviceId:Number(service.id),
-    description,locality:'San Isidro'
+    description,locality:'San Isidro',exactAddress:'Calle Ficticia 123, Piso 2'
   });
   const one=await newJob('Cotizaciones y Mercado Pago completamente ficticio');
   const quotes=[];
