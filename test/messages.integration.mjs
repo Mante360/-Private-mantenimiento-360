@@ -71,7 +71,7 @@ try{
   }
   const job=expect(await post('/api/jobs',client.token,{
     specialtyId:Number(trade.id),serviceId:Number(service.id),
-    description:'Servicio de prueba de chat privado',locality:'San Isidro'
+    description:'Servicio de prueba de chat privado',locality:'San Isidro',exactAddress:'Calle Ficticia 123, Piso 2'
   }),201,'Create request');
   const url='/api/jobs/'+job.id+'/messages';
   const body={body:'Hola, esta es una prueba interna de contratacion.'};
