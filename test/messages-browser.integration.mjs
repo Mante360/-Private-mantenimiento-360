@@ -101,10 +101,21 @@ try{
   for(const id of ['client','professional','stranger','unchosen'])
     contexts[id]=await browser.newContext({viewport:{width:1280,height:930}});
   const clientPage=await login(contexts.client,'chat-ui-customer@test.invalid');
+  clientPage.on('dialog',dialog=>void dialog.accept());
   verify(await clientPage.locator('#requestExactAddress').getAttribute('required')!==null,
     'Exact address is required by the client form');
   await openClientJob(clientPage,job.public_code);
   await clientPage.locator('#jobPrivateAddressText').getByText('Calle Ficticia 123, Piso 2').waitFor();
+  await clientPage.locator('#jobPrivateAddressEditForm').waitFor({state:'visible'});
+  await clientPage.locator('#jobPrivateAddressInput').fill('Pasaje Ficticio 444, piso 3');
+  await clientPage.locator('#jobPrivateAddressSaveButton').click();
+  await clientPage.locator('#jobPrivateAddressText').getByText('Pasaje Ficticio 444, piso 3').waitFor();
+  await clientPage.locator('#jobPrivateAddressFeedback').getByText('Dirección privada guardada').waitFor();
+  checks+=2;
+  await clientPage.locator('#jobPrivateAddressInput').fill('Calle Ficticia 123, Piso 2');
+  await clientPage.locator('#jobPrivateAddressSaveButton').click();
+  await clientPage.locator('#jobPrivateAddressText').getByText('Calle Ficticia 123, Piso 2').waitFor();
+  checks++;
   verify(!(await clientPage.locator('#jobsPanel').textContent()).includes('Calle Ficticia 123'),
     'The job listing does not disclose the private address');
   verify(!(await clientPage.locator('#jobMessagesSection').isVisible()),
@@ -126,6 +137,8 @@ try{
   verify(selected.status==='confirmed'&&selected.paymentProcessed===false,
     'Contract is not a real payment');
   await openClientJob(clientPage,job.public_code);
+  verify(!(await clientPage.locator('#jobPrivateAddressEditForm').isVisible()),
+    'After hiring, owner cannot silently replace existing private address');
   await clientPage.locator('#jobMessagesSection').waitFor({state:'visible',timeout:20000});
   await clientPage.locator('#jobMessagesList').getByText('Todavía no hay mensajes').waitFor();
   checks++;
