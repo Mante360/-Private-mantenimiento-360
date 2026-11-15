@@ -11,6 +11,9 @@ const createSchema = z.object({
   serviceId: z.number().int().positive().nullable().optional(),
   description: z.string().trim().min(3).max(3000),
   locality: z.string().trim().min(2).max(120),
+  // Kept in the private jobs column, never included in the public request feed.
+  exactAddress: z.string().trim().min(8).max(240)
+    .refine(value=>!/[\u0000-\u001f\u007f]/.test(value)),
 }).strict();
 
 // Deliberately excludes client_id, exact_address, personal data and all quotes.
@@ -63,14 +66,14 @@ jobsRouter.post('/', requireRole('client'), async (req, res, next) => {
       if(!available.rows.length){res.status(409).json({error:'no_eligible_professionals_for_service'});return;}
     }
     const result = await pool.query(
-      `INSERT INTO jobs(client_id,specialty_id,service_id,description,locality,status)
-       SELECT $1,s.id,ss.id,$4,$5,'requested'
+      `INSERT INTO jobs(client_id,specialty_id,service_id,description,locality,exact_address,status)
+       SELECT $1,s.id,ss.id,$4,$5,$6,'requested'
        FROM specialties s
        LEFT JOIN specialty_services ss
          ON ss.id=$3 AND ss.specialty_id=s.id AND ss.active
        WHERE s.id=$2 AND s.active AND ($3::bigint IS NULL OR ss.id IS NOT NULL)
        RETURNING id,public_code,specialty_id,service_id,description,locality,status,created_at`,
-      [req.authUser!.id,d.specialtyId,d.serviceId ?? null,d.description,d.locality]
+      [req.authUser!.id,d.specialtyId,d.serviceId ?? null,d.description,d.locality,d.exactAddress]
     );
     if (!result.rows[0]) {
       res.status(400).json({ error: 'invalid_specialty_or_service' });
@@ -394,7 +397,45 @@ jobsRouter.get('/:id/events', async (req, res, next) => {
   }
 });
 
-// No exact_address: address sharing requires separate consent-aware API.
+/**
+ * Private address endpoint. Never place the address in a search/feed response:
+ *   - client: their own request, at any stage
+ *   - professional: their selected general contract, or the actively accepted
+ *     technical visit (the visit is a separate engagement).
+ * No admin or other roles gain passive access to private home addresses.
+ * Old demonstration requests may have a null address; no values are invented.
+ */
+jobsRouter.get('/:id/private-address', requireRole('client','professional'), async (req,res,next)=>{
+  const parsed=z.coerce.number().int().positive().safeParse(req.params.id);
+  if(!parsed.success){res.status(400).json({error:'invalid_job_id'});return;}
+  try{
+    const actor=req.authUser!;
+    const result=await pool.query(
+      `SELECT j.id,j.exact_address FROM jobs j
+       WHERE j.id=$1 AND (
+         ($2='client' AND j.client_id=$3)
+         OR ($2='professional' AND (
+           (j.status IN ('confirmed','in_progress','completed') AND EXISTS(
+             SELECT 1 FROM job_contracts jc
+             JOIN job_quotes q ON q.id=jc.quote_id AND q.job_id=j.id
+             WHERE jc.job_id=j.id AND q.professional_id=$3
+           ))
+           OR (j.status='accepted' AND EXISTS(
+             SELECT 1 FROM lab_visit_offers v
+             WHERE v.job_id=j.id AND v.professional_id=$3
+               AND v.status='accepted'
+           ))
+         ))
+       )`,
+      [parsed.data,actor.role,actor.id]
+    );
+    if(!result.rows[0]){res.status(404).json({error:'address_not_available'});return;}
+    res.setHeader('Cache-Control','private, no-store');
+    res.json({jobId:result.rows[0].id,exactAddress:result.rows[0].exact_address});
+  }catch(error){next(error);}
+});
+
+// The ordinary job detail intentionally excludes exact_address.
 jobsRouter.get('/:id', async (req, res, next) => {
   const id = z.coerce.number().int().positive().safeParse(req.params.id);
   if (!id.success) {
