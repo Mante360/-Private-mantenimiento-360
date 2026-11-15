@@ -95,7 +95,7 @@ try{
   const job=await api('POST','/api/jobs',customer.token,{
     specialtyId:Number(category.id),serviceId:Number(service.id),
     description:'Prueba de mensajes privados asociados a la contratacion',
-    locality:'San Isidro'
+    locality:'San Isidro',exactAddress:'Calle Ficticia 123, Piso 2'
   });
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   for(const id of ['client','professional','stranger','unchosen'])
