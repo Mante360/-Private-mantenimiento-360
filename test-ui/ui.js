@@ -2589,23 +2589,56 @@ if (profile.role === 'client') void loadClientSpecialties();
           '\nDetalle: ' + quote.description;
         section.append(summary);
         if (job.status === 'quoted' && quote.status === 'submitted') {
+          // A mock checkout: no payment gateway, bank account, credit-card field,
+          // money transfer, or claim that the invoice was actually paid.
+          const paymentLabel=document.createElement('label');
+          paymentLabel.textContent='Forma de pago FICTICIA (no se cobrará dinero)';
+          const paymentSelect=document.createElement('select');
+          paymentSelect.setAttribute('aria-label','Forma de pago ficticia');
+          paymentSelect.append(
+            new Option('Seleccionar una simulación',''),
+            new Option('Mercado Pago (SIMULADO)','mercado_pago'),
+            new Option('Transferencia bancaria (SIMULADA)','bank_transfer')
+          );
+          const explanation=document.createElement('p');
+          explanation.className='hint';
+          explanation.textContent='Solo registra la contratación de prueba. No solicita datos de tarjetas, cuentas bancarias ni procesa pagos.';
           const button = document.createElement('button');
           button.type = 'button';
           button.className = 'secondary';
-          button.textContent = 'Aceptar presupuesto de prueba';
+          button.textContent = 'Pagar y contratar (SIMULADO)';
+          button.disabled=true;
+          paymentSelect.addEventListener('change',()=>{button.disabled=!paymentSelect.value;});
           button.addEventListener('click', async () => {
-            if (!confirm('¿Aceptar este presupuesto de PRUEBA? No se realiza ningún pago.')) return;
+            const simulatedPaymentMethod=paymentSelect.value;
+            if(!['mercado_pago','bank_transfer'].includes(simulatedPaymentMethod))return;
+            if (!confirm('¿Registrar esta contratación FICTICIA por ARS '+Number(quote.amount).toLocaleString('es-AR')+
+              ' con '+(simulatedPaymentMethod==='mercado_pago'?'Mercado Pago':'transferencia bancaria')+
+              ' SIMULADO? No se realizará ningún cobro.')) return;
             button.disabled = true;
+            paymentSelect.disabled=true;
             try {
-              await api('POST', '/api/jobs/' + job.id + '/accept-quote', {quoteId: Number(quote.id)});
-              el('quoteFeedback').textContent = 'Presupuesto aceptado en el Laboratorio. No se procesó ningún pago.';
+              const response=await api('POST', '/api/jobs/' + job.id + '/accept-quote', {
+                quoteId:Number(quote.id),simulatedPaymentMethod
+              });
+              if(response.paymentProcessed!==false || response.simulatedPayment?.charged!==false)
+                throw Error('Respuesta de pago ficticio no válida; revisá Administración.');
               await refreshJobs();
+              const notice=document.createElement('p');
+              notice.className='feedback ok';
+              notice.setAttribute('role','status');
+              notice.textContent='Contrato de laboratorio registrado. Medio SIMULADO: '+
+                (simulatedPaymentMethod==='mercado_pago'?'Mercado Pago':'transferencia bancaria')+
+                '. Importe ficticio ARS '+Number(quote.amount).toLocaleString('es-AR')+
+                '. No se realizó ningún pago.';
+              el('jobsPanel').prepend(notice);
             } catch(error) {
-              el('quoteFeedback').textContent = error.message;
-              button.disabled = false;
+              el('quoteFeedback').textContent='No se pudo registrar la simulación: '+error.message;
+              button.disabled=false;
+              paymentSelect.disabled=false;
             }
           });
-          section.append(button);
+          section.append(paymentLabel,paymentSelect,explanation,button);
         }
         list.append(section);
       });
