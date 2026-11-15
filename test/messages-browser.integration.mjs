@@ -101,7 +101,12 @@ try{
   for(const id of ['client','professional','stranger','unchosen'])
     contexts[id]=await browser.newContext({viewport:{width:1280,height:930}});
   const clientPage=await login(contexts.client,'chat-ui-customer@test.invalid');
+  verify(await clientPage.locator('#requestExactAddress').getAttribute('required')!==null,
+    'Exact address is required by the client form');
   await openClientJob(clientPage,job.public_code);
+  await clientPage.locator('#jobPrivateAddressText').getByText('Calle Ficticia 123, Piso 2').waitFor();
+  verify(!(await clientPage.locator('#jobsPanel').textContent()).includes('Calle Ficticia 123'),
+    'The job listing does not disclose the private address');
   verify(!(await clientPage.locator('#jobMessagesSection').isVisible()),
     'No free chat before first quote');
 
@@ -130,6 +135,8 @@ try{
   const otherPro=await login(contexts.unchosen,'chat-ui-unchosen@test.invalid');
   verify(!(await otherPro.locator('#jobMessagesSection').isVisible()),
     'Non-selected professional does not see contracted chat');
+  verify(!(await otherPro.locator('#jobPrivateAddressSection').isVisible()),
+    'Non-selected professional does not see the private address panel');
 
   await clientPage.locator('#jobMessageBody').fill('Mensaje ficticio del cliente');
   await clientPage.locator('#jobMessageForm button[type="submit"]').click();
@@ -139,6 +146,9 @@ try{
 
   const proPage=await login(contexts.professional,'chat-ui-professional@test.invalid');
   await openProfessionalJob(proPage,job.public_code);
+  await proPage.locator('#jobPrivateAddressText').getByText('Calle Ficticia 123, Piso 2').waitFor();
+  verify(!(await proPage.locator('#contractsPanel').textContent()).includes('Calle Ficticia 123'),
+    'Professional contract list does not expose address');
   await proPage.locator('#jobMessagesList').getByText('Mensaje ficticio del cliente').waitFor();
   checks++;
   await proPage.locator('#jobMessageBody').fill('Respuesta ficticia del profesional');
@@ -155,6 +165,7 @@ try{
   await clientPage.reload({waitUntil:'domcontentloaded'});
   await clientPage.locator('#signedIn').waitFor({state:'visible',timeout:20000});
   await openClientJob(clientPage,job.public_code);
+  await clientPage.locator('#jobPrivateAddressText').getByText('Calle Ficticia 123, Piso 2').waitFor();
   await clientPage.locator('#jobMessagesList').getByText('Mensaje ficticio del cliente').waitFor();
   await clientPage.locator('#jobMessagesList').getByText('Respuesta ficticia del profesional').waitFor();
   checks+=2;
