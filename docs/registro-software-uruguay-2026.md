@@ -56,7 +56,7 @@ El Registro de Software funciona en la **Dirección Nacional de la Propiedad Ind
 
 ## Consultas pendientes para DNPI
 
-**Contacto oficial:** registro.software@miem.gub.uy. Soporte para transferencia electrónica de los ejemplares: soport ednpi (usar la dirección completa de la circular **soportednpi@miem.gub.uy**).
+**Contacto oficial:** registro.software@miem.gub.uy. Soporte para transferencia electrónica de los ejemplares: **soportednpi@miem.gub.uy** (con copia a registro.software@miem.gub.uy).
 
 1. Si titular persona física con DNI argentino y residencia en Argentina puede crear usuario en el portal y firmar electrónicamente sin identificación digital uruguaya; documentos y representación necesarios.
 2. Modalidad aceptada de **domicilio constituido en Uruguay** (representante profesional, domicilio de notificaciones, etc.).
