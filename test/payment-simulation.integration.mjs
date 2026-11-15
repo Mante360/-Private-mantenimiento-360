@@ -150,7 +150,7 @@ try{
   assert.equal(audit.length,1,'One simulated payment choice for one real test contract');checks++;
   assert.equal(String(audit[0].actor_id),String(client.user.id));checks++;
   assert.equal(audit[0].metadata.method,'mercado_pago');checks++;
-  assert.equal(audit[0].metadata.amount,'95000');checks++;
+  assert.equal(Number(audit[0].metadata.amount),95000);checks++;
   assert.equal(audit[0].metadata.charged,false);checks++;
   assert.equal(audit[0].metadata.scope,'lab_only');checks++;
   assert.ok(!JSON.stringify(audit).includes('cardNumber'));checks++;
