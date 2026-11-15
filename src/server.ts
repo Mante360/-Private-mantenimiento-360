@@ -6,6 +6,7 @@ import { requireAuth, requireRole, requireVerifiedProfessionalForWork } from './
 import { authRouter } from './routes/auth.js';
 import { jobsRouter } from './routes/jobs.js';
 import { quotesRouter } from './routes/quotes.js';
+import { messagesRouter } from './routes/messages.js';
 import { claimsRouter } from './routes/claims.js';
 import { claimEvidenceRouter, ensureLabClaimEvidenceSchema } from './routes/claim-evidence.js';
 import { photosRouter, ensureLabPhotoSchema } from './routes/photos.js';
@@ -89,6 +90,7 @@ app.use('/api/claims',requireAuth,requireRole('client','professional','admin'),r
 app.use('/api/admin',requireAuth,requireRole('admin'));
 app.use('/api/jobs', jobsRouter);
 app.use('/api/jobs', quotesRouter);
+app.use('/api/jobs', messagesRouter);
 app.use('/api/jobs', photosRouter);
 app.use('/api/jobs', technicalRouter);
 app.use('/api/jobs', labVisitsRouter);
