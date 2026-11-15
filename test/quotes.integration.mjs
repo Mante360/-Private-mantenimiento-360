@@ -77,7 +77,7 @@ try{
 
   const job=expect(await post('/api/jobs',client.token,{
     specialtyId:Number(category.id),serviceId:Number(service.id),
-    description:'Reparacion de camara frigorifica',locality:'Beccar'
+    description:'Reparacion de camara frigorifica',locality:'Beccar',exactAddress:'Calle Ficticia 123, Piso 2'
   }),201,'Cliente inicia solicitud de presupuestos');
   const path='/api/jobs/'+job.id;
 
@@ -128,7 +128,7 @@ try{
 
   const jobOther=expect(await post('/api/jobs',outsider.token,{
     specialtyId:Number(category.id),serviceId:Number(service.id),
-    description:'Reparacion de otra heladera',locality:'Olivos'
+    description:'Reparacion de otra heladera',locality:'Olivos',exactAddress:'Calle Ficticia 123, Piso 2'
   }),201,'Otra solicitud para cotizacion de otro cliente');
   const qOther=expect(await post('/api/jobs/'+jobOther.id+'/quotes',pro1.token,offerBody(40000,10,'otro')),201,'Oferta de otro trabajo');
   expect(await post(path+'/accept-quote',client.token,{quoteId:Number(qOther.id)}),404,'No permite seleccionar oferta de otro trabajo');
@@ -159,7 +159,7 @@ try{
   // Real concurrent clicks from one client: exactly one succeeds.
   const raceJob=expect(await post('/api/jobs',client.token,{
     specialtyId:Number(category.id),serviceId:Number(service.id),
-    description:'Prueba doble clic',locality:'Beccar'
+    description:'Prueba doble clic',locality:'Beccar',exactAddress:'Calle Ficticia 123, Piso 2'
   }),201,'Solicitar segundo trabajo para concurrencia');
   const racePath='/api/jobs/'+raceJob.id;
   const race1=expect(await post(racePath+'/quotes',pro1.token,offerBody(30000,3,'raceuno')),201,'Primera oferta carrera');
@@ -175,7 +175,7 @@ try{
   // Active complaint restriction means no new quote can be submitted.
   const restrictionJob=expect(await post('/api/jobs',client.token,{
     specialtyId:Number(category.id),serviceId:Number(service.id),
-    description:'Trabajo para probar bloqueo',locality:'Beccar'
+    description:'Trabajo para probar bloqueo',locality:'Beccar',exactAddress:'Calle Ficticia 123, Piso 2'
   }),201,'Trabajo para bloqueo por reclamo');
   const [admin]=await query("SELECT id FROM users WHERE role='admin' LIMIT 1");
   const [claim]=await query(
