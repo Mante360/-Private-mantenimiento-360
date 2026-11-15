@@ -1342,6 +1342,37 @@ if (profile.role === 'client') void loadClientSpecialties();
   }
   let displayedJobs = [];
   let openedJob = null;
+  let privateAddressVersion=0;
+  function clearJobPrivateAddress(){
+    privateAddressVersion++;
+    el('jobPrivateAddressSection').hidden=true;
+    el('jobPrivateAddressText').textContent='';
+  }
+  async function loadJobPrivateAddress(job){
+    clearJobPrivateAddress();
+    const currentUser=profile?.id;
+    const allowed=profile?.role==='client' ||
+      profile?.role==='professional' &&
+      ['accepted','confirmed','in_progress','completed'].includes(job.status);
+    if(!allowed)return;
+    const requestVersion=privateAddressVersion;
+    el('jobPrivateAddressSection').hidden=false;
+    el('jobPrivateAddressText').textContent='Consultando dirección privada...';
+    try{
+      const address=await api('GET','/api/jobs/'+
+        encodeURIComponent(String(job.id))+'/private-address');
+      if(requestVersion!==privateAddressVersion||String(openedJob?.id)!==String(job.id)||
+        profile?.id!==currentUser)return;
+      el('jobPrivateAddressText').textContent=address.exactAddress ||
+        'Esta solicitud anterior no tiene una dirección exacta registrada.';
+    }catch(error){
+      if(requestVersion!==privateAddressVersion||
+        String(openedJob?.id)!==String(job.id))return;
+      // Do not reveal details about another user's private address.
+      el('jobPrivateAddressSection').hidden=true;
+      el('jobPrivateAddressText').textContent='';
+    }
+  }
   let messagePageHasMore = false;
   let messageOldestId = null;
   let messageRequestVersion = 0;
@@ -1449,6 +1480,7 @@ if (profile.role === 'client') void loadClientSpecialties();
     el('jobDetailPanel').hidden = true;
     openedJob = null;
     closeJobMessages();
+    clearJobPrivateAddress();
     window.labTechnical.close();
     if(window.labVisit)window.labVisit.close();
     el('jobClaimHistory').hidden = true;
@@ -1747,7 +1779,9 @@ if (profile.role === 'client') void loadClientSpecialties();
 
   async function openJob(job) {
     closeJobMessages();
+    clearJobPrivateAddress();
     openedJob = job;
+    void loadJobPrivateAddress(job);
     if(['client','professional'].includes(profile?.role) &&
       ['confirmed','in_progress','completed'].includes(job.status))
       void loadJobMessages();
@@ -2834,13 +2868,18 @@ async function createLabRequest(event) {
   const serviceId = Number(el('requestServiceId').value)||null;
   const description = el('requestDescription').value.trim();
   const locality = el('requestLocality').value.trim();
+  const exactAddress = el('requestExactAddress').value.trim();
 
   if(!specialtyId){
     el('requestResult').textContent='Primero elegí una de las especialidades sugeridas para tu problema.';
     el('requestSpecialtySearch').focus();
     return;
   }
-  if(description.length<3 || locality.length<2)return;
+  if(description.length<3 || locality.length<2 || exactAddress.length<8 ||
+     exactAddress.length>240){
+    el('requestResult').textContent='Completá la descripción, la localidad y la dirección exacta ficticia.';
+    return;
+  }
   const photos=window.labPhotos.getStagedPhotos();
   if (photos.length>5) { el('requestResult').textContent='Elegí hasta 5 fotografías.'; return; }
 
@@ -2852,7 +2891,8 @@ async function createLabRequest(event) {
       specialtyId,
       serviceId,
       description,
-      locality
+      locality,
+      exactAddress
     });
 
     let photosResult='';
@@ -2872,6 +2912,7 @@ async function createLabRequest(event) {
 
     el('requestDescription').value = '';
     el('requestLocality').value = '';
+    el('requestExactAddress').value = '';
     el('requestSpecialtySearch').value = '';
     manualHeaterType='';
     renderClientSpecialtyOptions();
