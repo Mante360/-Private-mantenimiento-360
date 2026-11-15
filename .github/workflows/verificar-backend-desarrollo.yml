@@ -89,6 +89,11 @@ jobs:
           CI: "true"
           DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
         run: node test/messages.integration.mjs
+      - name: Probar direcciones exactas privadas y domicilio solo para profesional elegido
+        env:
+          CI: "true"
+          DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
+        run: node test/private-address.integration.mjs
 
   interfaz-en-navegador:
     name: Probar las pantallas reales con Chromium
