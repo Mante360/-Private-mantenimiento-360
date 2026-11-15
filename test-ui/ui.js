@@ -1160,7 +1160,14 @@
         ?'professional-pending':profile.role;
     el('guest').hidden = !!profile;
     el('signedIn').hidden = !profile;
-    if (!profile) return;
+    if (!profile) {
+      // Clear private conversation left by a previous session.
+      if(el('jobMessagesSection')) {
+        el('jobMessagesSection').hidden=true;
+        el('jobMessagesList').replaceChildren();
+      }
+      return;
+    }
     const professionalPending=profile.role==='professional' && profile.verificationStatus!=='approved';
     const professionalCanWork=profile.role==='professional' && !professionalPending;
     el('accessStatusTitle').textContent=professionalPending
@@ -1335,10 +1342,113 @@ if (profile.role === 'client') void loadClientSpecialties();
   }
   let displayedJobs = [];
   let openedJob = null;
+  let messagePageHasMore = false;
+  let messageOldestId = null;
+  let messageRequestVersion = 0;
+
+  function closeJobMessages() {
+    messageRequestVersion++;
+    messagePageHasMore=false;
+    messageOldestId=null;
+    el('jobMessagesSection').hidden=true;
+    el('jobMessagesList').replaceChildren();
+    el('jobMessageBody').value='';
+    el('jobMessageFeedback').textContent='';
+    el('olderJobMessages').hidden=true;
+  }
+
+  function renderMessages(items, prepend=false) {
+    const list=el('jobMessagesList');
+    if(!prepend)list.replaceChildren();
+    if(!items.length && !prepend) {
+      list.textContent='Todavía no hay mensajes en esta conversación.';
+      return;
+    }
+    if(prepend && list.textContent==='Todavía no hay mensajes en esta conversación.')
+      list.replaceChildren();
+    const nodes=items.map(message=>{
+      const entry=document.createElement('div');
+      entry.className='service-review-item';
+      const title=document.createElement('strong');
+      const when=new Date(message.created_at);
+      title.textContent=(message.sender_role==='client'?'Cliente':'Profesional')+
+        ' · '+message.sender_name+' · '+
+        (Number.isNaN(when.getTime())?'Fecha no disponible':when.toLocaleString('es-AR',{
+          dateStyle:'short',timeStyle:'short',timeZone:'America/Argentina/Buenos_Aires'
+        }));
+      const messageBody=document.createElement('p');
+      messageBody.textContent=message.body;
+      messageBody.style.whiteSpace='pre-wrap';
+      entry.append(title,messageBody);
+      return entry;
+    });
+    if(prepend)list.prepend(...nodes);else list.append(...nodes);
+  }
+
+  async function loadJobMessages(loadOlder=false) {
+    const job=openedJob;
+    const userId=profile?.id;
+    if(!job||!['client','professional'].includes(profile?.role)||
+      !['confirmed','in_progress','completed'].includes(job.status)){
+      closeJobMessages();return;
+    }
+    const section=el('jobMessagesSection');
+    section.hidden=false;
+    const version=++messageRequestVersion;
+    const list=el('jobMessagesList');
+    if(!loadOlder)list.textContent='Consultando conversación privada...';
+    const cursor=loadOlder&&messageOldestId
+      ?'?beforeId='+encodeURIComponent(String(messageOldestId)):'';
+    try{
+      const data=await api('GET','/api/jobs/'+encodeURIComponent(String(job.id))+
+        '/messages'+cursor);
+      if(version!==messageRequestVersion||openedJob?.id!==job.id||
+        profile?.id!==userId)return;
+      if(!Array.isArray(data.items))throw Error('Formato de conversación inválido');
+      if(loadOlder){
+        renderMessages(data.items,true);
+      }else{
+        renderMessages(data.items);
+      }
+      if(data.items.length)messageOldestId=data.items[0].id;
+      messagePageHasMore=data.hasMore===true;
+      el('olderJobMessages').hidden=!messagePageHasMore;
+      el('jobMessageForm').hidden=false;
+      el('jobMessageFeedback').textContent='';
+    }catch(error){
+      if(version!==messageRequestVersion||openedJob?.id!==job.id)return;
+      list.textContent='No se pudo consultar el chat: '+error.message;
+      el('jobMessageForm').hidden=true;
+      el('olderJobMessages').hidden=true;
+    }
+  }
+
+  async function sendJobMessage(event) {
+    event.preventDefault();
+    const job=openedJob;
+    if(!job||el('jobMessagesSection').hidden)return;
+    const input=el('jobMessageBody');
+    const body=input.value.trim();
+    if(!body||body.length>3000)return;
+    const button=el('jobMessageForm').querySelector('button[type="submit"]');
+    button.disabled=true;
+    try{
+      await api('POST','/api/jobs/'+encodeURIComponent(String(job.id))+'/messages',{body});
+      if(openedJob?.id!==job.id)return;
+      input.value='';
+      await loadJobMessages();
+      el('jobMessageFeedback').textContent='Mensaje guardado en el historial del trabajo.';
+    }catch(error){
+      if(openedJob?.id===job.id)
+        el('jobMessageFeedback').textContent='No se pudo enviar el mensaje: '+error.message;
+    }finally{button.disabled=false;}
+  }
+
   async function refreshJobs() {
     const panel = el('jobsPanel');
     el('jobDetailPanel').hidden = true;
     openedJob = null;
+    closeJobMessages();
     window.labTechnical.close();
     if(window.labVisit)window.labVisit.close();
     el('jobClaimHistory').hidden = true;
@@ -1636,7 +1746,11 @@ if (profile.role === 'client') void loadClientSpecialties();
   }
 
   async function openJob(job) {
+    closeJobMessages();
     openedJob = job;
+    if(['client','professional'].includes(profile?.role) &&
+      ['confirmed','in_progress','completed'].includes(job.status))
+      void loadJobMessages();
     window.labPhotos.openJob(job,profile);
     window.labTechnical.openJob(job,profile);
     el('jobDetailPanel').hidden = false;
@@ -2934,6 +3048,11 @@ async function createLabRequest(event) {
   el('adminSpecialtySearch').addEventListener('input',()=>renderAdminSpecialtyOptions());
   el('loginForm').addEventListener('submit',handleLogin);
   el('refreshJobs').addEventListener('click',refreshJobs);
+  el('refreshJobMessages').addEventListener('click',()=>void loadJobMessages());
+  el('olderJobMessages').addEventListener('click',()=>{
+    if(messagePageHasMore && messageOldestId)void loadJobMessages(true);
+  });
+  el('jobMessageForm').addEventListener('submit',sendJobMessage);
   el('refreshContracts').addEventListener('click',loadContracts);
   el('refreshMyQuotes').addEventListener('click',toggleMyQuotes);
   
@@ -3006,6 +3125,8 @@ el('labRequestForm').addEventListener('submit',createLabRequest);
     el('adminConfirmPassword').value='';
     el('newProfessionalPassword').value='';
     sessionStorage.removeItem(tokenKey);
+    closeJobMessages();
+    openedJob=null;
     el('sessionExpiredNotice').hidden=true;
     render();
     feedback('Sesión de prueba cerrada.');
