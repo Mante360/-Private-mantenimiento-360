@@ -444,7 +444,7 @@ jobsRouter.get('/:id/private-address', requireRole('client','professional'), asy
  */
 const privateAddressInput=z.object({
   exactAddress:z.string().trim().min(8).max(240)
-    .refine(value=>!/[\\u0000-\\u001f\\u007f]/.test(value))
+    .refine(value=>!/[\u0000-\u001f\u007f]/.test(value))
 }).strict();
 
 jobsRouter.patch('/:id/private-address',requireRole('client'),async(req,res,next)=>{
