@@ -394,6 +394,19 @@
               <h4>Historial de reclamos y garantías</h4>
               <div id="jobClaimHistoryPanel" class="jobspanel"></div>
             </section>
+            <section id="jobMessagesSection" class="admin-section" hidden>
+              <h3>Mensajes privados del trabajo contratado</h3>
+              <p class="hint">Solo el cliente y el profesional seleccionado pueden leer y escribir. El historial se conserva aunque el trabajo se finalice. No compartas datos sensibles en las pruebas.</p>
+              <button type="button" id="refreshJobMessages" class="secondary">Actualizar conversación</button>
+              <div id="jobMessagesList" class="jobspanel" role="log" aria-label="Mensajes del trabajo" aria-live="polite"></div>
+              <button type="button" id="olderJobMessages" class="secondary" hidden>Ver mensajes anteriores</button>
+              <form id="jobMessageForm">
+                <label for="jobMessageBody">Nuevo mensaje</label>
+                <textarea id="jobMessageBody" rows="3" maxlength="3000" minlength="1" required placeholder="Escribí un mensaje para el cliente o profesional contratado"></textarea>
+                <button type="submit" class="primary">Enviar mensaje</button>
+              </form>
+              <p id="jobMessageFeedback" class="hint" role="status" aria-live="polite"></p>
+            </section>
             <button type="button" id="startJobButton" class="primary" hidden>Iniciar trabajo</button>
             <button type="button" id="completeJobButton" class="primary" hidden>Informar trabajo terminado</button>
             <p id="clientCompletionNotice" class="hint" hidden>El profesional informó que terminó el trabajo. Queda pendiente la revisión y conformidad del cliente. No se procesó ningún pago.</p>
