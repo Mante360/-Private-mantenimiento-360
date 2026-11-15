@@ -74,7 +74,7 @@ try{
   }
   checks++;
   const work={specialtyId:Number(category.id),serviceId:Number(service.id),
-    description:'Simulacion de contratacion con medio ficticio',locality:'Vicente Lopez'};
+    description:'Simulacion de contratacion con medio ficticio',locality:'Vicente Lopez',exactAddress:'Calle Ficticia 123, Piso 2'};
   const job=expect(await post('/api/jobs',client.token,work),201,'Client requests test job');
   const path='/api/jobs/'+job.id;
   const q1=expect(await post(path+'/quotes',p1.token,{
