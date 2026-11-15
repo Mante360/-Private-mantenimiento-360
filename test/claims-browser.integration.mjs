@@ -114,7 +114,7 @@ try{
   const job=await http('POST','/api/jobs',customer.token,{
     specialtyId:Number(category.id),serviceId:Number(service.id),
     description:'Equipo de refrigeracion con falla posterior simulada',
-    locality:'San Isidro'
+    locality:'San Isidro',exactAddress:'Calle Ficticia 123, Piso 2'
   });
   const offer=await http('POST','/api/jobs/'+job.id+'/quotes',professional.token,{
     amount:85000,description:'Reparacion ficticia de equipo',
@@ -127,7 +127,7 @@ try{
   const anotherJob=await http('POST','/api/jobs',stranger.token,{
     specialtyId:Number(category.id),serviceId:Number(service.id),
     description:'Trabajo pendiente para comprobar bloqueo posterior',
-    locality:'Olivos'
+    locality:'Olivos',exactAddress:'Calle Ficticia 123, Piso 2'
   });
 
   const clientPage=await login(contexts.client,'cliente-reclamo-ui@test.invalid',password);
