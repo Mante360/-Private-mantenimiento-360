@@ -1,0 +1,51 @@
+name: Preparar fuentes MIS 360 para registro DNDA
+
+on:
+  push:
+    branches:
+      - desarrollo-base-datos-seguridad-20261011
+    paths:
+      - ".github/workflows/paquete-fuentes-registro-mis360.yml"
+      - "scripts/paquete-fuentes-mis360.mjs"
+      - "docs/registro-software-argentina-mis360-2026.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuentes-registrables:
+    name: Generar ZIP privado y manifiesto de huellas SHA-256
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Obtener codigo privado de desarrollo
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Preparar paquete exclusivamente de fuentes
+        run: node scripts/paquete-fuentes-mis360.mjs
+      - name: Revisar integridad, contenido y ausencia de datos reales
+        run: |
+          set -eu
+          count=$(find dist-registro -maxdepth 1 -name "*.zip" | wc -l)
+          test "$count" -eq 1
+          archive=$(find dist-registro -maxdepth 1 -name "*.zip" -print -quit)
+          unzip -t "$archive" | tail -1
+          unzip -Z1 "$archive" | grep 'IDENTIFICACION_OBRA.txt'
+          unzip -Z1 "$archive" | grep 'MANIFIESTO_ARCHIVOS_SHA256.txt'
+          test -s dist-registro/HASH_DEL_PAQUETE_SHA256.txt
+          ! unzip -Z1 "$archive" | grep -Ei '(^|/)(\.env|node_modules|\.git|data|uploads|test-results)(/|$)'
+          cd dist-registro
+          sha256sum -c HASH_DEL_PAQUETE_SHA256.txt
+      - name: Guardar ZIP privado para descargar desde GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: MIS360-Fuentes-Registro-DNDA
+          path: |
+            dist-registro/*.zip
+            dist-registro/HASH_DEL_PAQUETE_SHA256.txt
+          if-no-files-found: error
+          retention-days: 60
