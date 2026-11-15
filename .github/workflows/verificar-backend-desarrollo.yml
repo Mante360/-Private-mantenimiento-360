@@ -75,6 +75,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
         run: node test/document-corrections.integration.mjs
+      - name: Probar reclamos, garantias, conformidad y desbloqueo del profesional
+        env:
+          DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
+        run: node test/claims-warranties.integration.mjs
 
   interfaz-en-navegador:
     name: Probar las pantallas reales con Chromium
