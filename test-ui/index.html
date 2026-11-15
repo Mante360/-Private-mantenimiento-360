@@ -287,6 +287,11 @@
     <input id="requestLocality" minlength="2" maxlength="120" required
       placeholder="Ejemplo: Localidad de Prueba">
 
+    <label for="requestExactAddress">Dirección exacta FICTICIA (dato privado y obligatorio)</label>
+    <input id="requestExactAddress" minlength="8" maxlength="240" required
+      autocomplete="off" placeholder="Calle Ficticia 123, piso 2, departamento B">
+    <p class="hint">El cliente conserva este dato privado. Solo el profesional contratado —o quien tenga una visita técnica aceptada— podrá verlo luego de la confirmación. No escribas la dirección en la descripción ni uses una dirección real durante las pruebas.</p>
+
     <label for="requestPhotoInput">Fotografías del problema (opcional)</label>
     <input id="requestPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" multiple>
     <p class="hint">Elegí hasta 5 fotos (JPG, PNG o WebP; máximo 10 MB cada una). Verás una vista previa y podrás quitar las que no quieras. Se guardarán al tocar «Crear solicitud de prueba». Usá solo imágenes ficticias.</p>
@@ -374,6 +379,10 @@
           <section id="jobDetailPanel" class="admin-section" hidden>
             <h3 id="jobDetailTitle">Solicitud de prueba</h3>
             <p id="jobDetailText" class="jobspanel"></p>
+            <section id="jobPrivateAddressSection" class="admin-section" hidden>
+              <h4>Dirección exacta · acceso privado</h4>
+              <p id="jobPrivateAddressText" class="jobspanel" role="status" aria-live="polite"></p>
+            </section>
             <div id="jobTimeline" class="jobspanel" role="status" aria-live="polite"></div>
             <div id="professionalReview" class="jobspanel" role="status" hidden></div>
             <section id="jobPhotosSection" class="admin-section">
