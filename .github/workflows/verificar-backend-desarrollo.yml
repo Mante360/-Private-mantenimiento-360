@@ -79,6 +79,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
         run: node test/claims-warranties.integration.mjs
+      - name: Probar pagos ficticios sin dinero, importe real de la oferta y contratacion unica
+        env:
+          CI: "true"
+          DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
+        run: node test/payment-simulation.integration.mjs
 
   interfaz-en-navegador:
     name: Probar las pantallas reales con Chromium
