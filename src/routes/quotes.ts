@@ -195,6 +195,9 @@ quotesRouter.get('/:jobId/quotes', requireRole('client','professional'), async (
 
 const acceptInput = z.object({
   quoteId: z.number().int().positive(),
+  // Optional for backwards-compatible API clients. This records an entirely
+  // fictitious choice, NOT a real payment attempt or verified settlement.
+  simulatedPaymentMethod: z.enum(['mercado_pago','bank_transfer']).optional(),
 }).strict();
 
 // Client decides once. Lock the original job so two simultaneous acceptances
@@ -225,8 +228,19 @@ quotesRouter.post('/:jobId/accept-quote', requireRole('client'), async (req, res
       res.status(409).json({ error: 'job_not_accepting_selection' });
       return;
     }
+    // The demonstration never contacts a payment provider, stores payment
+    // credentials, generates a real receipt, or marks the transaction as paid.
+    // Reject a simulated payment method outside the dedicated lab database.
+    if (input.data.simulatedPaymentMethod) {
+      const dbIdentity=await db.query('SELECT current_database() AS name');
+      if(dbIdentity.rows[0]?.name!=='mantenimiento_360_db_pruebas_20261012'){
+        await db.query('ROLLBACK');
+        res.status(403).json({error:'test_payment_lab_only'});
+        return;
+      }
+    }
     const winner = await db.query(
-      `SELECT id,professional_id FROM job_quotes
+      `SELECT id,professional_id,amount FROM job_quotes
        WHERE id=$1 AND job_id=$2 AND status='submitted'`,
       [input.data.quoteId,jobId.data]
     );
@@ -259,12 +273,33 @@ quotesRouter.post('/:jobId/accept-quote', requireRole('client'), async (req, res
        VALUES($1,$2,'quoted','confirmed')`,
       [jobId.data,req.authUser!.id]
     );
+    if(input.data.simulatedPaymentMethod){
+      // Immutable audit of the UI demonstration. Not an accounting ledger.
+      // Row-locked contract creation guarantees precisely one such event.
+      await db.query(
+        `INSERT INTO audit_events(actor_id,action,resource_type,resource_id,metadata)
+         VALUES($1,'lab_payment_method_simulated','job',$2,$3::jsonb)`,
+        [req.authUser!.id,String(jobId.data),JSON.stringify({
+          quoteId:input.data.quoteId,
+          method:input.data.simulatedPaymentMethod,
+          amount:String(winner.rows[0].amount),
+          charged:false,
+          scope:'lab_only'
+        })]
+      );
+    }
     await db.query('COMMIT');
     res.json({
       jobId:jobId.data,
       quoteId:input.data.quoteId,
       status:'confirmed',
       paymentProcessed:false,
+      simulatedPayment:input.data.simulatedPaymentMethod ? {
+        method:input.data.simulatedPaymentMethod,
+        amount:String(winner.rows[0].amount),
+        charged:false,
+        notice:'Simulacion exclusivamente de laboratorio. Ningun dinero fue cobrado.'
+      } : null,
     });
   } catch (error) {
     if (db) await db.query('ROLLBACK').catch(() => undefined);
