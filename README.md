@@ -1,4 +1,8 @@
-# Backend Mantenimiento 360°
+# MIS 360 — Mantenimiento Integral Service
+
+Proyecto de software inicialmente desarrollado con el nombre MANTENIMIENTO 360°. Los identificadores técnicos heredados permanecen para mantener la compatibilidad.
+
+## Backend de desarrollo y laboratorio
 
 Backend inicial listo para Render + PostgreSQL.
 
