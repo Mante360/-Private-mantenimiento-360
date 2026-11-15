@@ -87,7 +87,7 @@ try {
   
   const jobInput={
     specialtyId:Number(trade.id),serviceId:Number(service.id),
-    description:'Servicio de prueba con garantia de 30 dias',locality:'San Isidro'
+    description:'Servicio de prueba con garantia de 30 dias',locality:'San Isidro',exactAddress:'Calle Ficticia 123, Piso 2'
   };
   const job=expect(await post('/api/jobs',client.token,jobInput),201,
     'Client requests a genuine test job');
