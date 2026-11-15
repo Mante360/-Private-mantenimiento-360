@@ -382,6 +382,14 @@
             <section id="jobPrivateAddressSection" class="admin-section" hidden>
               <h4>Dirección exacta · acceso privado</h4>
               <p id="jobPrivateAddressText" class="jobspanel" role="status" aria-live="polite"></p>
+              <form id="jobPrivateAddressEditForm" hidden>
+                <label for="jobPrivateAddressInput">Completar o corregir dirección ficticia</label>
+                <input id="jobPrivateAddressInput" type="text" minlength="8" maxlength="240"
+                  autocomplete="off" required placeholder="Calle Ficticia 123, piso 2, departamento B">
+                <p class="hint">Solo el cliente puede modificarla antes de elegir profesional. Si una solicitud antigua no tiene dirección, puede completarse una sola vez aunque ya haya una contratación o visita aceptada. Después de contratar, los cambios requieren una gestión específica para evitar confusiones.</p>
+                <button type="submit" id="jobPrivateAddressSaveButton" class="secondary">Guardar dirección privada de prueba</button>
+              </form>
+              <p id="jobPrivateAddressFeedback" class="hint" role="status" aria-live="polite"></p>
             </section>
             <div id="jobTimeline" class="jobspanel" role="status" aria-live="polite"></div>
             <div id="professionalReview" class="jobspanel" role="status" hidden></div>
