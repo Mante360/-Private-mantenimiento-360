@@ -75,3 +75,53 @@ jobs:
         env:
           DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
         run: node test/document-corrections.integration.mjs
+
+  interfaz-en-navegador:
+    name: Probar las pantallas reales con Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test360
+          POSTGRES_PASSWORD: only-fixture-password-360
+          POSTGRES_DB: mantenimiento360_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test360 -d mantenimiento360_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento360_test
+      JWT_SECRET: github-actions-test-secret-only-0123456789abcdefghijklmnop
+      FRONTEND_ORIGIN: http://localhost:45678
+      PORT: "45678"
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar dependencias y navegador temporal
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+      - name: Compilar API
+        run: npm run build
+      - name: Preparar base de datos aislada con cuentas ficticias
+        run: node test/bootstrap-schema.integration.mjs
+      - name: Probar registro, oficios, documentacion y roles con clicks reales
+        env:
+          DATABASE_URL: postgresql://test360:only-fixture-password-360@localhost:5432/mantenimiento_360_db_pruebas_20261012
+        run: node test/browser-ui.integration.mjs
+      - name: Guardar capturas para diagnostico si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencias-pantallas-laboratorio
+          path: test-results/*.png
+          if-no-files-found: ignore
